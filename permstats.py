@@ -9,39 +9,70 @@ import re
 
 regex_concrete_url = re.compile(r'^.*://.*[a-z0-9]+\.[a-z]+.*$')
 
-def condense(permissions):
-    concrete_url_perms = {}
-    other_perms = {}
-    for perm in permissions:
+class PermissionHandlerPrintNames:
+    def __init__(self, permname):
+        self.permname = permname
+        self.extinfo = {}
+    def handle_permission(self, extid, permobj, path):
+        if str(permobj) == self.permname:
+            with open(os.path.join(path, 'metadata.json')) as f:
+                metadata = json.load(f)
+                self.extinfo[extid] = '{} | {} | {}'.format(metadata[1], metadata[6], extid)
+    def print_result(self, fileobj, delim):
+        fileobj.write('Extensions that use permission "{}":\n\n'.format(self.permname))
+        for extid in self.extinfo:
+            fileobj.write('{}\n'.format(self.extinfo[extid]))
+        fileobj.write('\n\n')
+
+class PermissionHandler:
+    def __init__(self):
+        self.permissions = {}
+        self.extids = set()
+    def handle_permission(self, extid, permobj, path):
+        self.extids.add(extid)
+        perm = str(permobj)
+        if not perm in self.permissions:
+            self.permissions[perm] = 0
+        self.permissions[perm] += 1
+    def print_result(self, fileobj, delim):
+        fileobj.write('Total: {} extensions\n'.format(len(self.extids)))
+        for perm in sorted(self.permissions, key=self.permissions.get, reverse=True):
+            fileobj.write('{}{}{}{}{:.2%}\n'.format(perm, delim, self.permissions[perm], delim, float(self.permissions[perm]) / len(self.extids)))
+        fileobj.write('\n\n')
+
+class PermissionHandlerCondensed:
+    def __init__(self):
+        self.permissions = {}
+        self.extids = set()
+        self.exts_with_concrete_urls = set()
+    def handle_permission(self, extid, permobj, path):
+        self.extids.add(extid)
+
+        perm = str(permobj)
         if regex_concrete_url.match(perm):
-            concrete_url_perms[perm] = permissions[perm]
-        else:
-            other_perms[perm] = permissions[perm]
-    other_perms["CONCRETE_URLS"] = sum([concrete_url_perms[perm] for perm in concrete_url_perms])
-    return other_perms
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Prints statistics about the requested permissions of downloaded extensions.')
-    parser.add_argument('dir', help='The directory in which the extensions are stored. The directory structure must be {category}/{extid}/*.crx.')
-    parser.add_argument('-d', '--delim', default='\t', help='Delimiter used for the statistics output.')
-    parser.add_argument('-o', '--output', default='-', help='Save the statistics into a file.')
-    parser.add_argument('-c', '--condensed', action="store_true", help='Only print statistics where concrete URLs are condensed into one permission.')
-    
-    args = parser.parse_args()
+            if extid in self.exts_with_concrete_urls:
+                return
+            self.exts_with_concrete_urls.add(extid)
+            perm = '<<<{}>>>'.format(regex_concrete_url.pattern)
+        if not perm in self.permissions:
+            self.permissions[perm] = 0
+        self.permissions[perm] += 1
+    def print_result(self, fileobj, delim):
+        fileobj.write('Condensed. Total: {} extensions\n'.format(len(self.extids)))
+        for perm in sorted(self.permissions, key=self.permissions.get, reverse=True):
+            fileobj.write('{}{}{}{}{:.2%}\n'.format(perm, delim, self.permissions[perm], delim, float(self.permissions[perm]) / len(self.extids)))
+        fileobj.write('\n\n')
 
-    if args.output is not '-':
-        os.remove(args.output)
-
-    category_folders  = [args.dir]
-    category_folders += [os.path.join(args.dir, d) for d in next(os.walk(args.dir))[1]]
-
-    for category_folder in category_folders:    
-        permissions = {}
-        nrexts = 0
-
+    #condensed_permissions = condense(permissions)
+    #args.output.write('Condensed\n')
+    #for perm in sorted(condensed_permissions, key=condensed_permissions.get, reverse=True):
+    #    args.output.write('{}{}{}{}{:.2%}\n'.format(perm, args.delim, condensed_permissions[perm], args.delim, float(condensed_permissions[perm]) / nrexts))
+    #args.output.write('\n')
+class PermissionStatisticGenerator:
+    def run(category_folder, permhandlers):
         for root, dirs, files in os.walk(category_folder):
             crxfile = next((f for f in files if f.endswith('.crx')), None)
             if crxfile:
-                nrexts += 1
                 extid = os.path.basename(root)
                 with ZipFile(os.path.join(root, crxfile)) as zipfile:
                     with zipfile.open('manifest.json') as f:
@@ -55,22 +86,27 @@ if __name__ == '__main__':
                         manifest = json.loads(content)
                         if 'permissions' in manifest:
                             for permobj in manifest['permissions']:
-                                perm = str(permobj)
-                                if not perm in permissions:
-                                    permissions[perm] = 0
-                                permissions[perm] += 1
-        f = open(args.output, 'a') if args.output is not '-' else sys.stdout
-        f.write('Permissions in category {} ({} extensions)\n\n'.format(os.path.basename(category_folder), nrexts))
-        if not args.condensed:
-            for perm in sorted(permissions, key=permissions.get, reverse=True):
-                f.write('{}{}{}{}{:.2%}\n'.format(perm, args.delim, permissions[perm], args.delim, float(permissions[perm]) / nrexts))
-            f.write('\n')
+                                for handler in permhandlers:
+                                    handler.handle_permission(extid, permobj, root)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Prints statistics about the requested permissions of downloaded extensions.')
+    parser.add_argument('dir', help='The directory in which the extensions are stored. The directory structure must be {category}/{extid}/*.crx.')
+    parser.add_argument('-d', '--delim', default='\t', help='Delimiter used for the statistics output.')
+    parser.add_argument('-o', '--output', default=sys.stdout, type=argparse.FileType('w'), help='Save the statistics into a file.')
+    parser.add_argument('-p', '--permission', help='Prints out all extension names and descriptions that use the given permission.')
+    
+    args = parser.parse_args()
 
-        condensed_permissions = condense(permissions)
-        f.write('Condensed\n')
-        for perm in sorted(condensed_permissions, key=condensed_permissions.get, reverse=True):
-            f.write('{}{}{}{}{:.2%}\n'.format(perm, args.delim, condensed_permissions[perm], args.delim, float(condensed_permissions[perm]) / nrexts))
-        f.write('\n')
+    category_folders  = [args.dir]
+    category_folders += [os.path.join(args.dir, d) for d in next(os.walk(args.dir))[1]]
 
-        if f is not sys.stdout:
-            f.close()
+    for category_folder in category_folders:    
+        args.output.write('Permissions for category {}:\n\n'.format(category_folder))
+        if args.permission:
+            handlers = [PermissionHandlerPrintNames(args.permission)]
+        else:
+            handlers = [PermissionHandler(), PermissionHandlercondensed()]
+        PermissionStatisticGenerator.run(category_folder, handlers)
+
+        for handler in handlers:
+            handler.print_result(args.output, args.delim)
