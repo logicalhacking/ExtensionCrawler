@@ -14,10 +14,10 @@ class PermissionHandlerPrintNames:
         self.permname = permname
         self.extinfo = {}
     def handle_permission(self, extid, permobj, path):
-        if str(permobj) == self.permname:
+        if self.permname in str(permobj):
             with open(os.path.join(path, 'metadata.json')) as f:
                 metadata = json.load(f)
-                self.extinfo[extid] = '{} | {} | {}'.format(metadata[1], metadata[6], extid)
+                self.extinfo[extid] = '{} | {} | {}'.format(metadata[1], metadata[6], path)
     def print_result(self, fileobj, delim):
         fileobj.write('Extensions that use permission "{}":\n\n'.format(self.permname))
         for extid in self.extinfo:
@@ -63,11 +63,6 @@ class PermissionHandlerCondensed:
             fileobj.write('{}{}{}{}{:.2%}\n'.format(perm, delim, self.permissions[perm], delim, float(self.permissions[perm]) / len(self.extids)))
         fileobj.write('\n\n')
 
-    #condensed_permissions = condense(permissions)
-    #args.output.write('Condensed\n')
-    #for perm in sorted(condensed_permissions, key=condensed_permissions.get, reverse=True):
-    #    args.output.write('{}{}{}{}{:.2%}\n'.format(perm, args.delim, condensed_permissions[perm], args.delim, float(condensed_permissions[perm]) / nrexts))
-    #args.output.write('\n')
 class PermissionStatisticGenerator:
     def run(category_folder, permhandlers):
         for root, dirs, files in os.walk(category_folder):
@@ -94,18 +89,20 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--delim', default='\t', help='Delimiter used for the statistics output.')
     parser.add_argument('-o', '--output', default=sys.stdout, type=argparse.FileType('w'), help='Save the statistics into a file.')
     parser.add_argument('-p', '--permission', help='Prints out all extension names and descriptions that use the given permission.')
+    parser.add_argument('-c', '--categories', action='store_true', help='Print the results for each category separately.')
     
     args = parser.parse_args()
 
     category_folders  = [args.dir]
-    category_folders += [os.path.join(args.dir, d) for d in next(os.walk(args.dir))[1]]
+    if args.categories:
+        category_folders += [os.path.join(args.dir, d) for d in next(os.walk(args.dir))[1]]
 
     for category_folder in category_folders:    
-        args.output.write('Permissions for category {}:\n\n'.format(category_folder))
+        args.output.write('Results for category {}:\n\n'.format(category_folder))
         if args.permission:
             handlers = [PermissionHandlerPrintNames(args.permission)]
         else:
-            handlers = [PermissionHandler(), PermissionHandlercondensed()]
+            handlers = [PermissionHandler(), PermissionHandlerCondensed()]
         PermissionStatisticGenerator.run(category_folder, handlers)
 
         for handler in handlers:
