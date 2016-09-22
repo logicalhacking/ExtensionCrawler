@@ -17,12 +17,85 @@
 #
 
 import argparse
+import binascii
+from Crypto.PublicKey import RSA
+from Crypto.Hash import SHA
 
-# https://developer.chrome.com/extensions/crx
+from Crypto.Signature import PKCS1_v1_5
+
+class CrxFile:
+    def __init__(self,filename,magic,version,pk_len,sig_len,pk,sig,header_len,data): 
+        self.file       = filename
+        self.magic      = magic
+        self.version    = version
+        self.pk_len     = pk_len
+        self.sig_len    = sig_len
+        self.pk         = pk
+        self.sig        = sig
+        self.header_len = header_len
+        self.data       = data
+        
+def is_valid_magic(magic):
+    return (b'Cr24' == magic)
+
+def is_crxfile (filename):
+    "Check magic number: crx files should start with \"Cr24\"."
+    file      = open (filename, 'rb')
+    magic     = file.read(4)
+    file.close()
+    return is_valid_magic(magic)
+
+def check_signature(pk,sig,data):
+    key  = RSA.importKey(pk)
+    hash = SHA.new(data)
+    return PKCS1_v1_5.new(key).verify(hash, sig)
+ 
+def read_crx(filename):
+    "Read header of an crx file (https://developer.chrome.com/extensions/crx)."
+    file       = open (filename, 'rb')
+    magic      = file.read(4)
+    version    = int.from_bytes(file.read(4), byteorder='little')
+    pk_len     = int.from_bytes(file.read(4), byteorder='little')
+    sig_len    = int.from_bytes(file.read(4), byteorder='little')
+    pk         = file.read(pk_len)
+    sig        = file.read(sig_len)
+    header_len = 16+pk_len+sig_len
+    data       = file.read()
+    file.close()
+    return CrxFile(filename,magic,version,pk_len,sig_len,pk,sig,header_len,data)
+
+def print_crx_info(verbose,crx):
+    if is_valid_magic(crx.magic):
+        magic="valid"
+    else:
+        magic="invalid"
+    if check_signature(crx.pk,crx.sig,crx.data):
+        sig="valid"
+    else:
+        sig="invalid"
+    print("Filename:    "+crx.file)
+    print("Header size: "+str(crx.header_len))
+    print("Size:        "+str(crx.header_len+len(crx.data)))
+    print("Magic byte:  "+str(crx.magic)+" ("+magic+")")
+    print("Version:     "+str(crx.version))
+    print("Signature:   "+sig)
+    print("Public Key ["+str(crx.pk_len)+"]:")
+    key  = RSA.importKey(crx.pk)
+    print (key.exportKey().decode("utf-8"))
+    if verbose:
+        print("Signature ["+str(crx.sig_len)+"]: "+str(binascii.hexlify(crx.sig)))
     
 def verify_crxfile (verbose, filename):
-    print("Not yet implemented: verify crxfile(", verbose,", ", filename, ")")
-
+    if is_crxfile(filename):
+        if verbose:
+            print("Found correct magic bytes.")
+        print_crx_info(verbose,read_crx(filename))
+        return 0    
+    else:
+        if verbose:
+            print("No valid magic bytes found")
+        return -1
+            
 def extract_crxfile(verbose, force, filename):
     print("Not yet implemented: extract crxfile(",verbose,", ", force,", ", filename, ")")
 
@@ -49,3 +122,4 @@ def main():
     
 if __name__ == "__main__":
     main()
+
