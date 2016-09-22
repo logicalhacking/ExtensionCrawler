@@ -76,7 +76,7 @@ def print_crx_info(verbose,crx):
     print("Filename:    "+crx.file)
     print("Header size: "+str(crx.header_len))
     print("Size:        "+str(crx.header_len+len(crx.data)))
-    print("Magic byte:  "+str(crx.magic)+" ("+magic+")")
+    print("Magic byte:  "+str(crx.magic.decode("utf-8"))+" ("+magic+")")
     print("Version:     "+str(crx.version))
     print("Signature:   "+sig)
     print("Public Key ["+str(crx.pk_len)+"]:")
