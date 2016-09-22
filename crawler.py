@@ -67,7 +67,7 @@ class ExtensionCrawler:
             raise CrawlError(extid, '{} is not a valid extension id.\n'.format(extid))
         extdir = os.path.join(self.basedir, category, extid)
         if os.path.isdir(extdir):
-            raise CrawlError(extid, '{} already exists'.format(extdir))
+            return False
         os.makedirs(extdir)
 
         # Write the extention metadata into a file
@@ -77,6 +77,8 @@ class ExtensionCrawler:
         self.download_storepage(extid, extdir)
         self.download_extension(extid, extdir)
 
+        return True
+
     def get_store_date_string(self):
         response = requests.get(self.store_url).text
         match = re.search(self.regex_store_date_string, response)
@@ -85,7 +87,6 @@ class ExtensionCrawler:
         return match.group(1)
 
     def run(self, categories, nrExtensions):
-        sys.stdout.write('Downloading extensions into folder "{}"...\n'.format(self.basedir))
         date_string = self.get_store_date_string()
         for category in categories:
             response = requests.post(self.extension_list_url.format(date_string, nrExtensions, category)).text
@@ -93,14 +94,13 @@ class ExtensionCrawler:
             extinfos = bigjson[1][1]
 
             newExtensions = 0
-            for extinfo in extinfos:
-                extid = extinfo[0]
-                sys.stdout.write('Processing extension "{}"...'.format(extid))
-                sys.stdout.flush()
+            for i in range(len(extinfos)):
+                extid = extinfos[i][0]
                 try:
-                    self.handle_extension(extinfo, category)
-                    sys.stdout.write('Done!\n')
-                    newExtensions += 1
+                    sys.stdout.write('\rDownloading into {} ... {} of {} done ({} new ones)'.format(os.path.join(self.basedir, category), i, len(extinfos), newExtensions))
+                    sys.stdout.flush()
+                    if self.handle_extension(extinfos[i], category):
+                        newExtensions += 1
                 except CrawlError as cerr:
                     sys.stdout.write('Error: {}\n'.format(cerr.message))
                     if cerr.pagecontent != "":
@@ -108,7 +108,7 @@ class ExtensionCrawler:
                         sys.stderr.write('{}\n'.format(cerr.pagecontent))
                 except UnauthorizedError as uerr:
                     sys.stdout.write('Error: login needed\n')
-            sys.stdout.write('Downloaded {} new extensions.\n'.format(newExtensions))
+            sys.stdout.write('\rDownloading into {} ... {} of {} done ({} new ones)\n'.format(os.path.join(self.basedir, category), len(extinfos), len(extinfos), newExtensions))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Downloads extensions from the Chrome Web Store.')
