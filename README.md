@@ -14,6 +14,9 @@ extension from the Chrome Web store.
 
 All Utilities are written in Pythen 3.x. 
 
+##
+* [Achim D. Brucker](http://www.brucker.ch/)
+* [Michael Herzberg](http://www.dcs.shef.ac.uk/cgi-bin/makeperson?M.Herzberg)
 
 ## License
 This project is licensed under the GPL 3.0 (or any later version). 
