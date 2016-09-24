@@ -12,7 +12,7 @@ extension from the Chrome Web store.
   extensions). Calling `crx-tool.py <extension>.crx` will check the
   integrity of the extension. 
 
-All Utilities are written in Pythen 3.x. 
+All Utilities are written in Python 3.x. 
 
 ## Team
 * [Achim D. Brucker](http://www.brucker.ch/)
