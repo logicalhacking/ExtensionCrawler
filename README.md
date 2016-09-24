@@ -14,7 +14,7 @@ extension from the Chrome Web store.
 
 All Utilities are written in Pythen 3.x. 
 
-##
+## Team
 * [Achim D. Brucker](http://www.brucker.ch/)
 * [Michael Herzberg](http://www.dcs.shef.ac.uk/cgi-bin/makeperson?M.Herzberg)
 
