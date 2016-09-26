@@ -18,10 +18,13 @@
 
 import argparse
 import binascii
+
 from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA
-
 from Crypto.Signature import PKCS1_v1_5
+
+import zipfile
+import io
 
 class CrxFile:
     def __init__(self,filename,magic,version,pk_len,sig_len,pk,sig,header_len,data): 
@@ -84,7 +87,12 @@ def print_crx_info(verbose,crx):
     print (key.exportKey().decode("utf-8"))
     if verbose:
         print("Signature ["+str(crx.sig_len)+"]: "+str(binascii.hexlify(crx.sig)))
-    
+    out = f = io.BytesIO(crx.data)
+    zf = zipfile.ZipFile(out, 'r')
+    print("Zip content:")
+    for info in zf.infolist():
+        print('{:8d} {:8d}'.format(info.file_size, info.compress_size), info.filename)
+        
 def verify_crxfile (verbose, filename):
     if is_crxfile(filename):
         if verbose:
@@ -98,7 +106,6 @@ def verify_crxfile (verbose, filename):
             
 def extract_crxfile(verbose, force, filename):
     print("Not yet implemented: extract crxfile(",verbose,", ", force,", ", filename, ")")
-
 
 def main():
     parser = argparse.ArgumentParser()
