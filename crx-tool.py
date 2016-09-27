@@ -91,7 +91,7 @@ def print_crx_info(verbose,crx):
     zf = zipfile.ZipFile(out, 'r')
     print("Zip content:")
     for info in zf.infolist():
-        print('{:8d} {:8d}'.format(info.file_size, info.compress_size), info.filename)
+	    print('{:8d} {:8d}'.format(info.file_size, info.compress_size), info.filename)
         
 def verify_crxfile (verbose, filename):
     if is_crxfile(filename):
@@ -104,8 +104,21 @@ def verify_crxfile (verbose, filename):
             print("No valid magic bytes found")
         return -1
             
-def extract_crxfile(verbose, force, filename):
-    print("Not yet implemented: extract crxfile(",verbose,", ", force,", ", filename, ")")
+def extract_crxfile(verbose, force, filename, destdir):
+    crx = read_crx(filename)
+    if is_valid_magic(crx.magic) | force:
+        if "" == destdir:
+            destdir = "." 
+        if filename.endswith(".crx"):
+            dirname = filename[0:len(filename)-4]
+        else:
+            dirname = filename
+        out = f = io.BytesIO(crx.data)
+        zf = zipfile.ZipFile(out, 'r')
+        zf.extractall(destdir+"/"+dirname)
+        print ("Content extracted into: "+destdir+"/"+dirname)
+    else:
+        print ("Input file not valid.")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -121,7 +134,7 @@ def main():
     args = parser.parse_args()
     
     if args.extract:
-        retval = extract_crxfile(args.verbose, args.force, args.file)
+        retval = extract_crxfile(args.verbose, args.force, args.file, "")
     else: 
         retval = verify_crxfile(args.verbose, args.file)
 
