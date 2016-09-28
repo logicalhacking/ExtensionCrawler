@@ -107,7 +107,7 @@ def verify_crxfile (verbose, filename):
 def extract_crxfile(verbose, force, filename, destdir):
     crx = read_crx(filename)
     if is_valid_magic(crx.magic) | force:
-        if "" == destdir:
+        if ("" == destdir) | (destdir is None):
             destdir = "." 
         if filename.endswith(".crx"):
             dirname = filename[0:len(filename)-4]
