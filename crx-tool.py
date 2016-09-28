@@ -123,6 +123,7 @@ def extract_crxfile(verbose, force, filename, destdir):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="chrome extension archive (*.crx)")
+    parser.add_argument('targetdir', nargs='?', default="")
     parser.add_argument("-c", "--check", help="verify format and signature of <file>",
                         action="store_true")
     parser.add_argument("-e", "--extract", help="extract <file>",
@@ -134,7 +135,7 @@ def main():
     args = parser.parse_args()
     
     if args.extract:
-        retval = extract_crxfile(args.verbose, args.force, args.file, "")
+        retval = extract_crxfile(args.verbose, args.force, args.file, args.targetdir)
     else: 
         retval = verify_crxfile(args.verbose, args.file)
 
