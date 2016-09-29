@@ -8,9 +8,9 @@ extension from the Chrome Web store.
   case an extension has already been downloaded, the script skips it.
 * `permstats.py`: A tool for generating statistical data from the
   crawled extensions. 
-* `crx-tool.py`: A tool for analyzing `*.crx` files (i.e., Chrome
-  extensions). Calling `crx-tool.py <extension>.crx` will check the
-  integrity of the extension. 
+* `crx-tool.py`: A tool for analyzing and extracting `*.crx` files
+  (i.e., Chrome extensions). Calling `crx-tool.py <extension>.crx`
+  will check the integrity of the extension.
 
 All Utilities are written in Python 3.x. 
 
