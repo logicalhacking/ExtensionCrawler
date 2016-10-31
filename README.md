@@ -12,7 +12,9 @@ extension from the Chrome Web store.
   (i.e., Chrome extensions). Calling `crx-tool.py <extension>.crx`
   will check the integrity of the extension.
 
-All utilities are written in Python 3.x. 
+All utilities are written in Python 3.x. The following non-standard 
+modules might be required:
+* jsmin 
 
 ## Team
 * [Achim D. Brucker](http://www.brucker.ch/)
