@@ -14,7 +14,7 @@ extension from the Chrome Web store.
 
 All utilities are written in Python 3.x. The following non-standard 
 modules might be required:
-* jsmin 
+* jsmin (`apt-get  install python3-jsmin`)
 
 ## Team
 * [Achim D. Brucker](http://www.brucker.ch/)
