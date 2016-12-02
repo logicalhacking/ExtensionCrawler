@@ -26,121 +26,142 @@ from Crypto.Signature import PKCS1_v1_5
 import zipfile
 import io
 
+
 class CrxFile:
-    def __init__(self,filename,magic,version,pk_len,sig_len,pk,sig,header_len,data): 
-        self.file       = filename
-        self.magic      = magic
-        self.version    = version
-        self.pk_len     = pk_len
-        self.sig_len    = sig_len
-        self.pk         = pk
-        self.sig        = sig
+    def __init__(self, filename, magic, version, pk_len, sig_len, pk, sig,
+                 header_len, data):
+        self.file = filename
+        self.magic = magic
+        self.version = version
+        self.pk_len = pk_len
+        self.sig_len = sig_len
+        self.pk = pk
+        self.sig = sig
         self.header_len = header_len
-        self.data       = data
-        
+        self.data = data
+
+
 def is_valid_magic(magic):
     return (b'Cr24' == magic)
 
-def is_crxfile (filename):
+
+def is_crxfile(filename):
     "Check magic number: crx files should start with \"Cr24\"."
-    file      = open (filename, 'rb')
-    magic     = file.read(4)
+    file = open(filename, 'rb')
+    magic = file.read(4)
     file.close()
     return is_valid_magic(magic)
 
-def check_signature(pk,sig,data):
-    key  = RSA.importKey(pk)
+
+def check_signature(pk, sig, data):
+    key = RSA.importKey(pk)
     hash = SHA.new(data)
     return PKCS1_v1_5.new(key).verify(hash, sig)
- 
+
+
 def read_crx(filename):
     "Read header of an crx file (https://developer.chrome.com/extensions/crx)."
-    file       = open (filename, 'rb')
-    magic      = file.read(4)
-    version    = int.from_bytes(file.read(4), byteorder='little')
-    pk_len     = int.from_bytes(file.read(4), byteorder='little')
-    sig_len    = int.from_bytes(file.read(4), byteorder='little')
-    pk         = file.read(pk_len)
-    sig        = file.read(sig_len)
-    header_len = 16+pk_len+sig_len
-    data       = file.read()
+    file = open(filename, 'rb')
+    magic = file.read(4)
+    version = int.from_bytes(file.read(4), byteorder='little')
+    pk_len = int.from_bytes(file.read(4), byteorder='little')
+    sig_len = int.from_bytes(file.read(4), byteorder='little')
+    pk = file.read(pk_len)
+    sig = file.read(sig_len)
+    header_len = 16 + pk_len + sig_len
+    data = file.read()
     file.close()
-    return CrxFile(filename,magic,version,pk_len,sig_len,pk,sig,header_len,data)
+    return CrxFile(filename, magic, version, pk_len, sig_len, pk, sig,
+                   header_len, data)
 
-def print_crx_info(verbose,crx):
+
+def print_crx_info(verbose, crx):
     if is_valid_magic(crx.magic):
-        magic="valid"
+        magic = "valid"
     else:
-        magic="invalid"
-    if check_signature(crx.pk,crx.sig,crx.data):
-        sig="valid"
+        magic = "invalid"
+    if check_signature(crx.pk, crx.sig, crx.data):
+        sig = "valid"
     else:
-        sig="invalid"
-    print("Filename:    "+crx.file)
-    print("Header size: "+str(crx.header_len))
-    print("Size:        "+str(crx.header_len+len(crx.data)))
-    print("Magic byte:  "+str(crx.magic.decode("utf-8"))+" ("+magic+")")
-    print("Version:     "+str(crx.version))
-    print("Signature:   "+sig)
-    print("Public Key ["+str(crx.pk_len)+"]:")
-    key  = RSA.importKey(crx.pk)
-    print (key.exportKey().decode("utf-8"))
+        sig = "invalid"
+    print("Filename:    " + crx.file)
+    print("Header size: " + str(crx.header_len))
+    print("Size:        " + str(crx.header_len + len(crx.data)))
+    print("Magic byte:  " + str(crx.magic.decode("utf-8")) + " (" + magic +
+          ")")
+    print("Version:     " + str(crx.version))
+    print("Signature:   " + sig)
+    print("Public Key [" + str(crx.pk_len) + "]:")
+    key = RSA.importKey(crx.pk)
+    print(key.exportKey().decode("utf-8"))
     if verbose:
-        print("Signature ["+str(crx.sig_len)+"]: "+str(binascii.hexlify(crx.sig)))
+        print("Signature [" + str(crx.sig_len) + "]: " + str(
+            binascii.hexlify(crx.sig)))
     out = f = io.BytesIO(crx.data)
     zf = zipfile.ZipFile(out, 'r')
     print("Zip content:")
     for info in zf.infolist():
-	    print('{:8d} {:8d}'.format(info.file_size, info.compress_size), info.filename)
-        
-def verify_crxfile (verbose, filename):
+        print('{:8d} {:8d}'.format(info.file_size, info.compress_size),
+              info.filename)
+
+
+def verify_crxfile(verbose, filename):
     if is_crxfile(filename):
         if verbose:
             print("Found correct magic bytes.")
-        print_crx_info(verbose,read_crx(filename))
-        return 0    
+        print_crx_info(verbose, read_crx(filename))
+        return 0
     else:
         if verbose:
             print("No valid magic bytes found")
         return -1
-            
+
+
 def extract_crxfile(verbose, force, filename, destdir):
     crx = read_crx(filename)
     if is_valid_magic(crx.magic) | force:
         if ("" == destdir) | (destdir is None):
-            destdir = "." 
+            destdir = "."
         if filename.endswith(".crx"):
-            dirname = filename[0:len(filename)-4]
+            dirname = filename[0:len(filename) - 4]
         else:
             dirname = filename
         out = f = io.BytesIO(crx.data)
         zf = zipfile.ZipFile(out, 'r')
-        zf.extractall(destdir+"/"+dirname)
-        print ("Content extracted into: "+destdir+"/"+dirname)
+        zf.extractall(destdir + "/" + dirname)
+        print("Content extracted into: " + destdir + "/" + dirname)
     else:
-        print ("Input file not valid.")
+        print("Input file not valid.")
+
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="chrome extension archive (*.crx)")
     parser.add_argument('targetdir', nargs='?', default="")
-    parser.add_argument("-c", "--check", help="verify format and signature of <file>",
-                        action="store_true")
-    parser.add_argument("-e", "--extract", help="extract <file>",
-                        action="store_true")
-    parser.add_argument("-f", "--force", help="apply action also to (potential) invalid files",
-                        action="store_true")
-    parser.add_argument("-v", "--verbose", help="increase verbosity",
-                        action="store_true")
+    parser.add_argument(
+        "-c",
+        "--check",
+        help="verify format and signature of <file>",
+        action="store_true")
+    parser.add_argument(
+        "-e", "--extract", help="extract <file>", action="store_true")
+    parser.add_argument(
+        "-f",
+        "--force",
+        help="apply action also to (potential) invalid files",
+        action="store_true")
+    parser.add_argument(
+        "-v", "--verbose", help="increase verbosity", action="store_true")
     args = parser.parse_args()
-    
+
     if args.extract:
-        retval = extract_crxfile(args.verbose, args.force, args.file, args.targetdir)
-    else: 
+        retval = extract_crxfile(args.verbose, args.force, args.file,
+                                 args.targetdir)
+    else:
         retval = verify_crxfile(args.verbose, args.file)
 
-    exit(retval)    
-    
+    exit(retval)
+
+
 if __name__ == "__main__":
     main()
-

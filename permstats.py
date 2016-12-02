@@ -26,42 +26,55 @@ import re
 
 regex_concrete_url = re.compile(r'^.*://.*[a-z0-9]+\.[a-z]+.*$')
 
+
 class PermissionHandlerPrintNames:
     def __init__(self, permname):
         self.permname = permname
         self.extinfo = {}
+
     def handle_permission(self, extid, permobj, path):
         if self.permname in str(permobj):
             with open(os.path.join(path, 'metadata.json')) as f:
                 metadata = json.load(f)
-                self.extinfo[extid] = '{} | {} | {}'.format(metadata[1], metadata[6], path)
+                self.extinfo[extid] = '{} | {} | {}'.format(metadata[1],
+                                                            metadata[6], path)
+
     def print_result(self, fileobj, delim):
-        fileobj.write('Extensions that use permission "{}":\n\n'.format(self.permname))
+        fileobj.write('Extensions that use permission "{}":\n\n'.format(
+            self.permname))
         for extid in self.extinfo:
             fileobj.write('{}\n'.format(self.extinfo[extid]))
         fileobj.write('\n\n')
+
 
 class PermissionHandler:
     def __init__(self):
         self.permissions = {}
         self.extids = set()
+
     def handle_permission(self, extid, permobj, path):
         self.extids.add(extid)
         perm = str(permobj)
         if not perm in self.permissions:
             self.permissions[perm] = 0
         self.permissions[perm] += 1
+
     def print_result(self, fileobj, delim):
         fileobj.write('Total: {} extensions\n'.format(len(self.extids)))
-        for perm in sorted(self.permissions, key=self.permissions.get, reverse=True):
-            fileobj.write('{}{}{}{}{:.2%}\n'.format(perm, delim, self.permissions[perm], delim, float(self.permissions[perm]) / len(self.extids)))
+        for perm in sorted(
+                self.permissions, key=self.permissions.get, reverse=True):
+            fileobj.write('{}{}{}{}{:.2%}\n'.format(
+                perm, delim, self.permissions[perm], delim,
+                float(self.permissions[perm]) / len(self.extids)))
         fileobj.write('\n\n')
+
 
 class PermissionHandlerCondensed:
     def __init__(self):
         self.permissions = {}
         self.extids = set()
         self.exts_with_concrete_urls = set()
+
     def handle_permission(self, extid, permobj, path):
         self.extids.add(extid)
 
@@ -74,11 +87,17 @@ class PermissionHandlerCondensed:
         if not perm in self.permissions:
             self.permissions[perm] = 0
         self.permissions[perm] += 1
+
     def print_result(self, fileobj, delim):
-        fileobj.write('Condensed. Total: {} extensions\n'.format(len(self.extids)))
-        for perm in sorted(self.permissions, key=self.permissions.get, reverse=True):
-            fileobj.write('{}{}{}{}{:.2%}\n'.format(perm, delim, self.permissions[perm], delim, float(self.permissions[perm]) / len(self.extids)))
+        fileobj.write('Condensed. Total: {} extensions\n'.format(
+            len(self.extids)))
+        for perm in sorted(
+                self.permissions, key=self.permissions.get, reverse=True):
+            fileobj.write('{}{}{}{}{:.2%}\n'.format(
+                perm, delim, self.permissions[perm], delim,
+                float(self.permissions[perm]) / len(self.extids)))
         fileobj.write('\n\n')
+
 
 class PermissionStatisticGenerator:
     def run(category_folder, permhandlers):
@@ -99,23 +118,51 @@ class PermissionStatisticGenerator:
                         if 'permissions' in manifest:
                             for permobj in manifest['permissions']:
                                 for handler in permhandlers:
-                                    handler.handle_permission(extid, permobj, root)
+                                    handler.handle_permission(extid, permobj,
+                                                              root)
+
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Prints statistics about the requested permissions of downloaded extensions.')
-    parser.add_argument('dir', help='The directory in which the extensions are stored. The directory structure must be {category}/{extid}/*.crx.')
-    parser.add_argument('-d', '--delim', default='\t', help='Delimiter used for the statistics output.')
-    parser.add_argument('-o', '--output', default=sys.stdout, type=argparse.FileType('w'), help='Save the statistics into a file.')
-    parser.add_argument('-p', '--permission', help='Prints out all extension names and descriptions that use the given permission.')
-    parser.add_argument('-c', '--categories', action='store_true', help='Print the results for each category separately.')
-    
+    parser = argparse.ArgumentParser(
+        description='Prints statistics about the requested permissions of downloaded extensions.'
+    )
+    parser.add_argument(
+        'dir',
+        help='The directory in which the extensions are stored. The directory structure must be {category}/{extid}/*.crx.'
+    )
+    parser.add_argument(
+        '-d',
+        '--delim',
+        default='\t',
+        help='Delimiter used for the statistics output.')
+    parser.add_argument(
+        '-o',
+        '--output',
+        default=sys.stdout,
+        type=argparse.FileType('w'),
+        help='Save the statistics into a file.')
+    parser.add_argument(
+        '-p',
+        '--permission',
+        help='Prints out all extension names and descriptions that use the given permission.'
+    )
+    parser.add_argument(
+        '-c',
+        '--categories',
+        action='store_true',
+        help='Print the results for each category separately.')
+
     args = parser.parse_args()
 
-    category_folders  = [args.dir]
+    category_folders = [args.dir]
     if args.categories:
-        category_folders += [os.path.join(args.dir, d) for d in next(os.walk(args.dir))[1]]
+        category_folders += [
+            os.path.join(args.dir, d) for d in next(os.walk(args.dir))[1]
+        ]
 
-    for category_folder in category_folders:    
-        args.output.write('Results for category {}:\n\n'.format(category_folder))
+    for category_folder in category_folders:
+        args.output.write('Results for category {}:\n\n'.format(
+            category_folder))
         if args.permission:
             handlers = [PermissionHandlerPrintNames(args.permission)]
         else:
