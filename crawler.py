@@ -23,7 +23,8 @@ import os
 import json
 import re
 import argparse
-
+from datetime import datetime, timezone
+datetime.now(timezone.utc).strftime("%Y%m%d")
 
 class Error(Exception):
     pass
@@ -100,10 +101,11 @@ class ExtensionCrawler:
 
     def handle_extension(self, extinfo, category=''):
         extid = extinfo[0]
+        download_date = datetime.now(timezone.utc).isoformat()
         if not self.regex_extid.match(extid):
             raise CrawlError(extid,
                              '{} is not a valid extension id.\n'.format(extid))
-        extdir = os.path.join(self.basedir, category, extid)
+        extdir = os.path.join(self.basedir, category, extid,download_date)
         if os.path.isdir(extdir):
             return False
         os.makedirs(extdir)
