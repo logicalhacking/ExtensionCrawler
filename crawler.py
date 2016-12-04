@@ -99,13 +99,13 @@ class ExtensionCrawler:
         with open(os.path.join(extdir, 'storepage.html'), 'w') as f:
             f.write(extpageresult.text)
 
-    def handle_extension(self, extinfo, category=''):
+    def handle_extension(self, extinfo):
         extid = extinfo[0]
         download_date = datetime.now(timezone.utc).isoformat()
         if not self.regex_extid.match(extid):
             raise CrawlError(extid,
                              '{} is not a valid extension id.\n'.format(extid))
-        extdir = os.path.join(self.basedir, category, extid,download_date)
+        extdir = os.path.join(self.basedir, extid,download_date)
         if os.path.isdir(extdir):
             return False
         os.makedirs(extdir)
@@ -144,10 +144,10 @@ class ExtensionCrawler:
                     sys.stdout.write(
                         '\rDownloading into {} ... {} of {} done ({} new ones)'.
                         format(
-                            os.path.join(self.basedir, category), i,
+                            os.path.join(self.basedir), i,
                             len(extinfos), newExtensions))
                     sys.stdout.flush()
-                    if self.handle_extension(extinfos[i], category):
+                    if self.handle_extension(extinfos[i]):
                         newExtensions += 1
                 except CrawlError as cerr:
                     sys.stdout.write('Error: {}\n'.format(cerr.message))
@@ -159,7 +159,7 @@ class ExtensionCrawler:
             sys.stdout.write(
                 '\rDownloading into {} ... {} of {} done ({} new ones)\n'.
                 format(
-                    os.path.join(self.basedir, category),
+                    os.path.join(self.basedir),
                     len(extinfos), len(extinfos), newExtensions))
 
 
