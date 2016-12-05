@@ -62,7 +62,6 @@ class ExtensionCrawler:
 
     download_url = 'https://clients2.google.com/service/update2/crx?response=redirect&nacl_arch=x86-64&prodversion=9999.0.9999.0&x=id%3D{}%26uc'
     extension_list_url = 'https://chrome.google.com/webstore/ajax/item?pv={}&count={}&category={}'
-    #extension_list_url  = 'https://chrome.google.com/webstore/ajax/item?pv=20160822&count={}&category={}'
     detail_url = 'https://chrome.google.com/webstore/detail/{}'
     store_url = 'https://chrome.google.com/webstore'
 
@@ -99,25 +98,34 @@ class ExtensionCrawler:
         with open(os.path.join(extdir, 'storepage.html'), 'w') as f:
             f.write(extpageresult.text)
 
-    def handle_extension(self, extinfo):
-        extid = extinfo[0]
+    def update_extension(self, extid, overwrite):
         download_date = datetime.now(timezone.utc).isoformat()
         if not self.regex_extid.match(extid):
             raise CrawlError(extid,
                              '{} is not a valid extension id.\n'.format(extid))
         extdir = os.path.join(self.basedir, extid,download_date)
-        if os.path.isdir(extdir):
+        if (not overwrite) and os.path.isdir(extdir):
             return False
+            
         os.makedirs(extdir)
 
-        # Write the extention metadata into a file
         with open(os.path.join(extdir, 'metadata.json'), 'w') as f:
-            json.dump(extinfo, f, indent=5)
+            json.dump(extid, f, indent=5)
+            # json.dump(extinfo, f, indent=5)
 
         self.download_storepage(extid, extdir)
         self.download_extension(extid, extdir)
 
         return True
+        
+    def update_extensions(self):
+        for extid in os.listdir(self.basedir):
+            self.update_extension(extid,True)
+            
+    def handle_extension(self, extinfo):
+        extid = extinfo[0]
+        return self.update_extension(extid,False)
+        
 
     def get_store_date_string(self):
         response = requests.get(self.store_url).text
@@ -201,15 +209,23 @@ if __name__ == '__main__':
         default='downloaded',
         help='The directory in which the downloaded extensions should be stored.'
     )
-
+    parser.add_argument('--discover', dest='discover', action='store_const',
+                    const=sum, default=max,
+                    help='discover new extensions (default: only updated already downloaded extensions)')
+    
     args = parser.parse_args()
     crawler = ExtensionCrawler(args.dest)
 
-    if args.interval:
-        while True:
+    if args.discover:
+        if args.interval:
+            while True:
+                for i in range(args.iterate):
+                    crawler.run(args.categories, args.nrexts)
+                    time.sleep(args.interval)
+        else:
             for i in range(args.iterate):
                 crawler.run(args.categories, args.nrexts)
-                time.sleep(args.interval)
     else:
-        for i in range(args.iterate):
-            crawler.run(args.categories, args.nrexts)
+        crawler.update_extensions()
+   
+    
