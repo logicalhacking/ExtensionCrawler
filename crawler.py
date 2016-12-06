@@ -64,7 +64,8 @@ class ExtensionCrawler:
     extension_list_url = 'https://chrome.google.com/webstore/ajax/item?pv={}&count={}&category={}'
     detail_url = 'https://chrome.google.com/webstore/detail/{}'
     store_url = 'https://chrome.google.com/webstore'
-
+    review_url = 'https://chrome.google.com/reviews/components'
+    
     def __init__(self, basedir):
         self.basedir = basedir
 
@@ -98,6 +99,27 @@ class ExtensionCrawler:
         with open(os.path.join(extdir, 'storepage.html'), 'w') as f:
             f.write(extpageresult.text)
 
+    def download_reviews(self, extid, extdir):
+        payload=('req={{ "appId":94,' +
+                   '"version":"150922",' +
+                   '"hl":"en",' +
+                   '"specs":[{{"type":"CommentThread",' +
+                             '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",' +
+             '"groups":"chrome_webstore",' +
+             '"sortby":"cws_qscore",' +
+             '"startindex":"{}",' +
+             '"numresults":"{}",' +
+             '"id":"428"}}],' +
+             '"internedKeys":[],' +
+             '"internedValues":[]}}')
+
+        response = requests.post(self.review_url,data=payload.format(extid,"0","100"))
+        with open(os.path.join(extdir, 'reviews000-099.text'), 'w') as f:
+            f.write(response.text)
+        response = requests.post(self.review_url,data=payload.format(extid,"100","100"))
+        with open(os.path.join(extdir, 'reviews100-199.text'), 'w') as f:
+            f.write(response.text)
+
     def update_extension(self, extid, overwrite):
         download_date = datetime.now(timezone.utc).isoformat()
         if not self.regex_extid.match(extid):
@@ -111,9 +133,9 @@ class ExtensionCrawler:
 
         with open(os.path.join(extdir, 'metadata.json'), 'w') as f:
             json.dump(extid, f, indent=5)
-            # json.dump(extinfo, f, indent=5)
 
         self.download_storepage(extid, extdir)
+        self.download_reviews(extid, extdir)
         self.download_extension(extid, extdir)
 
         return True
@@ -209,8 +231,7 @@ if __name__ == '__main__':
         default='downloaded',
         help='The directory in which the downloaded extensions should be stored.'
     )
-    parser.add_argument('--discover', dest='discover', action='store_const',
-                    const=sum, default=max,
+    parser.add_argument('--discover', action='store_true',
                     help='discover new extensions (default: only updated already downloaded extensions)')
     
     args = parser.parse_args()
