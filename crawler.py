@@ -120,7 +120,8 @@ class ExtensionCrawler:
         with open(os.path.join(extdir, 'reviews100-199.text'), 'w') as f:
             f.write(response.text)
 
-    def update_extension(self, extid, overwrite):
+    def update_extension(self, extid, overwrite, extinfo=None):
+        print ("Updating "+extid)
         download_date = datetime.now(timezone.utc).isoformat()
         if not self.regex_extid.match(extid):
             raise CrawlError(extid,
@@ -131,8 +132,9 @@ class ExtensionCrawler:
             
         os.makedirs(extdir)
 
-        with open(os.path.join(extdir, 'metadata.json'), 'w') as f:
-            json.dump(extid, f, indent=5)
+        if extinfo != None:
+            with open(os.path.join(extdir, 'metadata.json'), 'w') as f:
+                json.dump(extinfo, f, indent=5)
 
         self.download_storepage(extid, extdir)
         self.download_reviews(extid, extdir)
@@ -146,7 +148,7 @@ class ExtensionCrawler:
             
     def handle_extension(self, extinfo):
         extid = extinfo[0]
-        return self.update_extension(extid,False)
+        return self.update_extension(extid,False,extinfo)
         
 
     def get_store_date_string(self):
