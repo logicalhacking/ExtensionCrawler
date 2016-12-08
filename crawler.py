@@ -25,6 +25,8 @@ import re
 import argparse
 from datetime import datetime, timezone
 datetime.now(timezone.utc).strftime("%Y%m%d")
+import glob
+import hashlib
 
 class Error(Exception):
     pass
@@ -68,6 +70,13 @@ class ExtensionCrawler:
     
     def __init__(self, basedir):
         self.basedir = basedir
+        
+    def sha256(self,fname):
+        hash_sha256 = hashlib.sha256()
+        with open(fname, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_sha256.update(chunk)
+            return hash_sha256.hexdigest()
 
     def download_extension(self, extid, extdir=""):
         extresult = requests.get(self.download_url.format(extid), stream=True)
@@ -129,17 +138,34 @@ class ExtensionCrawler:
         extdir = os.path.join(self.basedir, extid,download_date)
         if (not overwrite) and os.path.isdir(extdir):
             return False
-            
+        
         os.makedirs(extdir)
+        
+        old_archives=[]
+        for archive in glob.glob(self.basedir+"/"+extid+"/*/*.crx"):
+            if os.path.isfile(archive):
+                elem = (self.sha256(archive),archive)
+                old_archives.append(elem)
 
         if extinfo != None:
             with open(os.path.join(extdir, 'metadata.json'), 'w') as f:
                 json.dump(extinfo, f, indent=5)
-
+            
         self.download_storepage(extid, extdir)
         self.download_reviews(extid, extdir)
         self.download_extension(extid, extdir)
 
+        for archive in glob.glob(extdir+"/*.crx"):
+            same_files = [x[1] for x in old_archives if x[0] == self.sha256(archive)]
+            if same_files != []:
+                os.rename(archive,archive+".bak");
+                src = same_files[0]
+                cwd = os.getcwd()
+                os.chdir(extdir)
+                os.symlink("../"+os.path.relpath(src,self.basedir+"/"+extid),os.path.relpath(archive,extdir))
+                os.chdir(cwd)
+                os.remove(archive+".bak");
+                
         return True
         
     def update_extensions(self):
