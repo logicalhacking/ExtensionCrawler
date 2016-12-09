@@ -67,6 +67,7 @@ class ExtensionCrawler:
     detail_url = 'https://chrome.google.com/webstore/detail/{}'
     store_url = 'https://chrome.google.com/webstore'
     review_url = 'https://chrome.google.com/reviews/components'
+    support_url = 'https://chrome.google.com/reviews/components'
     
     def __init__(self, basedir):
         self.basedir = basedir
@@ -108,6 +109,28 @@ class ExtensionCrawler:
         with open(os.path.join(extdir, 'storepage.html'), 'w') as f:
             f.write(extpageresult.text)
 
+    def download_support(self, extid, extdir):
+        payload=('req={{ "appId":94,' +
+                   '"version":"150922",' +
+                   '"hl":"en",' +
+                   '"specs":[{{"type":"CommentThread",' +
+                             '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",' +
+             '"groups":"chrome_webstore_support",' +
+             '"startindex":"{}",' +
+             '"numresults":"{}",' +
+             '"id":"379"}}],' +
+             '"internedKeys":[],' +
+             '"internedValues":[]}}')
+
+        response = requests.post(self.support_url,data=payload.format(extid,"0","100"))
+        with open(os.path.join(extdir, 'support000-099.text'), 'w') as f:
+            f.write(response.text)
+        response = requests.post(self.support_url,data=payload.format(extid,"100","100"))
+        with open(os.path.join(extdir, 'support100-199.text'), 'w') as f:
+            f.write(response.text)
+
+
+            
     def download_reviews(self, extid, extdir):
         payload=('req={{ "appId":94,' +
                    '"version":"150922",' +
@@ -153,6 +176,7 @@ class ExtensionCrawler:
             
         self.download_storepage(extid, extdir)
         self.download_reviews(extid, extdir)
+        self.download_support(extid, extdir)
         self.download_extension(extid, extdir)
 
         for archive in glob.glob(extdir+"/*.crx"):
