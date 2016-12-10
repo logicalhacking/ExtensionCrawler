@@ -153,7 +153,6 @@ class ExtensionCrawler:
             f.write(response.text)
 
     def update_extension(self, extid, overwrite, extinfo=None):
-        print ("Updating "+extid)
         download_date = datetime.now(timezone.utc).isoformat()
         if not self.regex_extid.match(extid):
             raise CrawlError(extid,
