@@ -279,7 +279,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-d',
         '--dest',
-        default='downloaded',
+        default='archive',
         help='The directory in which the downloaded extensions should be stored.'
     )
     parser.add_argument('--discover', action='store_true',
