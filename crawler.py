@@ -69,8 +69,9 @@ class ExtensionCrawler:
     review_url = 'https://chrome.google.com/reviews/components'
     support_url = 'https://chrome.google.com/reviews/components'
     
-    def __init__(self, basedir):
+    def __init__(self, basedir, verbose):
         self.basedir = basedir
+        self.verbose = verbose
         
     def sha256(self,fname):
         hash_sha256 = hashlib.sha256()
@@ -153,12 +154,20 @@ class ExtensionCrawler:
             f.write(response.text)
 
     def update_extension(self, extid, overwrite, extinfo=None):
+        if self.verbose:
+            if overwrite:
+                print ("  Updating {} ...".format(extid))
+            else:
+                print ("  Downloading {} ..".format(extid))
+                       
         download_date = datetime.now(timezone.utc).isoformat()
         if not self.regex_extid.match(extid):
             raise CrawlError(extid,
                              '{} is not a valid extension id.\n'.format(extid))
         extdir = os.path.join(self.basedir, extid,download_date)
         if (not overwrite) and os.path.isdir(extdir):
+            if self.verbose:
+                print ("    already archived")
             return False
         
         os.makedirs(extdir)
@@ -188,6 +197,8 @@ class ExtensionCrawler:
                 os.symlink("../"+os.path.relpath(src,self.basedir+"/"+extid),os.path.relpath(archive,extdir))
                 os.chdir(cwd)
                 os.remove(archive+".bak");
+        if self.verbose:
+            print ("    download/update successful")
                 
         return True
         
@@ -196,7 +207,7 @@ class ExtensionCrawler:
             self.update_extension(extid,True)
             
     def handle_extension(self, extinfo):
-        extid = extinfo[0]
+        extid = extinfo[0]                   
         return self.update_extension(extid,False,extinfo)
         
 
@@ -223,11 +234,13 @@ class ExtensionCrawler:
                 extid = extinfos[i][0]
                 try:
                     sys.stdout.write(
-                        '\rDownloading into {} ... {} of {} done ({} new ones)'.
-                        format(
+                        '\rDownloading ({}) into \"{}\" ... {} of {} done ({} new ones)'.
+                        format(category,
                             os.path.join(self.basedir), i,
                             len(extinfos), newExtensions))
                     sys.stdout.flush()
+                    if self.verbose:
+                       sys.stdout.write("\n")
                     if self.handle_extension(extinfos[i]):
                         newExtensions += 1
                 except CrawlError as cerr:
@@ -242,7 +255,9 @@ class ExtensionCrawler:
                 format(
                     os.path.join(self.basedir),
                     len(extinfos), len(extinfos), newExtensions))
-
+            if self.verbose:
+                sys.stdout.write("\n")
+ 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -284,9 +299,11 @@ if __name__ == '__main__':
     )
     parser.add_argument('--discover', action='store_true',
                     help='discover new extensions (default: only updated already downloaded extensions)')
-    
+    parser.add_argument('-v','--verbose', action='store_true',
+                    help='increase verbosity')
+
     args = parser.parse_args()
-    crawler = ExtensionCrawler(args.dest)
+    crawler = ExtensionCrawler(args.dest,args.verbose)
 
     if args.discover:
         if args.interval:
