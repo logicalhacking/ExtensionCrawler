@@ -28,6 +28,7 @@ datetime.now(timezone.utc).strftime("%Y%m%d")
 import glob
 import hashlib
 
+
 class Error(Exception):
     pass
 
@@ -68,12 +69,12 @@ class ExtensionCrawler:
     store_url = 'https://chrome.google.com/webstore'
     review_url = 'https://chrome.google.com/reviews/components'
     support_url = 'https://chrome.google.com/reviews/components'
-    
+
     def __init__(self, basedir, verbose):
         self.basedir = basedir
         self.verbose = verbose
-        
-    def sha256(self,fname):
+
+    def sha256(self, fname):
         hash_sha256 = hashlib.sha256()
         with open(fname, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
@@ -111,105 +112,101 @@ class ExtensionCrawler:
             f.write(extpageresult.text)
 
     def download_support(self, extid, extdir):
-        payload=('req={{ "appId":94,' +
-                   '"version":"150922",' +
-                   '"hl":"en",' +
-                   '"specs":[{{"type":"CommentThread",' +
-                             '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",' +
-             '"groups":"chrome_webstore_support",' +
-             '"startindex":"{}",' +
-             '"numresults":"{}",' +
-             '"id":"379"}}],' +
-             '"internedKeys":[],' +
-             '"internedValues":[]}}')
+        payload = (
+            'req={{ "appId":94,' + '"version":"150922",' + '"hl":"en",' +
+            '"specs":[{{"type":"CommentThread",' +
+            '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",'
+            + '"groups":"chrome_webstore_support",' + '"startindex":"{}",' +
+            '"numresults":"{}",' + '"id":"379"}}],' + '"internedKeys":[],' +
+            '"internedValues":[]}}')
 
-        response = requests.post(self.support_url,data=payload.format(extid,"0","100"))
+        response = requests.post(
+            self.support_url, data=payload.format(extid, "0", "100"))
         with open(os.path.join(extdir, 'support000-099.text'), 'w') as f:
             f.write(response.text)
-        response = requests.post(self.support_url,data=payload.format(extid,"100","100"))
+        response = requests.post(
+            self.support_url, data=payload.format(extid, "100", "100"))
         with open(os.path.join(extdir, 'support100-199.text'), 'w') as f:
             f.write(response.text)
 
-
-            
     def download_reviews(self, extid, extdir):
-        payload=('req={{ "appId":94,' +
-                   '"version":"150922",' +
-                   '"hl":"en",' +
-                   '"specs":[{{"type":"CommentThread",' +
-                             '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",' +
-             '"groups":"chrome_webstore",' +
-             '"sortby":"cws_qscore",' +
-             '"startindex":"{}",' +
-             '"numresults":"{}",' +
-             '"id":"428"}}],' +
-             '"internedKeys":[],' +
-             '"internedValues":[]}}')
+        payload = (
+            'req={{ "appId":94,' + '"version":"150922",' + '"hl":"en",' +
+            '"specs":[{{"type":"CommentThread",' +
+            '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",'
+            + '"groups":"chrome_webstore",' + '"sortby":"cws_qscore",' +
+            '"startindex":"{}",' + '"numresults":"{}",' + '"id":"428"}}],' +
+            '"internedKeys":[],' + '"internedValues":[]}}')
 
-        response = requests.post(self.review_url,data=payload.format(extid,"0","100"))
+        response = requests.post(
+            self.review_url, data=payload.format(extid, "0", "100"))
         with open(os.path.join(extdir, 'reviews000-099.text'), 'w') as f:
             f.write(response.text)
-        response = requests.post(self.review_url,data=payload.format(extid,"100","100"))
+        response = requests.post(
+            self.review_url, data=payload.format(extid, "100", "100"))
         with open(os.path.join(extdir, 'reviews100-199.text'), 'w') as f:
             f.write(response.text)
 
     def update_extension(self, extid, overwrite, extinfo=None):
         if self.verbose:
             if overwrite:
-                print ("  Updating {} ...".format(extid))
+                print("  Updating {} ...".format(extid))
             else:
-                print ("  Downloading {} ..".format(extid))
-                       
+                print("  Downloading {} ..".format(extid))
+
         download_date = datetime.now(timezone.utc).isoformat()
         if not self.regex_extid.match(extid):
             raise CrawlError(extid,
                              '{} is not a valid extension id.\n'.format(extid))
-        extdir = os.path.join(self.basedir, extid,download_date)
+        extdir = os.path.join(self.basedir, extid, download_date)
         if (not overwrite) and os.path.isdir(extdir):
             if self.verbose:
-                print ("    already archived")
+                print("    already archived")
             return False
-        
+
         os.makedirs(extdir)
-        
-        old_archives=[]
-        for archive in glob.glob(self.basedir+"/"+extid+"/*/*.crx"):
+
+        old_archives = []
+        for archive in glob.glob(self.basedir + "/" + extid + "/*/*.crx"):
             if os.path.isfile(archive):
-                elem = (self.sha256(archive),archive)
+                elem = (self.sha256(archive), archive)
                 old_archives.append(elem)
 
         if extinfo != None:
             with open(os.path.join(extdir, 'metadata.json'), 'w') as f:
                 json.dump(extinfo, f, indent=5)
-            
+
         self.download_storepage(extid, extdir)
         self.download_reviews(extid, extdir)
         self.download_support(extid, extdir)
         self.download_extension(extid, extdir)
 
-        for archive in glob.glob(extdir+"/*.crx"):
-            same_files = [x[1] for x in old_archives if x[0] == self.sha256(archive)]
+        for archive in glob.glob(extdir + "/*.crx"):
+            same_files = [
+                x[1] for x in old_archives if x[0] == self.sha256(archive)
+            ]
             if same_files != []:
-                os.rename(archive,archive+".bak");
+                os.rename(archive, archive + ".bak")
                 src = same_files[0]
                 cwd = os.getcwd()
                 os.chdir(extdir)
-                os.symlink("../"+os.path.relpath(src,self.basedir+"/"+extid),os.path.relpath(archive,extdir))
+                os.symlink(
+                    "../" + os.path.relpath(src, self.basedir + "/" + extid),
+                    os.path.relpath(archive, extdir))
                 os.chdir(cwd)
-                os.remove(archive+".bak");
+                os.remove(archive + ".bak")
         if self.verbose:
-            print ("    download/update successful")
-                
+            print("    download/update successful")
+
         return True
-        
+
     def update_extensions(self):
         for extid in os.listdir(self.basedir):
-            self.update_extension(extid,True)
-            
+            self.update_extension(extid, True)
+
     def handle_extension(self, extinfo):
-        extid = extinfo[0]                   
-        return self.update_extension(extid,False,extinfo)
-        
+        extid = extinfo[0]
+        return self.update_extension(extid, False, extinfo)
 
     def get_store_date_string(self):
         response = requests.get(self.store_url).text
@@ -236,11 +233,11 @@ class ExtensionCrawler:
                     sys.stdout.write(
                         '\rDownloading ({}) into \"{}\" ... {} of {} done ({} new ones)'.
                         format(category,
-                            os.path.join(self.basedir), i,
-                            len(extinfos), newExtensions))
+                               os.path.join(self.basedir), i,
+                               len(extinfos), newExtensions))
                     sys.stdout.flush()
                     if self.verbose:
-                       sys.stdout.write("\n")
+                        sys.stdout.write("\n")
                     if self.handle_extension(extinfos[i]):
                         newExtensions += 1
                 except CrawlError as cerr:
@@ -257,7 +254,7 @@ class ExtensionCrawler:
                     len(extinfos), len(extinfos), newExtensions))
             if self.verbose:
                 sys.stdout.write("\n")
- 
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -297,13 +294,16 @@ if __name__ == '__main__':
         default='archive',
         help='The directory in which the downloaded extensions should be stored.'
     )
-    parser.add_argument('--discover', action='store_true',
-                    help='discover new extensions (default: only updated already downloaded extensions)')
-    parser.add_argument('-v','--verbose', action='store_true',
-                    help='increase verbosity')
+    parser.add_argument(
+        '--discover',
+        action='store_true',
+        help='discover new extensions (default: only updated already downloaded extensions)'
+    )
+    parser.add_argument(
+        '-v', '--verbose', action='store_true', help='increase verbosity')
 
     args = parser.parse_args()
-    crawler = ExtensionCrawler(args.dest,args.verbose)
+    crawler = ExtensionCrawler(args.dest, args.verbose)
 
     if args.discover:
         if args.interval:
@@ -316,5 +316,3 @@ if __name__ == '__main__':
                 crawler.run(args.categories, args.nrexts)
     else:
         crawler.update_extensions()
-   
-    
