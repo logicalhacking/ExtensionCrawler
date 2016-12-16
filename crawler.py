@@ -27,6 +27,8 @@ from datetime import datetime, timezone
 datetime.now(timezone.utc).strftime("%Y%m%d")
 import glob
 import hashlib
+import dateutil
+import dateutil.parser
 
 
 class Error(Exception):
@@ -70,9 +72,10 @@ class ExtensionCrawler:
     review_url = 'https://chrome.google.com/reviews/components'
     support_url = 'https://chrome.google.com/reviews/components'
 
-    def __init__(self, basedir, verbose):
+    def __init__(self, basedir, verbose, weak):
         self.basedir = basedir
         self.verbose = verbose
+        self.weak_exists_check = weak
 
     def sha256(self, fname):
         hash_sha256 = hashlib.sha256()
@@ -81,8 +84,21 @@ class ExtensionCrawler:
                 hash_sha256.update(chunk)
             return hash_sha256.hexdigest()
 
-    def download_extension(self, extid, extdir=""):
-        extresult = requests.get(self.download_url.format(extid), stream=True)
+    def download_extension(self, extid, extdir="", last_download_date=""):
+        if last_download_date != "":
+            headers = {'If-Modified-Since': last_download_date}
+            extresult = requests.get(
+                self.download_url.format(extid), stream=True, headers=headers)
+            if extresult.status_code == 304:
+                if self.verbose:
+                    print(
+                        "    Not re-downloading (If-Modified-Since returned 304)"
+                    )
+                return False
+        else:
+            extresult = requests.get(self.download_url.format(extid),
+                                     stream=True)
+
         if extresult.status_code == 401:
             raise UnauthorizedError(extid)
         if not 'Content-Type' in extresult.headers:
@@ -105,6 +121,7 @@ class ExtensionCrawler:
             for chunk in extresult.iter_content(chunk_size=512 * 1024):
                 if chunk:  # filter out keep-alive new chunks
                     f.write(chunk)
+        return True
 
     def download_storepage(self, extid, extdir):
         extpageresult = requests.get(self.detail_url.format(extid))
@@ -147,6 +164,21 @@ class ExtensionCrawler:
         with open(os.path.join(extdir, 'reviews100-199.text'), 'w') as f:
             f.write(response.text)
 
+    def httpdate(self, dt):
+        weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday(
+        )]
+        month = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
+            "Oct", "Nov", "Dec"
+        ][dt.month - 1]
+        return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (
+            weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
+
+    def last_modified_date(self, path):
+        utc = os.path.split(
+            os.path.dirname(os.path.relpath(path, self.basedir)))[1]
+        return self.httpdate(dateutil.parser.parse(utc))
+
     def update_extension(self, extid, overwrite, extinfo=None):
         if self.verbose:
             if overwrite:
@@ -171,6 +203,11 @@ class ExtensionCrawler:
             if os.path.isfile(archive):
                 elem = (self.sha256(archive), archive)
                 old_archives.append(elem)
+        last_download_date = ""
+        if self.weak_exists_check:
+            if old_archives != []:
+                last_download_date = self.last_modified_date((old_archives[-1]
+                                                              )[1])
 
         if extinfo != None:
             with open(os.path.join(extdir, 'metadata.json'), 'w') as f:
@@ -179,24 +216,34 @@ class ExtensionCrawler:
         self.download_storepage(extid, extdir)
         self.download_reviews(extid, extdir)
         self.download_support(extid, extdir)
-        self.download_extension(extid, extdir)
 
-        for archive in glob.glob(extdir + "/*.crx"):
-            same_files = [
-                x[1] for x in old_archives if x[0] == self.sha256(archive)
-            ]
-            if same_files != []:
-                os.rename(archive, archive + ".bak")
-                src = same_files[0]
-                cwd = os.getcwd()
-                os.chdir(extdir)
-                os.symlink(
-                    "../" + os.path.relpath(src, self.basedir + "/" + extid),
-                    os.path.relpath(archive, extdir))
-                os.chdir(cwd)
-                os.remove(archive + ".bak")
-        if self.verbose:
-            print("    download/update successful")
+        download = self.download_extension(extid, extdir, last_download_date)
+
+        if self.weak_exists_check and not download:
+            cwd = os.getcwd()
+            os.chdir(extdir)
+            os.symlink("../" + os.path.relpath(old_archives[-1][1],
+                                               self.basedir + "/" + extid),
+                       os.path.basename(old_archives[-1][1]))
+            os.chdir(cwd)
+
+        else:
+            for archive in glob.glob(extdir + "/*.crx"):
+                same_files = [
+                    x[1] for x in old_archives if x[0] == self.sha256(archive)
+                ]
+                if same_files != []:
+                    os.rename(archive, archive + ".bak")
+                    src = same_files[0]
+                    cwd = os.getcwd()
+                    os.chdir(extdir)
+                    os.symlink("../" + os.path.relpath(src, self.basedir + "/"
+                                                       + extid),
+                               os.path.relpath(archive, extdir))
+                    os.chdir(cwd)
+                    os.remove(archive + ".bak")
+                if self.verbose:
+                    print("    download/update successful")
 
         return True
 
@@ -301,9 +348,14 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-v', '--verbose', action='store_true', help='increase verbosity')
+    parser.add_argument(
+        '-w',
+        '--weak',
+        action='store_true',
+        help='weak check if crx exists already')
 
     args = parser.parse_args()
-    crawler = ExtensionCrawler(args.dest, args.verbose)
+    crawler = ExtensionCrawler(args.dest, args.verbose, args.weak)
 
     if args.discover:
         if args.interval:
