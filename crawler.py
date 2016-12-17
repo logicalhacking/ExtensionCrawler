@@ -191,7 +191,7 @@ class ExtensionCrawler:
             raise CrawlError(extid,
                              '{} is not a valid extension id.\n'.format(extid))
         extdir = os.path.join(self.basedir, extid, download_date)
-        if (not overwrite) and os.path.isdir(extdir):
+        if (not overwrite) and os.path.isdir(os.path.join(self.basedir, extid)):
             if self.verbose:
                 print("    already archived")
             return False
