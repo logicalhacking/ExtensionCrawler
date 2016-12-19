@@ -295,8 +295,8 @@ class ExtensionCrawler:
                 except UnauthorizedError as uerr:
                     sys.stdout.write('Error: login needed\n')
             sys.stdout.write(
-                '\rDownloading into {} ... {} of {} done ({} new ones)\n'.
-                format(
+                '\rDownloading ({}) into {} ... {} of {} done ({} new ones)\n'.
+                format(category,
                     os.path.join(self.basedir),
                     len(extinfos), len(extinfos), newExtensions))
             if self.verbose:
