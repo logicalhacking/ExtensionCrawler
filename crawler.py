@@ -299,6 +299,7 @@ class ExtensionCrawler:
                 format(category,
                     os.path.join(self.basedir),
                     len(extinfos), len(extinfos), newExtensions))
+            sys.stdout.flush()
             if self.verbose:
                 sys.stdout.write("\n")
 
