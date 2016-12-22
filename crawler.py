@@ -345,10 +345,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '--discover',
         action='store_true',
-        help='discover new extensions (default: only updated already downloaded extensions)'
+        help='Discover new extensions (default: only updated already downloaded extensions).'
     )
     parser.add_argument(
-        '-v', '--verbose', action='store_true', help='increase verbosity')
+        '-v', '--verbose', action='store_true', help='Increase verbosity.')
     parser.add_argument(
         '-w',
         '--weak',
