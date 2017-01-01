@@ -248,8 +248,22 @@ class ExtensionCrawler:
         return True
 
     def update_extensions(self):
+        n_attempts = 0
+        n_success  = 0
         for extid in os.listdir(self.basedir):
-            self.update_extension(extid, True)
+            try:
+                n_attempts +=1
+                self.update_extension(extid, True)
+                n_success += 1
+            except CrawlError as cerr:
+                sys.stdout.write('    Error: {}\n'.format(cerr.message))
+                if cerr.pagecontent != "":
+                    sys.stderr.write('    Page content was:\n')
+                    sys.stderr.write('    {}\n'.format(cerr.pagecontent))
+            except UnauthorizedError as uerr:
+                sys.stdout.write('    Error: login needed\n')
+        if self.verbose:
+            print ("*** Summary: updated {} of {} extensions successfully".format(n_success,n_attempts)) 
 
     def handle_extension(self, extinfo):
         extid = extinfo[0]
