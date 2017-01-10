@@ -84,6 +84,14 @@ class ExtensionCrawler:
                 hash_sha256.update(chunk)
             return hash_sha256.hexdigest()
 
+    def store_request_metadata(self,name,request):
+         with open(name+".headers", 'w') as f:
+                    f.write(str(request.headers))
+         with open(name+".status", 'w') as f:
+                    f.write(str(request.status_code))
+         with open(name+".url", 'w') as f:
+                    f.write(str(request.url))
+        
     def download_extension(self, extid, extdir="", last_download_date=""):
         if last_download_date != "":
             headers = {'If-Modified-Since': last_download_date}
@@ -94,11 +102,16 @@ class ExtensionCrawler:
                     print(
                         "    Not re-downloading (If-Modified-Since returned 304)"
                     )
+                extfilename = os.path.basename(extresult.url)
+                self.store_request_metadata(os.path.join(extdir, extfilename),extresult)
                 return False
         else:
             extresult = requests.get(self.download_url.format(extid),
                                      stream=True)
 
+        extfilename = os.path.basename(extresult.url)
+        self.store_request_metadata(os.path.join(extdir, extfilename),extresult)
+            
         if extresult.status_code == 401:
             raise UnauthorizedError(extid)
         if not 'Content-Type' in extresult.headers:
@@ -111,7 +124,6 @@ class ExtensionCrawler:
                 'Expected Content-Type header to be application/x-chrome-extension, but got {}.'.
                 format(extresult.headers['Content-Type']),
                 '\n'.join(extresult.iter_lines()))
-        extfilename = os.path.basename(extresult.url)
         if not self.regex_extfilename.match(extfilename):
             raise CrawlError(
                 extid,
@@ -127,6 +139,7 @@ class ExtensionCrawler:
         extpageresult = requests.get(self.detail_url.format(extid))
         with open(os.path.join(extdir, 'storepage.html'), 'w') as f:
             f.write(extpageresult.text)
+        self.store_request_metadata(os.path.join(extdir, 'storepage.html'), extpageresult)
 
     def download_support(self, extid, extdir):
         payload = (
@@ -141,10 +154,12 @@ class ExtensionCrawler:
             self.support_url, data=payload.format(extid, "0", "100"))
         with open(os.path.join(extdir, 'support000-099.text'), 'w') as f:
             f.write(response.text)
+        self.store_request_metadata(os.path.join(extdir, 'support000-099.text'),response) 
         response = requests.post(
             self.support_url, data=payload.format(extid, "100", "100"))
         with open(os.path.join(extdir, 'support100-199.text'), 'w') as f:
-            f.write(response.text)
+            f.write(str(response.text))
+        self.store_request_metadata(os.path.join(extdir, 'support100-199.text'),response) 
 
     def download_reviews(self, extid, extdir):
         payload = (
@@ -159,10 +174,12 @@ class ExtensionCrawler:
             self.review_url, data=payload.format(extid, "0", "100"))
         with open(os.path.join(extdir, 'reviews000-099.text'), 'w') as f:
             f.write(response.text)
+        self.store_request_metadata(os.path.join(extdir, 'reviews000-099.text'),response) 
         response = requests.post(
             self.review_url, data=payload.format(extid, "100", "100"))
         with open(os.path.join(extdir, 'reviews100-199.text'), 'w') as f:
             f.write(response.text)
+        self.store_request_metadata(os.path.join(extdir, 'reviews100-199.text'),response) 
 
     def httpdate(self, dt):
         weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday(
@@ -263,7 +280,7 @@ class ExtensionCrawler:
             except UnauthorizedError as uerr:
                 sys.stdout.write('    Error: login needed\n')
         if self.verbose:
-            print ("*** Summary: updated {} of {} extensions successfully".format(n_success,n_attempts)) 
+            print ("*** Summary: updated {} of {} extensions successfully".format(n_success,n_attempts))
 
     def handle_extension(self, extinfo):
         extid = extinfo[0]
