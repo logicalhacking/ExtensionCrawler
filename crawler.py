@@ -303,7 +303,8 @@ class ExtensionCrawler:
         n_attempts = 0
         n_success = 0
         n_login_required = 0
-        for extid in os.listdir(self.basedir):
+        extensions = os.listdir(self.basedir)
+        for extid in extensions:
             try:
                 n_attempts += 1
                 self.update_extension(extid, True)
@@ -316,6 +317,8 @@ class ExtensionCrawler:
             except UnauthorizedError as uerr:
                 sys.stdout.write('    Error: login needed\n')
                 n_login_required += 0
+            print("    extension {} of {} ".format(n_attempts,len(extensions)))
+            sys.stdout.flush()
         if self.verbose:
             print("*** Summary: Updated {} of {} extensions successfully".
                   format(n_success, n_attempts))
