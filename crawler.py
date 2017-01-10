@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2016 The University of Sheffield, UK
+# Copyright (C) 2016,2017 The University of Sheffield, UK
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,6 +29,8 @@ import glob
 import hashlib
 import dateutil
 import dateutil.parser
+from random import randint
+from time import sleep
 
 
 class Error(Exception):
@@ -61,7 +63,6 @@ class ExtensionCrawler:
         'ext/38-search-tools', 'ext/12-shopping', 'ext/1-communication',
         'ext/13-sports'
     ]
-    regex_captcha = re.compile('aptcha')
     regex_extid = re.compile(r'^[a-z]+$')
     regex_extfilename = re.compile(r'^extension[_0-9]+\.crx$')
     regex_store_date_string = re.compile(r'"([0-9]{8})"')
@@ -72,7 +73,11 @@ class ExtensionCrawler:
     store_url = 'https://chrome.google.com/webstore'
     review_url = 'https://chrome.google.com/reviews/components'
     support_url = 'https://chrome.google.com/reviews/components'
+#    ua_header = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+    ua_header = {}
+    
 
+    
     def __init__(self, basedir, verbose, weak):
         self.basedir = basedir
         self.verbose = verbose
@@ -92,8 +97,15 @@ class ExtensionCrawler:
                     f.write(str(request.status_code))
          with open(name+".url", 'w') as f:
                     f.write(str(request.url))
-         if 0 < request.text.find('Captcha'):
-             print ("    WARNING: Captcha ("+name+")")
+                    
+    def google_dos_protection(self,name,request):
+         sleep(randint(1,3)*.5)
+         print ("waiting: "+str(wait))
+         if request.status_code == 503:
+             if 0 < request.text.find('CAPTCHA'):
+                 print ("    Warning: Captcha ("+name+")")
+             else:
+                 print ("    Warning: unknown status 503 ("+name+")")
         
     def download_extension(self, extid, extdir="", last_download_date=""):
         if last_download_date != "":
@@ -107,6 +119,7 @@ class ExtensionCrawler:
                     )
                 extfilename = os.path.basename(extresult.url)
                 self.store_request_metadata(os.path.join(extdir, extfilename),extresult)
+                self.google_dos_protection(os.path.join(extdir, extfilename),extresult)
                 return False
         else:
             extresult = requests.get(self.download_url.format(extid),
@@ -114,6 +127,7 @@ class ExtensionCrawler:
 
         extfilename = os.path.basename(extresult.url)
         self.store_request_metadata(os.path.join(extdir, extfilename),extresult)
+        self.google_dos(os.path.join(extdir, extfilename),extresult)
             
         if extresult.status_code == 401:
             raise UnauthorizedError(extid)
@@ -140,9 +154,10 @@ class ExtensionCrawler:
 
     def download_storepage(self, extid, extdir):
         extpageresult = requests.get(self.detail_url.format(extid))
+        self.store_request_metadata(os.path.join(extdir, 'storepage.html'), extpageresult)
+        self.google_dos_protection(os.path.join(extdir, 'storepage.html'), extpageresult)
         with open(os.path.join(extdir, 'storepage.html'), 'w') as f:
             f.write(extpageresult.text)
-        self.store_request_metadata(os.path.join(extdir, 'storepage.html'), extpageresult)
 
     def download_support(self, extid, extdir):
         payload = (
@@ -154,15 +169,17 @@ class ExtensionCrawler:
             '"internedValues":[]}}')
 
         response = requests.post(
-            self.support_url, data=payload.format(extid, "0", "100"))
+            self.support_url, data=payload.format(extid, "0", "100"),headers=self.ua_header)
         with open(os.path.join(extdir, 'support000-099.text'), 'w') as f:
             f.write(response.text)
         self.store_request_metadata(os.path.join(extdir, 'support000-099.text'),response) 
+        self.google_dos_protection(os.path.join(extdir, 'support000-099.text'),response) 
         response = requests.post(
-            self.support_url, data=payload.format(extid, "100", "100"))
+            self.support_url, data=payload.format(extid, "100", "100"),headers=self.ua_header)
         with open(os.path.join(extdir, 'support100-199.text'), 'w') as f:
             f.write(str(response.text))
         self.store_request_metadata(os.path.join(extdir, 'support100-199.text'),response) 
+        self.google_dos_protection(os.path.join(extdir, 'support100-199.text'),response) 
 
     def download_reviews(self, extid, extdir):
         payload = (
@@ -174,15 +191,17 @@ class ExtensionCrawler:
             '"internedKeys":[],' + '"internedValues":[]}}')
 
         response = requests.post(
-            self.review_url, data=payload.format(extid, "0", "100"))
+            self.review_url, data=payload.format(extid, "0", "100"),headers=self.ua_header)
         with open(os.path.join(extdir, 'reviews000-099.text'), 'w') as f:
             f.write(response.text)
         self.store_request_metadata(os.path.join(extdir, 'reviews000-099.text'),response) 
+        self.google_dos_protection(os.path.join(extdir, 'reviews000-099.text'),response) 
         response = requests.post(
-            self.review_url, data=payload.format(extid, "100", "100"))
+            self.review_url, data=payload.format(extid, "100", "100"),headers=self.ua_header)
         with open(os.path.join(extdir, 'reviews100-199.text'), 'w') as f:
             f.write(response.text)
         self.store_request_metadata(os.path.join(extdir, 'reviews100-199.text'),response) 
+        self.google_dos_protection(os.path.join(extdir, 'reviews100-199.text'),response) 
 
     def httpdate(self, dt):
         weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday(
