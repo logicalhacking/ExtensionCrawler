@@ -98,7 +98,6 @@ class ExtensionCrawler:
                     
     def google_dos_protection(self,name,request):
          sleep(randint(1,3)*.5)
-         print ("waiting: "+str(wait))
          if request.status_code == 503:
              if 0 < request.text.find('CAPTCHA'):
                  print ("    Warning: Captcha ("+name+")")
