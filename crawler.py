@@ -126,7 +126,8 @@ class ExtensionCrawler:
         extfilename = os.path.basename(extresult.url)
         self.store_request_metadata(
             os.path.join(extdir, extfilename), extresult)
-        self.google_dos(os.path.join(extdir, extfilename), extresult)
+        self.google_dos_protection(
+            os.path.join(extdir, extfilename), extresult)
 
         if extresult.status_code == 401:
             raise UnauthorizedError(extid)
