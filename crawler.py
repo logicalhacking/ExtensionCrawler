@@ -78,7 +78,8 @@ class ExtensionCrawler:
         self.basedir = basedir
         self.verbose = verbose
         self.weak_exists_check = weak
-
+        self.google_dos_count = 0
+        
     def sha256(self, fname):
         hash_sha256 = hashlib.sha256()
         with open(fname, "rb") as f:
@@ -99,6 +100,7 @@ class ExtensionCrawler:
         if request.status_code == 503:
             if 0 < request.text.find('CAPTCHA'):
                 print("    Warning: Captcha (" + name + ")")
+                self.google_dos_count += 1
             else:
                 print("    Warning: unknown status 503 (" + name + ")")
 
@@ -300,6 +302,7 @@ class ExtensionCrawler:
     def update_extensions(self):
         n_attempts = 0
         n_success = 0
+        n_login_required = 0
         for extid in os.listdir(self.basedir):
             try:
                 n_attempts += 1
@@ -312,9 +315,12 @@ class ExtensionCrawler:
                     sys.stderr.write('    {}\n'.format(cerr.pagecontent))
             except UnauthorizedError as uerr:
                 sys.stdout.write('    Error: login needed\n')
+                n_login_required += 0
         if self.verbose:
-            print("*** Summary: updated {} of {} extensions successfully".
+            print("*** Summary: Updated {} of {} extensions successfully".
                   format(n_success, n_attempts))
+            print("***          Login required: {}".format(n_login_required))
+            print("***          Hit Google DOS protection: {}".format(self.google_dos_count))
 
     def handle_extension(self, extinfo):
         extid = extinfo[0]
