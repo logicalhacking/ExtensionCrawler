@@ -73,9 +73,7 @@ class ExtensionCrawler:
     store_url = 'https://chrome.google.com/webstore'
     review_url = 'https://chrome.google.com/reviews/components'
     support_url = 'https://chrome.google.com/reviews/components'
-    
 
-    
     def __init__(self, basedir, verbose, weak):
         self.basedir = basedir
         self.verbose = verbose
@@ -88,44 +86,48 @@ class ExtensionCrawler:
                 hash_sha256.update(chunk)
             return hash_sha256.hexdigest()
 
-    def store_request_metadata(self,name,request):
-         with open(name+".headers", 'w') as f:
-                    f.write(str(request.headers))
-         with open(name+".status", 'w') as f:
-                    f.write(str(request.status_code))
-         with open(name+".url", 'w') as f:
-                    f.write(str(request.url))
-                    
-    def google_dos_protection(self,name,request):
-         sleep(randint(1,3)*.5)
-         if request.status_code == 503:
-             if 0 < request.text.find('CAPTCHA'):
-                 print ("    Warning: Captcha ("+name+")")
-             else:
-                 print ("    Warning: unknown status 503 ("+name+")")
-        
+    def store_request_metadata(self, name, request):
+        with open(name + ".headers", 'w') as f:
+            f.write(str(request.headers))
+        with open(name + ".status", 'w') as f:
+            f.write(str(request.status_code))
+        with open(name + ".url", 'w') as f:
+            f.write(str(request.url))
+
+    def google_dos_protection(self, name, request):
+        sleep(randint(1, 3) * .5)
+        if request.status_code == 503:
+            if 0 < request.text.find('CAPTCHA'):
+                print("    Warning: Captcha (" + name + ")")
+            else:
+                print("    Warning: unknown status 503 (" + name + ")")
+
     def download_extension(self, extid, extdir="", last_download_date=""):
         if last_download_date != "":
             headers = {'If-Modified-Since': last_download_date}
-            extresult = requests.get(
-                self.download_url.format(extid), stream=True, headers=headers)
+            extresult = requests.get(self.download_url.format(extid),
+                                     stream=True,
+                                     headers=headers)
             if extresult.status_code == 304:
                 if self.verbose:
                     print(
                         "    Not re-downloading (If-Modified-Since returned 304)"
                     )
                 extfilename = os.path.basename(extresult.url)
-                self.store_request_metadata(os.path.join(extdir, extfilename),extresult)
-                self.google_dos_protection(os.path.join(extdir, extfilename),extresult)
+                self.store_request_metadata(
+                    os.path.join(extdir, extfilename), extresult)
+                self.google_dos_protection(
+                    os.path.join(extdir, extfilename), extresult)
                 return False
         else:
             extresult = requests.get(self.download_url.format(extid),
                                      stream=True)
 
         extfilename = os.path.basename(extresult.url)
-        self.store_request_metadata(os.path.join(extdir, extfilename),extresult)
-        self.google_dos(os.path.join(extdir, extfilename),extresult)
-            
+        self.store_request_metadata(
+            os.path.join(extdir, extfilename), extresult)
+        self.google_dos(os.path.join(extdir, extfilename), extresult)
+
         if extresult.status_code == 401:
             raise UnauthorizedError(extid)
         if not 'Content-Type' in extresult.headers:
@@ -151,8 +153,10 @@ class ExtensionCrawler:
 
     def download_storepage(self, extid, extdir):
         extpageresult = requests.get(self.detail_url.format(extid))
-        self.store_request_metadata(os.path.join(extdir, 'storepage.html'), extpageresult)
-        self.google_dos_protection(os.path.join(extdir, 'storepage.html'), extpageresult)
+        self.store_request_metadata(
+            os.path.join(extdir, 'storepage.html'), extpageresult)
+        self.google_dos_protection(
+            os.path.join(extdir, 'storepage.html'), extpageresult)
         with open(os.path.join(extdir, 'storepage.html'), 'w') as f:
             f.write(extpageresult.text)
 
@@ -169,14 +173,18 @@ class ExtensionCrawler:
             self.support_url, data=payload.format(extid, "0", "100"))
         with open(os.path.join(extdir, 'support000-099.text'), 'w') as f:
             f.write(response.text)
-        self.store_request_metadata(os.path.join(extdir, 'support000-099.text'),response) 
-        self.google_dos_protection(os.path.join(extdir, 'support000-099.text'),response) 
+        self.store_request_metadata(
+            os.path.join(extdir, 'support000-099.text'), response)
+        self.google_dos_protection(
+            os.path.join(extdir, 'support000-099.text'), response)
         response = requests.post(
             self.support_url, data=payload.format(extid, "100", "100"))
         with open(os.path.join(extdir, 'support100-199.text'), 'w') as f:
             f.write(str(response.text))
-        self.store_request_metadata(os.path.join(extdir, 'support100-199.text'),response) 
-        self.google_dos_protection(os.path.join(extdir, 'support100-199.text'),response) 
+        self.store_request_metadata(
+            os.path.join(extdir, 'support100-199.text'), response)
+        self.google_dos_protection(
+            os.path.join(extdir, 'support100-199.text'), response)
 
     def download_reviews(self, extid, extdir):
         payload = (
@@ -191,14 +199,18 @@ class ExtensionCrawler:
             self.review_url, data=payload.format(extid, "0", "100"))
         with open(os.path.join(extdir, 'reviews000-099.text'), 'w') as f:
             f.write(response.text)
-        self.store_request_metadata(os.path.join(extdir, 'reviews000-099.text'),response) 
-        self.google_dos_protection(os.path.join(extdir, 'reviews000-099.text'),response) 
+        self.store_request_metadata(
+            os.path.join(extdir, 'reviews000-099.text'), response)
+        self.google_dos_protection(
+            os.path.join(extdir, 'reviews000-099.text'), response)
         response = requests.post(
             self.review_url, data=payload.format(extid, "100", "100"))
         with open(os.path.join(extdir, 'reviews100-199.text'), 'w') as f:
             f.write(response.text)
-        self.store_request_metadata(os.path.join(extdir, 'reviews100-199.text'),response) 
-        self.google_dos_protection(os.path.join(extdir, 'reviews100-199.text'),response) 
+        self.store_request_metadata(
+            os.path.join(extdir, 'reviews100-199.text'), response)
+        self.google_dos_protection(
+            os.path.join(extdir, 'reviews100-199.text'), response)
 
     def httpdate(self, dt):
         weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday(
@@ -227,7 +239,8 @@ class ExtensionCrawler:
             raise CrawlError(extid,
                              '{} is not a valid extension id.\n'.format(extid))
         extdir = os.path.join(self.basedir, extid, download_date)
-        if (not overwrite) and os.path.isdir(os.path.join(self.basedir, extid)):
+        if (not overwrite
+            ) and os.path.isdir(os.path.join(self.basedir, extid)):
             if self.verbose:
                 print("    already archived")
             return False
@@ -285,10 +298,10 @@ class ExtensionCrawler:
 
     def update_extensions(self):
         n_attempts = 0
-        n_success  = 0
+        n_success = 0
         for extid in os.listdir(self.basedir):
             try:
-                n_attempts +=1
+                n_attempts += 1
                 self.update_extension(extid, True)
                 n_success += 1
             except CrawlError as cerr:
@@ -299,7 +312,8 @@ class ExtensionCrawler:
             except UnauthorizedError as uerr:
                 sys.stdout.write('    Error: login needed\n')
         if self.verbose:
-            print ("*** Summary: updated {} of {} extensions successfully".format(n_success,n_attempts))
+            print("*** Summary: updated {} of {} extensions successfully".
+                  format(n_success, n_attempts))
 
     def handle_extension(self, extinfo):
         extid = extinfo[0]
@@ -347,8 +361,8 @@ class ExtensionCrawler:
             sys.stdout.write(
                 '\rDownloading ({}) into {} ... {} of {} done ({} new ones)\n'.
                 format(category,
-                    os.path.join(self.basedir),
-                    len(extinfos), len(extinfos), newExtensions))
+                       os.path.join(self.basedir),
+                       len(extinfos), len(extinfos), newExtensions))
             sys.stdout.flush()
             if self.verbose:
                 sys.stdout.write("\n")
