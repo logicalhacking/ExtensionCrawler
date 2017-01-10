@@ -73,8 +73,6 @@ class ExtensionCrawler:
     store_url = 'https://chrome.google.com/webstore'
     review_url = 'https://chrome.google.com/reviews/components'
     support_url = 'https://chrome.google.com/reviews/components'
-#    ua_header = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
-    ua_header = {}
     
 
     
@@ -169,13 +167,13 @@ class ExtensionCrawler:
             '"internedValues":[]}}')
 
         response = requests.post(
-            self.support_url, data=payload.format(extid, "0", "100"),headers=self.ua_header)
+            self.support_url, data=payload.format(extid, "0", "100"))
         with open(os.path.join(extdir, 'support000-099.text'), 'w') as f:
             f.write(response.text)
         self.store_request_metadata(os.path.join(extdir, 'support000-099.text'),response) 
         self.google_dos_protection(os.path.join(extdir, 'support000-099.text'),response) 
         response = requests.post(
-            self.support_url, data=payload.format(extid, "100", "100"),headers=self.ua_header)
+            self.support_url, data=payload.format(extid, "100", "100"))
         with open(os.path.join(extdir, 'support100-199.text'), 'w') as f:
             f.write(str(response.text))
         self.store_request_metadata(os.path.join(extdir, 'support100-199.text'),response) 
@@ -191,13 +189,13 @@ class ExtensionCrawler:
             '"internedKeys":[],' + '"internedValues":[]}}')
 
         response = requests.post(
-            self.review_url, data=payload.format(extid, "0", "100"),headers=self.ua_header)
+            self.review_url, data=payload.format(extid, "0", "100"))
         with open(os.path.join(extdir, 'reviews000-099.text'), 'w') as f:
             f.write(response.text)
         self.store_request_metadata(os.path.join(extdir, 'reviews000-099.text'),response) 
         self.google_dos_protection(os.path.join(extdir, 'reviews000-099.text'),response) 
         response = requests.post(
-            self.review_url, data=payload.format(extid, "100", "100"),headers=self.ua_header)
+            self.review_url, data=payload.format(extid, "100", "100"))
         with open(os.path.join(extdir, 'reviews100-199.text'), 'w') as f:
             f.write(response.text)
         self.store_request_metadata(os.path.join(extdir, 'reviews100-199.text'),response) 
