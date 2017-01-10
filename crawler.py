@@ -61,6 +61,7 @@ class ExtensionCrawler:
         'ext/38-search-tools', 'ext/12-shopping', 'ext/1-communication',
         'ext/13-sports'
     ]
+    regex_captcha = re.compile('aptcha')
     regex_extid = re.compile(r'^[a-z]+$')
     regex_extfilename = re.compile(r'^extension[_0-9]+\.crx$')
     regex_store_date_string = re.compile(r'"([0-9]{8})"')
@@ -91,6 +92,8 @@ class ExtensionCrawler:
                     f.write(str(request.status_code))
          with open(name+".url", 'w') as f:
                     f.write(str(request.url))
+         if 0 < request.text.find('Captcha'):
+             print ("    WARNING: Captcha ("+name+")")
         
     def download_extension(self, extid, extdir="", last_download_date=""):
         if last_download_date != "":
