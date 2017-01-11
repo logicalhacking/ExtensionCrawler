@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2016 The University of Sheffield, UK
+# Copyright (C) 2016,2017 The University of Sheffield, UK
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,6 +29,8 @@ import glob
 import hashlib
 import dateutil
 import dateutil.parser
+from random import randint
+from time import sleep
 
 
 class Error(Exception):
@@ -61,7 +63,6 @@ class ExtensionCrawler:
         'ext/38-search-tools', 'ext/12-shopping', 'ext/1-communication',
         'ext/13-sports'
     ]
-    regex_captcha = re.compile('aptcha')
     regex_extid = re.compile(r'^[a-z]+$')
     regex_extfilename = re.compile(r'^extension[_0-9]+\.crx$')
     regex_store_date_string = re.compile(r'"([0-9]{8})"')
@@ -73,11 +74,13 @@ class ExtensionCrawler:
     review_url = 'https://chrome.google.com/reviews/components'
     support_url = 'https://chrome.google.com/reviews/components'
 
-    def __init__(self, basedir, verbose, weak):
+    def __init__(self, basedir, verbose, weak, overview):
         self.basedir = basedir
         self.verbose = verbose
         self.weak_exists_check = weak
-
+        self.google_dos_count = 0
+        self.overview_only = overview
+        
     def sha256(self, fname):
         hash_sha256 = hashlib.sha256()
         with open(fname, "rb") as f:
@@ -85,36 +88,52 @@ class ExtensionCrawler:
                 hash_sha256.update(chunk)
             return hash_sha256.hexdigest()
 
-    def store_request_metadata(self,name,request):
-         with open(name+".headers", 'w') as f:
-                    f.write(str(request.headers))
-         with open(name+".status", 'w') as f:
-                    f.write(str(request.status_code))
-         with open(name+".url", 'w') as f:
-                    f.write(str(request.url))
-         if 0 < request.text.find('Captcha'):
-             print ("    WARNING: Captcha ("+name+")")
-        
+    def store_request_metadata(self, name, request):
+        with open(name + ".headers", 'w') as f:
+            f.write(str(request.headers))
+        with open(name + ".status", 'w') as f:
+            f.write(str(request.status_code))
+        with open(name + ".url", 'w') as f:
+            f.write(str(request.url))
+
+    def google_dos_protection(self, name, request,max=3):
+        if max >= 1:
+            sleep(randint(1, max) * .5)
+            
+        if request.status_code == 503:
+            if 0 < request.text.find('CAPTCHA'):
+                print("    Warning: Captcha (" + name + ")")
+                self.google_dos_count += 1
+            else:
+                print("    Warning: unknown status 503 (" + name + ")")
+
     def download_extension(self, extid, extdir="", last_download_date=""):
         if last_download_date != "":
             headers = {'If-Modified-Since': last_download_date}
-            extresult = requests.get(
-                self.download_url.format(extid), stream=True, headers=headers)
+            extresult = requests.get(self.download_url.format(extid),
+                                     stream=True,
+                                     headers=headers)
             if extresult.status_code == 304:
                 if self.verbose:
                     print(
                         "    Not re-downloading (If-Modified-Since returned 304)"
                     )
                 extfilename = os.path.basename(extresult.url)
-                self.store_request_metadata(os.path.join(extdir, extfilename),extresult)
+                self.store_request_metadata(
+                    os.path.join(extdir, extfilename), extresult)
+                self.google_dos_protection(
+                    os.path.join(extdir, extfilename), extresult)
                 return False
         else:
             extresult = requests.get(self.download_url.format(extid),
                                      stream=True)
 
         extfilename = os.path.basename(extresult.url)
-        self.store_request_metadata(os.path.join(extdir, extfilename),extresult)
-            
+        self.store_request_metadata(
+            os.path.join(extdir, extfilename), extresult)
+        self.google_dos_protection(
+            os.path.join(extdir, extfilename), extresult)
+
         if extresult.status_code == 401:
             raise UnauthorizedError(extid)
         if not 'Content-Type' in extresult.headers:
@@ -140,9 +159,12 @@ class ExtensionCrawler:
 
     def download_storepage(self, extid, extdir):
         extpageresult = requests.get(self.detail_url.format(extid))
+        self.store_request_metadata(
+            os.path.join(extdir, 'storepage.html'), extpageresult)
+        self.google_dos_protection(
+            os.path.join(extdir, 'storepage.html'), extpageresult,0.1)
         with open(os.path.join(extdir, 'storepage.html'), 'w') as f:
             f.write(extpageresult.text)
-        self.store_request_metadata(os.path.join(extdir, 'storepage.html'), extpageresult)
 
     def download_support(self, extid, extdir):
         payload = (
@@ -157,12 +179,18 @@ class ExtensionCrawler:
             self.support_url, data=payload.format(extid, "0", "100"))
         with open(os.path.join(extdir, 'support000-099.text'), 'w') as f:
             f.write(response.text)
-        self.store_request_metadata(os.path.join(extdir, 'support000-099.text'),response) 
+        self.store_request_metadata(
+            os.path.join(extdir, 'support000-099.text'), response)
+        self.google_dos_protection(
+            os.path.join(extdir, 'support000-099.text'), response)
         response = requests.post(
             self.support_url, data=payload.format(extid, "100", "100"))
         with open(os.path.join(extdir, 'support100-199.text'), 'w') as f:
             f.write(str(response.text))
-        self.store_request_metadata(os.path.join(extdir, 'support100-199.text'),response) 
+        self.store_request_metadata(
+            os.path.join(extdir, 'support100-199.text'), response)
+        self.google_dos_protection(
+            os.path.join(extdir, 'support100-199.text'), response)
 
     def download_reviews(self, extid, extdir):
         payload = (
@@ -177,12 +205,18 @@ class ExtensionCrawler:
             self.review_url, data=payload.format(extid, "0", "100"))
         with open(os.path.join(extdir, 'reviews000-099.text'), 'w') as f:
             f.write(response.text)
-        self.store_request_metadata(os.path.join(extdir, 'reviews000-099.text'),response) 
+        self.store_request_metadata(
+            os.path.join(extdir, 'reviews000-099.text'), response)
+        self.google_dos_protection(
+            os.path.join(extdir, 'reviews000-099.text'), response)
         response = requests.post(
             self.review_url, data=payload.format(extid, "100", "100"))
         with open(os.path.join(extdir, 'reviews100-199.text'), 'w') as f:
             f.write(response.text)
-        self.store_request_metadata(os.path.join(extdir, 'reviews100-199.text'),response) 
+        self.store_request_metadata(
+            os.path.join(extdir, 'reviews100-199.text'), response)
+        self.google_dos_protection(
+            os.path.join(extdir, 'reviews100-199.text'), response)
 
     def httpdate(self, dt):
         weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday(
@@ -199,25 +233,43 @@ class ExtensionCrawler:
             os.path.dirname(os.path.relpath(path, self.basedir)))[1]
         return self.httpdate(dateutil.parser.parse(utc))
 
-    def update_extension(self, extid, overwrite, extinfo=None):
-        if self.verbose:
-            if overwrite:
-                print("  Updating {} ...".format(extid))
-            else:
-                print("  Downloading {} ..".format(extid))
-
-        download_date = datetime.now(timezone.utc).isoformat()
+    def update_extension(self, extid, overwrite, extinfo=None,cnt=None,max_cnt=None):
         if not self.regex_extid.match(extid):
             raise CrawlError(extid,
                              '{} is not a valid extension id.\n'.format(extid))
+        if self.verbose:
+            if overwrite:
+                sys.stdout.write("  Updating ")
+            else:
+                sys.stdout.write("  Downloading ")
+            if cnt != None:
+                sys.stdout.write("({}".format(cnt))
+                if max_cnt != None:
+                    sys.stdout.write("/{}".format(max_cnt))
+                sys.stdout.write(") ".format(max_cnt))
+                
+            if self.overview_only:
+                sys.stdout.write("overview page of ")
+            else:
+                sys.stdout.write("full data set of ")
+            sys.stdout.write("extension {}\n".format(extid))
+                
+        download_date = datetime.now(timezone.utc).isoformat()
         extdir = os.path.join(self.basedir, extid, download_date)
-        if (not overwrite) and os.path.isdir(os.path.join(self.basedir, extid)):
+        if (not overwrite
+            ) and os.path.isdir(os.path.join(self.basedir, extid)):
             if self.verbose:
                 print("    already archived")
             return False
-
+        
         os.makedirs(extdir)
 
+        self.download_storepage(extid, extdir)
+
+        self.download_storepage(extid, extdir)
+        if self.overview_only:
+            return True
+        
         old_archives = []
         for archive in glob.glob(self.basedir + "/" + extid + "/*/*.crx"):
             if os.path.isfile(archive):
@@ -233,7 +285,6 @@ class ExtensionCrawler:
             with open(os.path.join(extdir, 'metadata.json'), 'w') as f:
                 json.dump(extinfo, f, indent=5)
 
-        self.download_storepage(extid, extdir)
         self.download_reviews(extid, extdir)
         self.download_support(extid, extdir)
 
@@ -269,11 +320,13 @@ class ExtensionCrawler:
 
     def update_extensions(self):
         n_attempts = 0
-        n_success  = 0
-        for extid in os.listdir(self.basedir):
+        n_success = 0
+        n_login_required = 0
+        extensions = os.listdir(self.basedir)
+        for extid in extensions:
             try:
-                n_attempts +=1
-                self.update_extension(extid, True)
+                n_attempts += 1
+                self.update_extension(extid, True,None,n_attempts,len(extensions))
                 n_success += 1
             except CrawlError as cerr:
                 sys.stdout.write('    Error: {}\n'.format(cerr.message))
@@ -282,8 +335,14 @@ class ExtensionCrawler:
                     sys.stderr.write('    {}\n'.format(cerr.pagecontent))
             except UnauthorizedError as uerr:
                 sys.stdout.write('    Error: login needed\n')
+                n_login_required += 1
+            sys.stdout.flush()
         if self.verbose:
-            print ("*** Summary: updated {} of {} extensions successfully".format(n_success,n_attempts))
+            print("*** Summary: Updated {} of {} extensions successfully".
+                  format(n_success, n_attempts))
+            print("***          Login required: {}".format(n_login_required))
+            print("***          Hit Google DOS protection: {}".format(self.google_dos_count))
+            sys.stdout.flush()
 
     def handle_extension(self, extinfo):
         extid = extinfo[0]
@@ -331,8 +390,8 @@ class ExtensionCrawler:
             sys.stdout.write(
                 '\rDownloading ({}) into {} ... {} of {} done ({} new ones)\n'.
                 format(category,
-                    os.path.join(self.basedir),
-                    len(extinfos), len(extinfos), newExtensions))
+                       os.path.join(self.basedir),
+                       len(extinfos), len(extinfos), newExtensions))
             sys.stdout.flush()
             if self.verbose:
                 sys.stdout.write("\n")
@@ -384,13 +443,15 @@ if __name__ == '__main__':
     parser.add_argument(
         '-v', '--verbose', action='store_true', help='Increase verbosity.')
     parser.add_argument(
+        '-o', '--overview', action='store_true', help='Only download/update overview page.')
+    parser.add_argument(
         '-w',
         '--weak',
         action='store_true',
         help='weak check if crx exists already')
 
     args = parser.parse_args()
-    crawler = ExtensionCrawler(args.dest, args.verbose, args.weak)
+    crawler = ExtensionCrawler(args.dest, args.verbose, args.weak,args.overview)
 
     if args.discover:
         if args.interval:
