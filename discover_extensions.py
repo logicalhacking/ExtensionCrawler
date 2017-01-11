@@ -42,7 +42,7 @@ def save_ids(driver, savefile):
 savedir = "."
 if len(sys.argv) > 1:
     savedir = sys.argv[1]
-    os.makedirs(savedir)
+    os.makedirs(savedir, exist_ok=True)
 savefile = os.path.join(savedir, "ids-{}.txt".format(datetime.datetime.now().isoformat()))
 
 driver = webdriver.PhantomJS() 
