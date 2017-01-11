@@ -316,7 +316,7 @@ class ExtensionCrawler:
                     sys.stderr.write('    {}\n'.format(cerr.pagecontent))
             except UnauthorizedError as uerr:
                 sys.stdout.write('    Error: login needed\n')
-                n_login_required += 0
+                n_login_required += 1
             print("    extension {} of {} ".format(n_attempts,len(extensions)))
             sys.stdout.flush()
         if self.verbose:
