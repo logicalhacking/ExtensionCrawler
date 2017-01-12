@@ -364,7 +364,7 @@ class ExtensionCrawler:
             sys.stdout.write('\n\n')    
             sys.stdout.write('Re-trying failed downloads ... \n')    
             sys.stdout.flush()
-            self.update_extension_list(self,retry)
+            self.update_extension_list(retry)
 
     def handle_extension(self, extinfo):
         extid = extinfo[0]
