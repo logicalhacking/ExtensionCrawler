@@ -141,11 +141,12 @@ class ExtensionCrawler:
                              '\n'.join(extresult.iter_lines()))
         if not extresult.headers[
                 'Content-Type'] == 'application/x-chrome-extension':
+            text = [line.decode('utf-8') for line in extresult.iter_lines()]
             raise CrawlError(
                 extid,
                 'Expected Content-Type header to be application/x-chrome-extension, but got {}.'.
                 format(extresult.headers['Content-Type']),
-                '\n'.join(extresult.iter_lines()))
+                '\n'.join(text))
         if not self.regex_extfilename.match(extfilename):
             raise CrawlError(
                 extid,
@@ -318,31 +319,52 @@ class ExtensionCrawler:
 
         return True
 
-    def update_extensions(self):
+    
+    def update_extension_list(self, extensions):
         n_attempts = 0
         n_success = 0
         n_login_required = 0
-        extensions = os.listdir(self.basedir)
+        n_errors = 0
+        retry_extids = []
         for extid in extensions:
             try:
                 n_attempts += 1
                 self.update_extension(extid, True,None,n_attempts,len(extensions))
                 n_success += 1
             except CrawlError as cerr:
+                retry_extids.append(extid)
                 sys.stdout.write('    Error: {}\n'.format(cerr.message))
+                n_errors +=1
                 if cerr.pagecontent != "":
                     sys.stderr.write('    Page content was:\n')
                     sys.stderr.write('    {}\n'.format(cerr.pagecontent))
             except UnauthorizedError as uerr:
+                retry_extids.append(extid)
                 sys.stdout.write('    Error: login needed\n')
                 n_login_required += 1
+            except ConnectionResetError as cerr:
+                retry_extids.append(extid)
+                sys.stdout.write('    Error: {}\n'.format(str(cerr)))
+                n_errors +=1
+                
             sys.stdout.flush()
         if self.verbose:
             print("*** Summary: Updated {} of {} extensions successfully".
                   format(n_success, n_attempts))
             print("***          Login required: {}".format(n_login_required))
             print("***          Hit Google DOS protection: {}".format(self.google_dos_count))
+            print("***          Other Erros: {}".format(n_errors))
             sys.stdout.flush()
+        return retry_extids
+            
+    def update_extensions(self):
+        extensions = os.listdir(self.basedir)
+        retry = self.update_extension_list(extensions)
+        if retry != []:
+            sys.stdout.write('\n\n')    
+            sys.stdout.write('Re-trying failed downloads ... \n')    
+            sys.stdout.flush()
+            self.update_extension_list(self,retry)
 
     def handle_extension(self, extinfo):
         extid = extinfo[0]
