@@ -74,9 +74,10 @@ class ExtensionCrawler:
     review_url = 'https://chrome.google.com/reviews/components'
     support_url = 'https://chrome.google.com/reviews/components'
 
-    def __init__(self, basedir, verbose, weak, overview):
+    def __init__(self, basedir, verbose, summary, weak, overview):
         self.basedir = basedir
         self.verbose = verbose
+        self.summary = summary
         self.weak_exists_check = weak
         self.google_dos_count = 0
         self.overview_only = overview
@@ -358,8 +359,26 @@ class ExtensionCrawler:
             print("***          Login required: {}".format(n_login_required))
             print("***          Hit Google DOS protection: {}".format(
                 self.google_dos_count))
-            print("***          Other Erros: {}".format(n_errors))
+            print("***          Other Errors: {}".format(n_errors))
             sys.stdout.flush()
+        if self.summary:
+            sys.stderr.write(
+                "Summary: Updated {} of {} extensions successfully\n".format(
+                    n_success, n_attempts))
+
+            sys.stderr.write("         Configuration:\n")
+            sys.stderr.write("            Mode: ")
+            if self.overview_only:
+                sys.stderr.write("overview only\n")
+            else:
+                sys.stderr.write("full details\n")
+            sys.stderr.write("            Base directory: {}\n".format(
+                self.basedir))
+            sys.stderr.write("         Login required: {}\n".format(
+                n_login_required))
+            sys.stderr.write("         Hit Google DOS protection: {}\n".format(
+                self.google_dos_count))
+            sys.stderr.write("         Other Errors: {}\n".format(n_errors))
         return retry_extids
 
     def update_extensions(self):
@@ -470,6 +489,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '-v', '--verbose', action='store_true', help='Increase verbosity.')
     parser.add_argument(
+        '-s',
+        '--summary',
+        action='store_true',
+        help='Print summary to stderr.')
+    parser.add_argument(
         '-o',
         '--overview',
         action='store_true',
@@ -481,8 +505,8 @@ if __name__ == '__main__':
         help='weak check if crx exists already')
 
     args = parser.parse_args()
-    crawler = ExtensionCrawler(args.dest, args.verbose, args.weak,
-                               args.overview)
+    crawler = ExtensionCrawler(args.dest, args.verbose, args.summary,
+                               args.weak, args.overview)
 
     if args.discover:
         if args.interval:
