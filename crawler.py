@@ -80,7 +80,7 @@ class ExtensionCrawler:
         self.weak_exists_check = weak
         self.google_dos_count = 0
         self.overview_only = overview
-        
+
     def sha256(self, fname):
         hash_sha256 = hashlib.sha256()
         with open(fname, "rb") as f:
@@ -96,10 +96,10 @@ class ExtensionCrawler:
         with open(name + ".url", 'w') as f:
             f.write(str(request.url))
 
-    def google_dos_protection(self, name, request,max=3):
+    def google_dos_protection(self, name, request, max=3):
         if max >= 1:
             sleep(randint(1, max) * .5)
-            
+
         if request.status_code == 503:
             if 0 < request.text.find('CAPTCHA'):
                 print("    Warning: Captcha (" + name + ")")
@@ -141,11 +141,11 @@ class ExtensionCrawler:
                              '\n'.join(extresult.iter_lines()))
         if not extresult.headers[
                 'Content-Type'] == 'application/x-chrome-extension':
+            text = [line.decode('utf-8') for line in extresult.iter_lines()]
             raise CrawlError(
                 extid,
                 'Expected Content-Type header to be application/x-chrome-extension, but got {}.'.
-                format(extresult.headers['Content-Type']),
-                '\n'.join(extresult.iter_lines()))
+                format(extresult.headers['Content-Type']), '\n'.join(text))
         if not self.regex_extfilename.match(extfilename):
             raise CrawlError(
                 extid,
@@ -162,7 +162,7 @@ class ExtensionCrawler:
         self.store_request_metadata(
             os.path.join(extdir, 'storepage.html'), extpageresult)
         self.google_dos_protection(
-            os.path.join(extdir, 'storepage.html'), extpageresult,0.1)
+            os.path.join(extdir, 'storepage.html'), extpageresult, 0.1)
         with open(os.path.join(extdir, 'storepage.html'), 'w') as f:
             f.write(extpageresult.text)
 
@@ -233,7 +233,12 @@ class ExtensionCrawler:
             os.path.dirname(os.path.relpath(path, self.basedir)))[1]
         return self.httpdate(dateutil.parser.parse(utc))
 
-    def update_extension(self, extid, overwrite, extinfo=None,cnt=None,max_cnt=None):
+    def update_extension(self,
+                         extid,
+                         overwrite,
+                         extinfo=None,
+                         cnt=None,
+                         max_cnt=None):
         if not self.regex_extid.match(extid):
             raise CrawlError(extid,
                              '{} is not a valid extension id.\n'.format(extid))
@@ -247,13 +252,13 @@ class ExtensionCrawler:
                 if max_cnt != None:
                     sys.stdout.write("/{}".format(max_cnt))
                 sys.stdout.write(") ".format(max_cnt))
-                
+
             if self.overview_only:
                 sys.stdout.write("overview page of ")
             else:
                 sys.stdout.write("full data set of ")
             sys.stdout.write("extension {}\n".format(extid))
-                
+
         download_date = datetime.now(timezone.utc).isoformat()
         extdir = os.path.join(self.basedir, extid, download_date)
         if (not overwrite
@@ -261,7 +266,7 @@ class ExtensionCrawler:
             if self.verbose:
                 print("    already archived")
             return False
-        
+
         os.makedirs(extdir)
 
         self.download_storepage(extid, extdir)
@@ -269,7 +274,7 @@ class ExtensionCrawler:
         self.download_storepage(extid, extdir)
         if self.overview_only:
             return True
-        
+
         old_archives = []
         for archive in glob.glob(self.basedir + "/" + extid + "/*/*.crx"):
             if os.path.isfile(archive):
@@ -318,31 +323,53 @@ class ExtensionCrawler:
 
         return True
 
-    def update_extensions(self):
+    def update_extension_list(self, extensions):
         n_attempts = 0
         n_success = 0
         n_login_required = 0
-        extensions = os.listdir(self.basedir)
+        n_errors = 0
+        retry_extids = []
         for extid in extensions:
             try:
                 n_attempts += 1
-                self.update_extension(extid, True,None,n_attempts,len(extensions))
+                self.update_extension(extid, True, None, n_attempts,
+                                      len(extensions))
                 n_success += 1
             except CrawlError as cerr:
+                retry_extids.append(extid)
                 sys.stdout.write('    Error: {}\n'.format(cerr.message))
+                n_errors += 1
                 if cerr.pagecontent != "":
                     sys.stderr.write('    Page content was:\n')
                     sys.stderr.write('    {}\n'.format(cerr.pagecontent))
             except UnauthorizedError as uerr:
+                retry_extids.append(extid)
                 sys.stdout.write('    Error: login needed\n')
                 n_login_required += 1
+            except ConnectionResetError as cerr:
+                retry_extids.append(extid)
+                sys.stdout.write('    Error: {}\n'.format(str(cerr)))
+                n_errors += 1
+
             sys.stdout.flush()
         if self.verbose:
             print("*** Summary: Updated {} of {} extensions successfully".
                   format(n_success, n_attempts))
             print("***          Login required: {}".format(n_login_required))
-            print("***          Hit Google DOS protection: {}".format(self.google_dos_count))
+            print("***          Hit Google DOS protection: {}".format(
+                self.google_dos_count))
+            print("***          Other Erros: {}".format(n_errors))
             sys.stdout.flush()
+        return retry_extids
+
+    def update_extensions(self):
+        extensions = os.listdir(self.basedir)
+        retry = self.update_extension_list(extensions)
+        if retry != []:
+            sys.stdout.write('\n\n')
+            sys.stdout.write('Re-trying failed downloads ... \n')
+            sys.stdout.flush()
+            self.update_extension_list(retry)
 
     def handle_extension(self, extinfo):
         extid = extinfo[0]
@@ -443,7 +470,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '-v', '--verbose', action='store_true', help='Increase verbosity.')
     parser.add_argument(
-        '-o', '--overview', action='store_true', help='Only download/update overview page.')
+        '-o',
+        '--overview',
+        action='store_true',
+        help='Only download/update overview page.')
     parser.add_argument(
         '-w',
         '--weak',
@@ -451,7 +481,8 @@ if __name__ == '__main__':
         help='weak check if crx exists already')
 
     args = parser.parse_args()
-    crawler = ExtensionCrawler(args.dest, args.verbose, args.weak,args.overview)
+    crawler = ExtensionCrawler(args.dest, args.verbose, args.weak,
+                               args.overview)
 
     if args.discover:
         if args.interval:
