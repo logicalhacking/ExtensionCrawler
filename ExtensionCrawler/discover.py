@@ -21,15 +21,25 @@ import xml.etree.ElementTree as ET
 import requests
 import re
 from functools import reduce
-import ExtensionCrawler.config 
+import ExtensionCrawler.config
+
 
 def crawl_nearly_all_of_ext_ids():
     def get_inner_elems(doc):
-        return ET.fromstring(doc).findall(".//{{{}}}loc".format(ExtensionCrawler.config.const_sitemap_scheme()))
+        return ET.fromstring(doc).findall(".//{{{}}}loc".format(
+            ExtensionCrawler.config.const_sitemap_scheme()))
+
     def is_generic_url(url):
-        return  not re.match("^{}\?shard=\d+&numshards=\d+$".format(ExtensionCrawler.config.const_sitemap_url()), url)
-    shard_elems = get_inner_elems(requests.get(ExtensionCrawler.config.const_sitemap_url()).text)
-    shard_urls = list(filter(is_generic_url,([elem.text for elem in shard_elems])))
-    shards = list(map(lambda u: requests.get(u).text,shard_urls)) 
-    overview_urls = reduce(lambda x,y: x+y,  map(lambda s: [elem.text for elem in get_inner_elems(s)], shards),[])
+        return re.match("^{}\?shard=\d+&numshards=\d+$".format(
+            ExtensionCrawler.config.const_sitemap_url()), url)
+
+    shard_elems = get_inner_elems(
+        requests.get(ExtensionCrawler.config.const_sitemap_url()).text)
+    shard_urls = list(
+        filter(is_generic_url, ([elem.text for elem in shard_elems])))
+    shards = list(map(lambda u: requests.get(u).text, shard_urls))
+
+    overview_urls = reduce(
+        lambda x, y: x + y,
+        map(lambda s: [elem.text for elem in get_inner_elems(s)], shards), [])
     return [re.search("[a-z]{32}", url).group(0) for url in overview_urls]
