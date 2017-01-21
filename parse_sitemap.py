@@ -1,25 +1,22 @@
-#!/bin/env python3
+#!/usr/bin/env python3
+#
+# Copyright (C) 2016,2017 The University of Sheffield, UK
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-import sys
-import xml.etree.ElementTree as ET
-import requests
-import re
+import ExtensionCrawler.discover
 
-ids = []
-
-sitemap = requests.get('https://chrome.google.com/webstore/sitemap').text
-shard_urls = [elem.text for elem in ET.fromstring(sitemap).findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
-for shard_url in shard_urls:
-    if not re.match("^https://chrome.google.com/webstore/sitemap\?shard=\d+&numshards=\d+$", shard_url):
-        # The urls with a language parameter attached return a subset of the ids
-        # that get returned by the plain urls, therefore we skip urls with a
-        # language parameter
-        continue
-    shard = requests.get(shard_url).text
-    detail_urls = [elem.text for elem in ET.fromstring(shard).findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
-    new_ids = [re.search("[a-z]{32}", url).group(0) for url in detail_urls]
-    ids = sorted(set(new_ids + ids))
-
-for idd in ids:
-    print(idd)
-
+for id in ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids():
+    print(id)
