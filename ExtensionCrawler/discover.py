@@ -23,7 +23,6 @@ import re
 from functools import reduce
 import ExtensionCrawler.config
 
-
 def crawl_nearly_all_of_ext_ids():
     def get_inner_elems(doc):
         return ET.fromstring(doc).findall(".//{{{}}}loc".format(
@@ -36,6 +35,9 @@ def crawl_nearly_all_of_ext_ids():
     shard_elems = get_inner_elems(
         requests.get(ExtensionCrawler.config.const_sitemap_url()).text)
     shard_urls = list(
+        # The urls with a language parameter attached return a subset
+        # of the ids that get returned by the plain urls, therefore we
+        # skip urls with a language parameter
         filter(is_generic_url, ([elem.text for elem in shard_elems])))
     shards = list(map(lambda u: requests.get(u).text, shard_urls))
 
