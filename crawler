@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) 2016,2017 The University of Sheffield, UK
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+import os
+import sys
+import ExtensionCrawler.discover
+import ExtensionCrawler.archive
+import glob
+import re
+
+def update_overview(dir, verbose, ext_id):
+    if verbose:
+        sys.stdout.write("           * overview page: ")
+    #res = requests.get(ExtensionCrawler.config.const_overview_url.format(ext_id))
+    #if verbose:
+    #    sys.stdout.write("{}\n".format(str(res.status)))
+    return True
+
+def update_crx(dir, verbose, ext_id):
+    if verbose:
+        sys.stdout.write("           * crx archive\n")
+    return True
+
+def update_reviews(dir, verbose, ext_id):
+    if verbose:
+        sys.stdout.write("           * review page\n")
+    return True
+
+def update_support(dir, verbose, ext_id):
+    if verbose:
+        sys.stdout.write("           * support page\n")
+    return True
+
+def update_extension(basedir, verbose, forums, ext_id):
+    sys.stdout.write("  Update Extension: "+ext_id+"\n")
+    if verbose:
+        sys.stdout.write("    Updating {}".format(ext_id))
+        if forums:
+            sys.stdout.write(" (including forums)")
+        sys.stdout.write("\n")
+    dir = basedir+"/"+(ExtensionCrawler.archive.get_local_archive_dir(ext_id))
+    os.makedirs(dir, exist_ok=True)
+    update_overview(dir, verbose, ext_id)
+    update_crx(dir, verbose, ext_id)
+    if forums:
+        update_reviews(dir, verbose, ext_id)
+        update_support(dir, verbose, ext_id) 
+
+def update_extensions(basedir, verbose, forums_ext_ids, ext_ids):
+    def update_forums(ext_id):
+        return (ext_id in forums_ext_ids)
+    foo = list(map(lambda ext_id: update_extension(basedir, verbose, update_forums(ext_id), ext_id), ext_ids))
+    return foo
+
+def get_existing_ids(basedir,verbose):
+    byte='[0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z]'
+    word=byte+byte+byte+byte
+    return list(map(lambda d: re.sub("^.*\/","",d), glob.glob(os.path.join(basedir,"*",word))))
+
+
+
+
+def main():
+    basedir="./archive"
+    verbose=True
+    forums_ext_ids_file=basedir+"/forum_ext_ids.txt"
+    
+    sys.stdout.write("Crawling ID\n")
+    discovered_ids = ['adndegnbdnefpaelcbpdchpngejmggbl'] # ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
+    existing_ids   = get_existing_ids(basedir,verbose)
+    new_ids        = list(set(discovered_ids)-set(existing_ids))
+
+    sys.stdout.write(" Discoverd {} ids ({} of them are new, {} already known)\n".format(str(len(discovered_ids)), str(len(new_ids)),str(len(existing_ids))))
+    
+    forum_ext_ids = [] # TODO
+    update_extensions(basedir,verbose,forum_ext_ids, existing_ids + new_ids)
+
+
+
+
+
+main()
