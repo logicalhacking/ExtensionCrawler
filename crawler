@@ -23,6 +23,7 @@ import ExtensionCrawler.archive
 import glob
 import re
 
+
 def update_overview(dir, verbose, ext_id):
     if verbose:
         sys.stdout.write("           * overview page: ")
@@ -31,35 +32,41 @@ def update_overview(dir, verbose, ext_id):
     #    sys.stdout.write("{}\n".format(str(res.status)))
     return True
 
+
 def update_crx(dir, verbose, ext_id):
     if verbose:
         sys.stdout.write("           * crx archive\n")
     return True
+
 
 def update_reviews(dir, verbose, ext_id):
     if verbose:
         sys.stdout.write("           * review page\n")
     return True
 
+
 def update_support(dir, verbose, ext_id):
     if verbose:
         sys.stdout.write("           * support page\n")
     return True
 
+
 def update_extension(basedir, verbose, forums, ext_id):
-    sys.stdout.write("  Update Extension: "+ext_id+"\n")
+    sys.stdout.write("  Update Extension: " + ext_id + "\n")
     if verbose:
         sys.stdout.write("    Updating {}".format(ext_id))
         if forums:
             sys.stdout.write(" (including forums)")
         sys.stdout.write("\n")
-    dir = basedir+"/"+(ExtensionCrawler.archive.get_local_archive_dir(ext_id))
+    dir = basedir + "/" + (
+        ExtensionCrawler.archive.get_local_archive_dir(ext_id))
     os.makedirs(dir, exist_ok=True)
     update_overview(dir, verbose, ext_id)
     update_crx(dir, verbose, ext_id)
     if forums:
         update_reviews(dir, verbose, ext_id)
-        update_support(dir, verbose, ext_id) 
+        update_support(dir, verbose, ext_id)
+
 
 def update_extensions(basedir, verbose, forums_ext_ids, ext_ids):
     def update_forums(ext_id):
@@ -67,31 +74,42 @@ def update_extensions(basedir, verbose, forums_ext_ids, ext_ids):
     foo = list(map(lambda ext_id: update_extension(basedir, verbose, update_forums(ext_id), ext_id), ext_ids))
     return foo
 
-def get_existing_ids(basedir,verbose):
-    byte='[0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z]'
-    word=byte+byte+byte+byte
-    return list(map(lambda d: re.sub("^.*\/","",d), glob.glob(os.path.join(basedir,"*",word))))
+
+def get_existing_ids(basedir, verbose):
+    byte = '[0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z]'
+    word = byte + byte + byte + byte
+    return list(
+        map(lambda d: re.sub("^.*\/", "", d),
+            glob.glob(os.path.join(basedir, "*", word))))
 
 
+def get_forum_ext_ids(confdir, verbose):
+    with open(os.path.join(confdir, "forums.conf")) as f:
+        ids = f.readlines()
+    ids = [x.strip() for x in ids]
+    return ids
 
 
 def main():
-    basedir="./archive"
-    verbose=True
-    forums_ext_ids_file=basedir+"/forum_ext_ids.txt"
-    
+    basedir = "./archive"
+    confdir = "./conf"
+    verbose = True
+
     sys.stdout.write("Crawling ID\n")
-    discovered_ids = ['adndegnbdnefpaelcbpdchpngejmggbl'] # ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
-    existing_ids   = get_existing_ids(basedir,verbose)
-    new_ids        = list(set(discovered_ids)-set(existing_ids))
-
-    sys.stdout.write(" Discoverd {} ids ({} of them are new, {} already known)\n".format(str(len(discovered_ids)), str(len(new_ids)),str(len(existing_ids))))
+    discovered_ids = [] # ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
+    forum_ext_ids = get_forum_ext_ids(confdir, verbose)
+    existing_ids = get_existing_ids(basedir, verbose)
+    existing_ids = list(set(existing_ids) | set(forum_ext_ids))
+    new_ids = list(set(discovered_ids) - set(existing_ids))
     
-    forum_ext_ids = [] # TODO
-    update_extensions(basedir,verbose,forum_ext_ids, existing_ids + new_ids)
+    sys.stdout.write(
+        " Discoverd {} ids ({} of them are new, {} will be updated, including {} forumus)\n".
+        format(
+            str(len(discovered_ids)),
+            str(len(new_ids)), str(len(existing_ids)), str(len(
+                forum_ext_ids))))
 
-
-
+    update_extensions(basedir, verbose, forum_ext_ids, existing_ids + new_ids)
 
 
 main()
