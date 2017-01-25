@@ -51,14 +51,14 @@ def update_support(dir, verbose, ext_id):
     return True
 
 
-def update_extension(basedir, verbose, forums, ext_id):
+def update_extension(archivedir, verbose, forums, ext_id):
     sys.stdout.write("  Update Extension: " + ext_id + "\n")
     if verbose:
         sys.stdout.write("    Updating {}".format(ext_id))
         if forums:
             sys.stdout.write(" (including forums)")
         sys.stdout.write("\n")
-    dir = basedir + "/" + (
+    dir = archivedir + "/" + (
         ExtensionCrawler.archive.get_local_archive_dir(ext_id))
     os.makedirs(dir, exist_ok=True)
     update_overview(dir, verbose, ext_id)
@@ -68,19 +68,19 @@ def update_extension(basedir, verbose, forums, ext_id):
         update_support(dir, verbose, ext_id)
 
 
-def update_extensions(basedir, verbose, forums_ext_ids, ext_ids):
+def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
     def update_forums(ext_id):
         return (ext_id in forums_ext_ids)
-    foo = list(map(lambda ext_id: update_extension(basedir, verbose, update_forums(ext_id), ext_id), ext_ids))
+    foo = list(map(lambda ext_id: update_extension(archivedir, verbose, update_forums(ext_id), ext_id), ext_ids))
     return foo
 
 
-def get_existing_ids(basedir, verbose):
+def get_existing_ids(archivedir, verbose):
     byte = '[0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z]'
     word = byte + byte + byte + byte
     return list(
         map(lambda d: re.sub("^.*\/", "", d),
-            glob.glob(os.path.join(basedir, "*", word))))
+            glob.glob(os.path.join(archivedir, "*", word))))
 
 
 def get_forum_ext_ids(confdir, verbose):
@@ -91,14 +91,15 @@ def get_forum_ext_ids(confdir, verbose):
 
 
 def main():
-    basedir = "./archive"
-    confdir = "./conf"
+    basedir = "."
+    archivedir = os.path.join(basedir,"archive")
+    confdir = os.path.join(basedir,"conf")
     verbose = True
 
     sys.stdout.write("Crawling ID\n")
     discovered_ids = [] # ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
     forum_ext_ids = get_forum_ext_ids(confdir, verbose)
-    existing_ids = get_existing_ids(basedir, verbose)
+    existing_ids = get_existing_ids(archivedir, verbose)
     existing_ids = list(set(existing_ids) | set(forum_ext_ids))
     new_ids = list(set(discovered_ids) - set(existing_ids))
     
@@ -109,7 +110,7 @@ def main():
             str(len(new_ids)), str(len(existing_ids)), str(len(
                 forum_ext_ids))))
 
-    update_extensions(basedir, verbose, forum_ext_ids, existing_ids + new_ids)
+    update_extensions(archivedir, verbose, forum_ext_ids, existing_ids + new_ids)
 
 
 main()
