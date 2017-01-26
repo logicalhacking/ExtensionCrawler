@@ -18,10 +18,10 @@
 
 import os
 import sys
-import ExtensionCrawler.discover
-import ExtensionCrawler.archive
 import glob
 import re
+import ExtensionCrawler.discover
+import ExtensionCrawler.archive
 
 
 def update_overview(dir, verbose, ext_id):
@@ -68,11 +68,16 @@ def update_extension(archivedir, verbose, forums, ext_id):
         update_support(dir, verbose, ext_id)
 
 
-def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
+def update_extensions(archivedir, verbose, forums_ext_ids, known_ext_ids, new_ext_ids):
     def update_forums(ext_id):
         return (ext_id in forums_ext_ids)
-    foo = list(map(lambda ext_id: update_extension(archivedir, verbose, update_forums(ext_id), ext_id), ext_ids))
-    return foo
+    ext_ids = known_ext_ids + new_ext_ids
+    if verbose:
+        sys.stdout.write("Updating {} extensions ({} new, {} including forums)\n".
+                         format(len(ext_ids), len(new_ext_ids), len(forums_ext_ids)))
+    return list(map(lambda ext_id: update_extension(archivedir, verbose,
+                                                    update_forums(ext_id), ext_id),
+                    ext_ids))
 
 
 def get_existing_ids(archivedir, verbose):
@@ -89,29 +94,42 @@ def get_forum_ext_ids(confdir, verbose):
     ids = [x.strip() for x in ids]
     return ids
 
-def get_new_ids(verbose,known_ids):
+
+def get_new_ids(verbose, known_ids):
     if verbose:
-        sys.stdout.write("  Discovering new ids ... \n")
-        
-    discovered_ids = [] # ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
+        sys.stdout.write("Discovering new ids ... \n")
+    discovered_ids = ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
     new_ids = list(set(discovered_ids) - set(known_ids))
     if verbose:
-        sys.stdout.write("  Discovered {} new extensions (out of {})\n".
-                         format(len(new_ids), len(discovered_ids)))
+        sys.stdout.write("  Discovered {} new extensions (out of {})\n".format(
+            len(new_ids), len(discovered_ids)))
     return new_ids
+
 
 def main():
     basedir = "."
-    archivedir = os.path.join(basedir,"archive")
-    confdir = os.path.join(basedir,"conf")
+    archive_dir = os.path.join(basedir, "archive")
+    conf_dir = os.path.join(basedir, "conf")
     verbose = True
+    skip_discovery = True
 
-    forum_ext_ids = get_forum_ext_ids(confdir, verbose)
-    existing_ids  = get_existing_ids(archivedir, verbose)
-    known_ids     = list(set(existing_ids) | set(forum_ext_ids))
-    new_ids = get_new_ids(verbose,known_ids)
+    if verbose:
+        sys.stdout.write("Configuration:\n")
+        sys.stdout.write("  Base dir:       {}\n".format(basedir))
+        sys.stdout.write("    Archive dir:  {}\n".format(archive_dir))
+        sys.stdout.write("    Conf. dir:    {}\n".format(conf_dir))
+        sys.stdout.write("  Skip discovery: {}\n".format(skip_discovery))
+        
+    
+    forum_ext_ids = get_forum_ext_ids(conf_dir, verbose)
+    existing_ids = get_existing_ids(archive_dir, verbose)
+    known_ids = list(set(existing_ids) | set(forum_ext_ids))
+    new_ids = []
+    if not skip_discovery:
+        new_ids = get_new_ids(verbose, known_ids)
 
-    update_extensions(archivedir, verbose, forum_ext_ids, existing_ids + new_ids)
+    update_extensions(archive_dir, verbose, forum_ext_ids,
+                      existing_ids,new_ids)
 
 
 main()
