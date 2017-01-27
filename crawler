@@ -20,46 +20,124 @@ import os
 import sys
 import glob
 import re
+import requests
+from datetime import datetime, timezone
 import ExtensionCrawler.discover
 import ExtensionCrawler.archive
+
+
+def store_request_metadata(name, request):
+    with open(name + ".headers", 'w') as f:
+        f.write(str(request.headers))
+    with open(name + ".status", 'w') as f:
+        f.write(str(request.status_code))
+    with open(name + ".url", 'w') as f:
+        f.write(str(request.url))
 
 
 def update_overview(dir, verbose, ext_id):
     if verbose:
         sys.stdout.write("           * overview page: ")
-    #res = requests.get(ExtensionCrawler.config.const_overview_url.format(ext_id))
-    #if verbose:
-    #    sys.stdout.write("{}\n".format(str(res.status)))
+    res = requests.get(ExtensionCrawler.config.const_overview_url(ext_id))
+    if verbose:
+        sys.stdout.write("{}\n".format(str(res.status_code)))
+    store_request_metadata(os.path.join(dir, 'overview.html'), res)
+    with open(os.path.join(dir, 'overview.html'), 'w') as f:
+        f.write(res.text)
+
     return True
 
 
 def update_crx(dir, verbose, ext_id):
     if verbose:
-        sys.stdout.write("           * crx archive\n")
+        sys.stdout.write("           * crx archive:   ")
+
+    res = requests.get(
+        ExtensionCrawler.config.const_download_url().format(ext_id),
+        stream=True)
+    sys.stdout.write("{}\n".format(str(res.status_code)))
+
+    extfilename = os.path.basename(res.url)
+    store_request_metadata(os.path.join(dir, extfilename), res)
+
+    with open(os.path.join(dir, extfilename), 'wb') as f:
+        for chunk in res.iter_content(chunk_size=512 * 1024):
+            if chunk:  # filter out keep-alive new chunks
+                f.write(chunk)
+
     return True
 
 
 def update_reviews(dir, verbose, ext_id):
     if verbose:
-        sys.stdout.write("           * review page\n")
+        sys.stdout.write("           * review page:   ")
+    payload = (
+        'req={{ "appId":94,' + '"version":"150922",' + '"hl":"en",' +
+        '"specs":[{{"type":"CommentThread",' +
+        '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",'
+        + '"groups":"chrome_webstore",' + '"sortby":"cws_qscore",' +
+        '"startindex":"{}",' + '"numresults":"{}",' + '"id":"428"}}],' +
+        '"internedKeys":[],' + '"internedValues":[]}}')
+
+    res = requests.post(
+        ExtensionCrawler.config.const_review_url(),
+        data=payload.format(ext_id, "0", "100"))
+    sys.stdout.write("{}/".format(str(res.status_code)))
+    with open(os.path.join(dir, 'reviews000-099.text'), 'w') as f:
+        f.write(res.text)
+    store_request_metadata(os.path.join(dir, 'reviews000-099.text'), res)
+    res = requests.post(
+        ExtensionCrawler.config.const_review_url(),
+        data=payload.format(ext_id, "100", "100"))
+    sys.stdout.write("{}\n".format(str(res.status_code)))
+    with open(os.path.join(dir, 'reviews100-199.text'), 'w') as f:
+        f.write(res.text)
+    store_request_metadata(os.path.join(dir, 'reviews100-199.text'), res)
+
     return True
 
 
 def update_support(dir, verbose, ext_id):
     if verbose:
-        sys.stdout.write("           * support page\n")
+        sys.stdout.write("           * support page:  ")
+
+    payload = (
+        'req={{ "appId":94,' + '"version":"150922",' + '"hl":"en",' +
+        '"specs":[{{"type":"CommentThread",' +
+        '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",'
+        + '"groups":"chrome_webstore_support",' + '"startindex":"{}",' +
+        '"numresults":"{}",' + '"id":"379"}}],' + '"internedKeys":[],' +
+        '"internedValues":[]}}')
+
+    res = requests.post(
+        ExtensionCrawler.config.const_support_url(),
+        data=payload.format(ext_id, "0", "100"))
+    sys.stdout.write("{}/".format(str(res.status_code)))
+    with open(os.path.join(dir, 'support000-099.text'), 'w') as f:
+        f.write(res.text)
+    store_request_metadata(os.path.join(dir, 'support000-099.text'), res)
+    res = requests.post(
+        ExtensionCrawler.config.const_support_url(),
+        data=payload.format(ext_id, "100", "100"))
+    sys.stdout.write("{}\n".format(str(res.status_code)))
+    with open(os.path.join(dir, 'support100-199.text'), 'w') as f:
+        f.write(res.text)
+    store_request_metadata(os.path.join(dir, 'support100-199.text'), res)
+
     return True
 
 
 def update_extension(archivedir, verbose, forums, ext_id):
-    sys.stdout.write("  Update Extension: " + ext_id + "\n")
     if verbose:
         sys.stdout.write("    Updating {}".format(ext_id))
         if forums:
             sys.stdout.write(" (including forums)")
         sys.stdout.write("\n")
-    dir = archivedir + "/" + (
-        ExtensionCrawler.archive.get_local_archive_dir(ext_id))
+    date = datetime.now(timezone.utc).isoformat()
+    dir = os.path.join(
+        os.path.join(archivedir,
+                     ExtensionCrawler.archive.get_local_archive_dir(ext_id)),
+        date)
     os.makedirs(dir, exist_ok=True)
     update_overview(dir, verbose, ext_id)
     update_crx(dir, verbose, ext_id)
@@ -68,13 +146,16 @@ def update_extension(archivedir, verbose, forums, ext_id):
         update_support(dir, verbose, ext_id)
 
 
-def update_extensions(archivedir, verbose, forums_ext_ids, known_ext_ids, new_ext_ids):
+def update_extensions(archivedir, verbose, forums_ext_ids, known_ext_ids,
+                      new_ext_ids):
     def update_forums(ext_id):
         return (ext_id in forums_ext_ids)
+
     ext_ids = known_ext_ids + new_ext_ids
     if verbose:
-        sys.stdout.write("Updating {} extensions ({} new, {} including forums)\n".
-                         format(len(ext_ids), len(new_ext_ids), len(forums_ext_ids)))
+        sys.stdout.write(
+            "Updating {} extensions ({} new, {} including forums)\n".format(
+                len(ext_ids), len(new_ext_ids), len(forums_ext_ids)))
     return list(map(lambda ext_id: update_extension(archivedir, verbose,
                                                     update_forums(ext_id), ext_id),
                     ext_ids))
@@ -119,8 +200,7 @@ def main():
         sys.stdout.write("    Archive dir:  {}\n".format(archive_dir))
         sys.stdout.write("    Conf. dir:    {}\n".format(conf_dir))
         sys.stdout.write("  Skip discovery: {}\n".format(skip_discovery))
-        
-    
+
     forum_ext_ids = get_forum_ext_ids(conf_dir, verbose)
     existing_ids = get_existing_ids(archive_dir, verbose)
     known_ids = list(set(existing_ids) | set(forum_ext_ids))
@@ -128,8 +208,8 @@ def main():
     if not skip_discovery:
         new_ids = get_new_ids(verbose, known_ids)
 
-    update_extensions(archive_dir, verbose, forum_ext_ids,
-                      existing_ids,new_ids)
+    update_extensions(archive_dir, verbose, forum_ext_ids, existing_ids,
+                      new_ids)
 
 
 main()
