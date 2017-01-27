@@ -26,39 +26,42 @@ import ExtensionCrawler.discover
 import ExtensionCrawler.archive
 
 
-def store_request_metadata(name, request):
-    with open(name + ".headers", 'w') as f:
-        f.write(str(request.headers))
-    with open(name + ".status", 'w') as f:
-        f.write(str(request.status_code))
-    with open(name + ".url", 'w') as f:
-        f.write(str(request.url))
+def write_text(dir,fname,text):
+     with open(os.path.join(dir, fname), 'w') as f:
+        f.write(text)
 
+def store_request_metadata(dir,fname, request):
+    write_text(dir, fname + ".headers", str(request.headers))
+    write_text(dir, fname + ".status", str(request.status_code))
+    write_text(dir, fname + ".url", str(request.url))
 
+def store_request_text(dir,fname,request):
+    write_text(dir,fname,request.text)
+    store_request_metadata(dir,fname,request)
+    
+def log(verbose,msg):
+    if verbose:
+        sys.stdout.write(msg)
+    
 def update_overview(dir, verbose, ext_id):
-    if verbose:
-        sys.stdout.write("           * overview page: ")
+    log(verbose,"           * overview page: ")
     res = requests.get(ExtensionCrawler.config.const_overview_url(ext_id))
-    if verbose:
-        sys.stdout.write("{}\n".format(str(res.status_code)))
-    store_request_metadata(os.path.join(dir, 'overview.html'), res)
-    with open(os.path.join(dir, 'overview.html'), 'w') as f:
-        f.write(res.text)
-
+    log(verbose, "{}\n".format(str(res.status_code)))
+    store_request_text(dir, 'overview.html', res)
+  
     return True
 
 
 def update_crx(dir, verbose, ext_id):
-    if verbose:
-        sys.stdout.write("           * crx archive:   ")
+    log(verbose,"           * crx archive:   ")
 
     res = requests.get(
         ExtensionCrawler.config.const_download_url().format(ext_id),
         stream=True)
-    sys.stdout.write("{}\n".format(str(res.status_code)))
+    log(verbose,"{}\n".format(str(res.status_code)))
 
     extfilename = os.path.basename(res.url)
-    store_request_metadata(os.path.join(dir, extfilename), res)
+    store_request_metadata(dir, extfilename, res)
 
     with open(os.path.join(dir, extfilename), 'wb') as f:
         for chunk in res.iter_content(chunk_size=512 * 1024):
@@ -69,54 +72,43 @@ def update_crx(dir, verbose, ext_id):
 
 
 def update_reviews(dir, verbose, ext_id):
-    if verbose:
-        sys.stdout.write("           * review page:   ")
+    log(verbose, "           * review page:   ")
     res = requests.post(
         ExtensionCrawler.config.const_review_url(),
         data=ExtensionCrawler.config.const_review_payload(ext_id, "0", "100"))
-    sys.stdout.write("{}/".format(str(res.status_code)))
-    with open(os.path.join(dir, 'reviews000-099.text'), 'w') as f:
-        f.write(res.text)
-    store_request_metadata(os.path.join(dir, 'reviews000-099.text'), res)
+    log(verbose, "{}/".format(str(res.status_code)))
+    store_request_text(dir, 'reviews000-099.text', res)
     res = requests.post(
         ExtensionCrawler.config.const_review_url(),
         data=ExtensionCrawler.config.const_review_payload(ext_id, "0", "100"))
-    sys.stdout.write("{}\n".format(str(res.status_code)))
-    with open(os.path.join(dir, 'reviews100-199.text'), 'w') as f:
-        f.write(res.text)
-    store_request_metadata(os.path.join(dir, 'reviews100-199.text'), res)
+    log(verbose, "{}\n".format(str(res.status_code)))
+    store_request_text(dir, 'reviews100-199.text', res)
 
     return True
 
 
 def update_support(dir, verbose, ext_id):
-    if verbose:
-        sys.stdout.write("           * support page:  ")
+    log(verbose, "           * support page:  ")
     res = requests.post(
         ExtensionCrawler.config.const_support_url(),
         data=ExtensionCrawler.config.const_support_payload(ext_id, "0", "100"))
-    sys.stdout.write("{}/".format(str(res.status_code)))
-    with open(os.path.join(dir, 'support000-099.text'), 'w') as f:
-        f.write(res.text)
-    store_request_metadata(os.path.join(dir, 'support000-099.text'), res)
+    log(verbose, "{}/".format(str(res.status_code)))
+    store_request_text(dir, 'support000-099.text', res)
     res = requests.post(
         ExtensionCrawler.config.const_support_url(),
         data=ExtensionCrawler.config.const_support_payload(ext_id, "100",
                                                            "100"))
-    sys.stdout.write("{}\n".format(str(res.status_code)))
-    with open(os.path.join(dir, 'support100-199.text'), 'w') as f:
-        f.write(res.text)
-    store_request_metadata(os.path.join(dir, 'support100-199.text'), res)
+    log(verbose, "{}\n".format(str(res.status_code)))
+    store_request_text(dir, 'support100-199.text', res)
 
     return True
 
 
 def update_extension(archivedir, verbose, forums, ext_id):
-    if verbose:
-        sys.stdout.write("    Updating {}".format(ext_id))
-        if forums:
-            sys.stdout.write(" (including forums)")
-        sys.stdout.write("\n")
+    log(verbose, "    Updating {}".format(ext_id))
+    if forums:
+        log(verbose, " (including forums)")
+    log(verbose, "\n")
     date = datetime.now(timezone.utc).isoformat()
     dir = os.path.join(
         os.path.join(archivedir,
@@ -136,8 +128,7 @@ def update_extensions(archivedir, verbose, forums_ext_ids, known_ext_ids,
         return (ext_id in forums_ext_ids)
 
     ext_ids = known_ext_ids + new_ext_ids
-    if verbose:
-        sys.stdout.write(
+    log(verbose,
             "Updating {} extensions ({} new, {} including forums)\n".format(
                 len(ext_ids), len(new_ext_ids), len(forums_ext_ids)))
     return list(map(lambda ext_id: update_extension(archivedir, verbose,
@@ -161,12 +152,10 @@ def get_forum_ext_ids(confdir, verbose):
 
 
 def get_new_ids(verbose, known_ids):
-    if verbose:
-        sys.stdout.write("Discovering new ids ... \n")
+    log(verbose, "Discovering new ids ... \n")
     discovered_ids = ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
     new_ids = list(set(discovered_ids) - set(known_ids))
-    if verbose:
-        sys.stdout.write("  Discovered {} new extensions (out of {})\n".format(
+    log(verbose, "  Discovered {} new extensions (out of {})\n".format(
             len(new_ids), len(discovered_ids)))
     return new_ids
 
@@ -178,12 +167,11 @@ def main():
     verbose = True
     skip_discovery = True
 
-    if verbose:
-        sys.stdout.write("Configuration:\n")
-        sys.stdout.write("  Base dir:       {}\n".format(basedir))
-        sys.stdout.write("    Archive dir:  {}\n".format(archive_dir))
-        sys.stdout.write("    Conf. dir:    {}\n".format(conf_dir))
-        sys.stdout.write("  Skip discovery: {}\n".format(skip_discovery))
+    log(verbose, "Configuration:\n")
+    log(verbose, "  Base dir:       {}\n".format(basedir))
+    log(verbose, "    Archive dir:  {}\n".format(archive_dir))
+    log(verbose, "    Conf. dir:    {}\n".format(conf_dir))
+    log(verbose, "  Skip discovery: {}\n".format(skip_discovery))
 
     forum_ext_ids = get_forum_ext_ids(conf_dir, verbose)
     existing_ids = get_existing_ids(archive_dir, verbose)
