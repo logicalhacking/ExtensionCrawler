@@ -71,24 +71,16 @@ def update_crx(dir, verbose, ext_id):
 def update_reviews(dir, verbose, ext_id):
     if verbose:
         sys.stdout.write("           * review page:   ")
-    payload = (
-        'req={{ "appId":94,' + '"version":"150922",' + '"hl":"en",' +
-        '"specs":[{{"type":"CommentThread",' +
-        '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",'
-        + '"groups":"chrome_webstore",' + '"sortby":"cws_qscore",' +
-        '"startindex":"{}",' + '"numresults":"{}",' + '"id":"428"}}],' +
-        '"internedKeys":[],' + '"internedValues":[]}}')
-
     res = requests.post(
         ExtensionCrawler.config.const_review_url(),
-        data=payload.format(ext_id, "0", "100"))
+        data=ExtensionCrawler.config.const_review_payload(ext_id, "0", "100"))
     sys.stdout.write("{}/".format(str(res.status_code)))
     with open(os.path.join(dir, 'reviews000-099.text'), 'w') as f:
         f.write(res.text)
     store_request_metadata(os.path.join(dir, 'reviews000-099.text'), res)
     res = requests.post(
         ExtensionCrawler.config.const_review_url(),
-        data=payload.format(ext_id, "100", "100"))
+        data=ExtensionCrawler.config.const_review_payload(ext_id, "0", "100"))
     sys.stdout.write("{}\n".format(str(res.status_code)))
     with open(os.path.join(dir, 'reviews100-199.text'), 'w') as f:
         f.write(res.text)
@@ -100,25 +92,17 @@ def update_reviews(dir, verbose, ext_id):
 def update_support(dir, verbose, ext_id):
     if verbose:
         sys.stdout.write("           * support page:  ")
-
-    payload = (
-        'req={{ "appId":94,' + '"version":"150922",' + '"hl":"en",' +
-        '"specs":[{{"type":"CommentThread",' +
-        '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",'
-        + '"groups":"chrome_webstore_support",' + '"startindex":"{}",' +
-        '"numresults":"{}",' + '"id":"379"}}],' + '"internedKeys":[],' +
-        '"internedValues":[]}}')
-
     res = requests.post(
         ExtensionCrawler.config.const_support_url(),
-        data=payload.format(ext_id, "0", "100"))
+        data=ExtensionCrawler.config.const_support_payload(ext_id, "0", "100"))
     sys.stdout.write("{}/".format(str(res.status_code)))
     with open(os.path.join(dir, 'support000-099.text'), 'w') as f:
         f.write(res.text)
     store_request_metadata(os.path.join(dir, 'support000-099.text'), res)
     res = requests.post(
         ExtensionCrawler.config.const_support_url(),
-        data=payload.format(ext_id, "100", "100"))
+        data=ExtensionCrawler.config.const_support_payload(ext_id, "100",
+                                                           "100"))
     sys.stdout.write("{}\n".format(str(res.status_code)))
     with open(os.path.join(dir, 'support100-199.text'), 'w') as f:
         f.write(res.text)
