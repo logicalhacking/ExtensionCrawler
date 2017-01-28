@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 
 
 def google_dos_protection(max=3):
-    sleep(randint(1, max) * .5)
+    sleep(randint(1, max) * .75)
 
 
 def log(verbose, msg):
