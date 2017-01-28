@@ -2,10 +2,7 @@
 A collection of utilities for downloading and analyzing browser
 extension from the Chrome Web store.
 
-* `crawler.py`: A crawler for extensions from the Chrome Web
-  Store. Calling `crawler.py` will downloads 200 extensions from all
-  categories into a folder `downloaded` in the current directory. In
-  case an extension has already been downloaded, the script skips it.
+* `crawler`: A crawler for extensions from the Chrome Web Store. 
 * `permstats.py`: A tool for generating statistical data from the
   crawled extensions. 
 * `crx-tool.py`: A tool for analyzing and extracting `*.crx` files
