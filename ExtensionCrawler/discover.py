@@ -22,6 +22,8 @@ import requests
 import re
 from functools import reduce
 import ExtensionCrawler.config
+from ExtensionCrawler.util import *
+
 
 def crawl_nearly_all_of_ext_ids():
     def get_inner_elems(doc):
@@ -45,3 +47,12 @@ def crawl_nearly_all_of_ext_ids():
         lambda x, y: x + y,
         map(lambda s: [elem.text for elem in get_inner_elems(s)], shards), [])
     return [re.search("[a-z]{32}", url).group(0) for url in overview_urls]
+
+def get_new_ids(verbose, known_ids):
+    log(verbose, "Discovering new ids ... \n")
+    discovered_ids = ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
+    new_ids = list(set(discovered_ids) - set(known_ids))
+    log(verbose, "  Discovered {} new extensions (out of {})\n".format(
+        len(new_ids), len(discovered_ids)))
+    return new_ids
+
