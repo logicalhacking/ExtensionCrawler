@@ -31,11 +31,13 @@ def log(verbose, msg):
         sys.stdout.write(msg)
         sys.stdout.flush()
 
+
 def logmsg(verbose, msg1, msg2):
     if verbose:
         return msg1 + msg2
     else:
         return msg1
+
 
 def valueOf(value, default):
     if value is not None and value is not "":
