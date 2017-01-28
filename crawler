@@ -25,7 +25,26 @@ from datetime import datetime, timezone
 import ExtensionCrawler.discover
 import ExtensionCrawler.archive
 
-
+class RequestResult:
+    def __init__(self, response=None, exception=None):
+        if response is not None:
+            self.http_status = response.status_code
+        self.exception   = exception 
+    def is_ok(self):
+        return (self.exception is None) and (self.http_status is 200)
+        
+class UpdateResult:
+    def __init__(self, id, res_overview, res_crx, res_reviews, res_support):
+        self.id = id
+        self.res_overview=res_overview
+        self.res_crx=res_crx
+        self.res_reviews=res_reviews
+        self.res_support=res_support
+    def is_ok(self):
+        return (self.res_overview.is_ok() and self.res_crx.is_ok()
+                and ((self.res_reviews is None) or self.res_reviews.is_ok())
+                and ((self.res_support is None) or self.res_support.is_ok()))
+        
 def write_text(dir,fname,text):
      with open(os.path.join(dir, fname), 'w') as f:
         f.write(text)
@@ -45,63 +64,79 @@ def log(verbose,msg):
     
 def update_overview(dir, verbose, ext_id):
     log(verbose,"           * overview page: ")
-    res = requests.get(ExtensionCrawler.config.const_overview_url(ext_id))
-    log(verbose, "{}\n".format(str(res.status_code)))
-    store_request_text(dir, 'overview.html', res)
-  
-    return True
+    try:
+        res = requests.get(ExtensionCrawler.config.const_overview_url(ext_id))
+        log(verbose, "{}".format(str(res.status_code)))
+        store_request_text(dir, 'overview.html', res)
+    except Exception as e:
+        log(verbose, " / Exception: {}\n".format(str(e)))
+        return RequestResult(res, e)
+    log(verbose,"\n")
+    return RequestResult(res)
 
 
 def update_crx(dir, verbose, ext_id):
     log(verbose,"           * crx archive:   ")
+    try:
+        res = requests.get(
+            ExtensionCrawler.config.const_download_url().format(ext_id),
+            stream=True)
+        log(verbose,"{}".format(str(res.status_code)))
 
-    res = requests.get(
-        ExtensionCrawler.config.const_download_url().format(ext_id),
-        stream=True)
-    log(verbose,"{}\n".format(str(res.status_code)))
+        extfilename = os.path.basename(res.url)
+        store_request_metadata(dir, extfilename, res)
 
-    extfilename = os.path.basename(res.url)
-    store_request_metadata(dir, extfilename, res)
+        with open(os.path.join(dir, extfilename), 'wb') as f:
+            for chunk in res.iter_content(chunk_size=512 * 1024):
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
+    except Exception as e:
+        log(verbose, " / Exception: {}\n".format(str(e)))
+        return RequestResult(res, e)
+    log(verbose,"\n")
+    return RequestResult(res)
 
-    with open(os.path.join(dir, extfilename), 'wb') as f:
-        for chunk in res.iter_content(chunk_size=512 * 1024):
-            if chunk:  # filter out keep-alive new chunks
-                f.write(chunk)
-
-    return True
 
 
 def update_reviews(dir, verbose, ext_id):
     log(verbose, "           * review page:   ")
-    res = requests.post(
-        ExtensionCrawler.config.const_review_url(),
-        data=ExtensionCrawler.config.const_review_payload(ext_id, "0", "100"))
-    log(verbose, "{}/".format(str(res.status_code)))
-    store_request_text(dir, 'reviews000-099.text', res)
-    res = requests.post(
-        ExtensionCrawler.config.const_review_url(),
-        data=ExtensionCrawler.config.const_review_payload(ext_id, "0", "100"))
-    log(verbose, "{}\n".format(str(res.status_code)))
-    store_request_text(dir, 'reviews100-199.text', res)
-
-    return True
+    try:
+        res = requests.post(
+            ExtensionCrawler.config.const_review_url(),
+            data=ExtensionCrawler.config.const_review_payload(ext_id, "0", "100"))
+        log(verbose, "{}/".format(str(res.status_code)))
+        store_request_text(dir, 'reviews000-099.text', res)
+        res = requests.post(
+            ExtensionCrawler.config.const_review_url(),
+            data=ExtensionCrawler.config.const_review_payload(ext_id, "0", "100"))
+        log(verbose, "{}".format(str(res.status_code)))
+        store_request_text(dir, 'reviews100-199.text', res)
+    except Exception as e:
+        log(verbose, " / Exception: {}\n".format(str(e)))
+        return RequestResult(res, e)
+    log(verbose,"\n")
+    return RequestResult(res)
 
 
 def update_support(dir, verbose, ext_id):
     log(verbose, "           * support page:  ")
-    res = requests.post(
-        ExtensionCrawler.config.const_support_url(),
-        data=ExtensionCrawler.config.const_support_payload(ext_id, "0", "100"))
-    log(verbose, "{}/".format(str(res.status_code)))
-    store_request_text(dir, 'support000-099.text', res)
-    res = requests.post(
-        ExtensionCrawler.config.const_support_url(),
-        data=ExtensionCrawler.config.const_support_payload(ext_id, "100",
+    try:
+        res = requests.post(
+            ExtensionCrawler.config.const_support_url(),
+            data=ExtensionCrawler.config.const_support_payload(ext_id, "0", "100"))
+        log(verbose, "{}/".format(str(res.status_code)))
+        store_request_text(dir, 'support000-099.text', res)
+        res = requests.post(
+            ExtensionCrawler.config.const_support_url(),
+            data=ExtensionCrawler.config.const_support_payload(ext_id, "100",
                                                            "100"))
-    log(verbose, "{}\n".format(str(res.status_code)))
-    store_request_text(dir, 'support100-199.text', res)
-
-    return True
+        log(verbose, "{}".format(str(res.status_code)))
+        store_request_text(dir, 'support100-199.text', res)
+    except Exception as e:
+        log(verbose, " / Exception: {}\n".format(str(e)))
+        return RequestResult(res, e)
+    log(verbose,"\n")
+    return RequestResult(res)
 
 
 def update_extension(archivedir, verbose, forums, ext_id):
@@ -115,12 +150,14 @@ def update_extension(archivedir, verbose, forums, ext_id):
                      ExtensionCrawler.archive.get_local_archive_dir(ext_id)),
         date)
     os.makedirs(dir, exist_ok=True)
-    update_overview(dir, verbose, ext_id)
-    update_crx(dir, verbose, ext_id)
+    res_overview=update_overview(dir, verbose, ext_id)
+    res_crx=update_crx(dir, verbose, ext_id)
+    res_reviews=None
+    res_support=None
     if forums:
-        update_reviews(dir, verbose, ext_id)
-        update_support(dir, verbose, ext_id)
-
+        res_reviews=update_reviews(dir, verbose, ext_id)
+        res_support=update_support(dir, verbose, ext_id)
+    return UpdateResult(ext_id,res_overview, res_crx, res_reviews, res_support)
 
 def update_extensions(archivedir, verbose, forums_ext_ids, known_ext_ids,
                       new_ext_ids):
@@ -159,6 +196,13 @@ def get_new_ids(verbose, known_ids):
             len(new_ids), len(discovered_ids)))
     return new_ids
 
+def log_summary(verbose,res):
+    total   = len(res)
+    success = len(list(filter(lambda x: x.is_ok(), res)))
+    log(verbose, "\n")
+    log(verbose, "Summary:\n")
+    log(verbose, "    Updated {} out of {} extensions successfully\n".format(str(success),str(total)))
+    
 
 def main():
     basedir = "."
@@ -180,8 +224,9 @@ def main():
     if not skip_discovery:
         new_ids = get_new_ids(verbose, known_ids)
 
-    update_extensions(archive_dir, verbose, forum_ext_ids, existing_ids,
-                      new_ids)
+    res=update_extensions(archive_dir, verbose, forum_ext_ids, existing_ids,
+                          new_ids)
 
+    log_summary(verbose, res)
 
 main()
