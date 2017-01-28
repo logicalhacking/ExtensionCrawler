@@ -32,6 +32,7 @@ import dateutil
 import dateutil.parser
 import time
 import datetime
+import getopt
 
 
 def log_summary(verbose, res, runtime=0):
@@ -57,33 +58,57 @@ def log_summary(verbose, res, runtime=0):
             str(datetime.timedelta(seconds=int(runtime)))))
 
 
-def main():
-    basedir = "."
-    archive_dir = os.path.join(basedir, "archive")
-    conf_dir = os.path.join(basedir, "conf")
-    verbose = True
-    skip_discovery = True
+def help():
+    print("crawler [OPTION]")
+    print("    -h        print this help text")
+    print("    -s        silent (no log messages)")
+    print("    -d        disover new extensions")
+    print("    -a=<DIR>  archive directory")
 
+
+def main(argv):
+    basedir = "archive"
+    verbose = True
+    discover = False
+    try:
+        opts, args = getopt.getopt(argv, "hsda:", ["archive="])
+    except getopt.GetoptError:
+        help()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            help()
+            sys.exit()
+        elif opt in ("-a", "--archive"):
+            basedir = arg
+        elif opt == '-s':
+            verbose = False
+        elif opt == '-d':
+            discover = True
+
+    archive_dir = os.path.join(basedir, "extensions")
+    conf_dir = os.path.join(basedir, "conf")
     start_time = time.time()
 
     log(verbose, "Configuration:\n")
-    log(verbose, "  Base dir:       {}\n".format(basedir))
-    log(verbose, "    Archive dir:  {}\n".format(archive_dir))
-    log(verbose, "    Conf. dir:    {}\n".format(conf_dir))
-    log(verbose, "  Skip discovery: {}\n".format(skip_discovery))
-    log(verbose, "\n".format(skip_discovery))
+    log(verbose, "  Base dir:          {}\n".format(basedir))
+    log(verbose, "    Archive dir:     {}\n".format(archive_dir))
+    log(verbose, "    Conf. dir:       {}\n".format(conf_dir))
+    log(verbose, "  Discover new ext.: {}\n".format(discover))
+    log(verbose, "\n")
 
     forum_ext_ids = get_forum_ext_ids(conf_dir, verbose)
     existing_ids = get_existing_ids(archive_dir, verbose)
     known_ids = list(set(existing_ids) | set(forum_ext_ids))
     new_ids = []
-    if not skip_discovery:
+    if discover:
         new_ids = get_new_ids(verbose, known_ids)
 
-    res = update_extensions(archive_dir, verbose, forum_ext_ids, existing_ids,
+    res = update_extensions(archive_dir, verbose, forum_ext_ids, known_ids,
                             new_ids)
     end_time = time.time()
     log_summary(verbose, res, end_time - start_time)
 
 
-main()
+if __name__ == "__main__":
+    main(sys.argv[1:])
