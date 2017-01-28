@@ -182,7 +182,7 @@ def update_overview(dir, verbose, ext_id):
     return RequestResult(res)
 
 
-def validate_crx_response(res, extfilename):
+def validate_crx_response(res, extid, extfilename):
     regex_extfilename = re.compile(r'^extension[_0-9]+\.crx$')
     if not 'Content-Type' in res.headers:
         raise CrawlError(extid, 'Did not find Content-Type header.',
@@ -221,7 +221,7 @@ def update_crx(dir, verbose, ext_id):
                                     last_modified_utc_date(last_crx_file),
                                     extfilename) + "\n")
         else:
-            validate_crx_response(res, extfilename)
+            validate_crx_response(res, ext_id, extfilename)
             with open(os.path.join(dir, extfilename), 'wb') as f:
                 for chunk in res.iter_content(chunk_size=512 * 1024):
                     if chunk:  # filter out keep-alive new chunks
