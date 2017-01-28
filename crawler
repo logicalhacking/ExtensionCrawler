@@ -27,6 +27,16 @@ from datetime import datetime, timezone
 import ExtensionCrawler.discover
 import ExtensionCrawler.archive
 
+class Error(Exception):
+    pass
+
+class CrawlError(Error):
+    def __init__(self, extid, message, pagecontent=""):
+        self.extid = extid
+        self.message = message
+        self.pagecontent = pagecontent
+
+
 class RequestResult:
     def __init__(self, response=None, exception=None):
         if response is not None:
@@ -107,6 +117,7 @@ def update_overview(dir, verbose, ext_id):
 
 def update_crx(dir, verbose, ext_id):
     log(verbose,"           * crx archive:   ")
+    regex_extfilename = re.compile(r'^extension[_0-9]+\.crx$')
     try:
         res = requests.get(
             ExtensionCrawler.config.const_download_url().format(ext_id),
@@ -116,6 +127,22 @@ def update_crx(dir, verbose, ext_id):
         extfilename = os.path.basename(res.url)
         store_request_metadata(dir, extfilename, res)
 
+        if not 'Content-Type' in res.headers:
+            raise CrawlError(extid, 'Did not find Content-Type header.',
+                             '\n'.join(res.iter_lines()))
+        if not res.headers[
+                'Content-Type'] == 'application/x-chrome-extension':
+            text = [line.decode('utf-8') for line in res.iter_lines()]
+            raise CrawlError(
+                extid,
+                'Expected Content-Type header to be application/x-chrome-extension, but got {}.'.
+                format(res.headers['Content-Type']), '\n'.join(text))
+        if not regex_extfilename.match(extfilename):
+            raise CrawlError(
+                extid,
+                '{} is not a valid extension file name, skipping...'.format(
+                    extfilename))
+        
         with open(os.path.join(dir, extfilename), 'wb') as f:
             for chunk in res.iter_content(chunk_size=512 * 1024):
                 if chunk:  # filter out keep-alive new chunks
