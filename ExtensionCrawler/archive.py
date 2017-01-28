@@ -214,6 +214,8 @@ def update_crx(dir, verbose, ext_id):
                            headers=headers)
         logtxt=logmsg(verbose, logtxt,"{}".format(str(res.status_code)))
         extfilename = os.path.basename(res.url)
+        if re.search('&',extfilename):
+            extfilename="default.crx"
         store_request_metadata(dir, extfilename, res)
 
         if res.status_code == 304:
@@ -221,7 +223,7 @@ def update_crx(dir, verbose, ext_id):
                        os.path.join("..",
                                     last_modified_utc_date(last_crx_file),
                                     extfilename) + "\n")
-        else:
+        elif res.status_code == 200:
             validate_crx_response(res, ext_id, extfilename)
             with open(os.path.join(dir, extfilename), 'wb') as f:
                 for chunk in res.iter_content(chunk_size=512 * 1024):
@@ -322,7 +324,7 @@ def update_extensions(archivedir, verbose, forums_ext_ids, known_ext_ids,
     parallel_ids = list(set(ext_ids) - set(forums_ext_ids))
     log(verbose,
         "  Updating {} extensions excluding forums (parallel))\n".format(len(parallel_ids)))
-    with Pool(10) as p:
+    with Pool(16) as p:
         ext_without_forums = list(p.map(partial(update_extension,archivedir, verbose, False), parallel_ids))
         
     return ext_with_forums+ext_without_forums
