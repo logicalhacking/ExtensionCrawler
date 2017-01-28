@@ -21,6 +21,8 @@ import sys
 import glob
 import re
 import requests
+from time import sleep
+from random import randint
 from datetime import datetime, timezone
 import ExtensionCrawler.discover
 import ExtensionCrawler.archive
@@ -68,6 +70,8 @@ class UpdateResult:
         return  ((self.res_reviews is not None and self.res_reviews.not_available())
                  or (self.res_support is not None and self.res_support.not_available()))
 
+def google_dos_protection(max=3):
+        sleep(randint(1, max) * .5)
 
                 
 def write_text(dir,fname,text):
@@ -127,12 +131,15 @@ def update_crx(dir, verbose, ext_id):
 
 def update_reviews(dir, verbose, ext_id):
     log(verbose, "           * review page:   ")
+    res=None
     try:
+        google_dos_protection()
         res = requests.post(
             ExtensionCrawler.config.const_review_url(),
             data=ExtensionCrawler.config.const_review_payload(ext_id, "0", "100"))
         log(verbose, "{}/".format(str(res.status_code)))
         store_request_text(dir, 'reviews000-099.text', res)
+        google_dos_protection()
         res = requests.post(
             ExtensionCrawler.config.const_review_url(),
             data=ExtensionCrawler.config.const_review_payload(ext_id, "0", "100"))
@@ -148,12 +155,15 @@ def update_reviews(dir, verbose, ext_id):
 
 def update_support(dir, verbose, ext_id):
     log(verbose, "           * support page:  ")
+    res=None
     try:
+        google_dos_protection()
         res = requests.post(
             ExtensionCrawler.config.const_support_url(),
             data=ExtensionCrawler.config.const_support_payload(ext_id, "0", "100"))
         log(verbose, "{}/".format(str(res.status_code)))
         store_request_text(dir, 'support000-099.text', res)
+        google_dos_protection()
         res = requests.post(
             ExtensionCrawler.config.const_support_url(),
             data=ExtensionCrawler.config.const_support_payload(ext_id, "100",
