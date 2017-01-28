@@ -35,7 +35,13 @@ import datetime
 import getopt
 
 
-def log_summary(verbose, res, runtime=0):
+def log_summary(verbose, res, stderr=False, runtime=0):
+    def p(s):
+        if stderr:
+            sys.stderr.write(s)
+        else:
+            log(verbose, s)
+
     total = len(res)
     success = len(list(filter(lambda x: x.is_ok(), res)))
     not_authorized = len(list(filter(lambda x: x.not_authorized(), res)))
@@ -44,18 +50,17 @@ def log_summary(verbose, res, runtime=0):
     not_in_store = len(list(filter(lambda x: x.not_in_store(), res)))
     not_modified = len(list(filter(lambda x: x.not_modified(), res)))
 
-    log(verbose, "\n")
-    log(verbose, "Summary:\n")
-    log(verbose, "    Updated {} out of {} extensions successfully\n".format(
+    p("\n")
+    p("Summary:\n")
+    p("    Updated {} out of {} extensions successfully\n".format(
         str(success), str(total)))
-    log(verbose, "    Not authorized:          {:8d}\n".format(not_authorized))
-    log(verbose, "    Raised Google DDOS:      {:8d}\n".format(raised_ddos))
-    log(verbose, "    Not modified archives:   {:8d}\n".format(not_modified))
-    log(verbose, "    Extensions not in store: {:8d}\n".format(not_in_store))
-    log(verbose, "    Unknown exception:       {:8d}\n".format(has_exception))
-    log(verbose,
-        "    Total runtime:            {}\n".format(
-            str(datetime.timedelta(seconds=int(runtime)))))
+    p("    Not authorized:          {:8d}\n".format(not_authorized))
+    p("    Raised Google DDOS:      {:8d}\n".format(raised_ddos))
+    p("    Not modified archives:   {:8d}\n".format(not_modified))
+    p("    Extensions not in store: {:8d}\n".format(not_in_store))
+    p("    Unknown exception:       {:8d}\n".format(has_exception))
+    p("    Total runtime:            {}\n".format(
+        str(datetime.timedelta(seconds=int(runtime)))))
 
 
 def help():
@@ -107,7 +112,8 @@ def main(argv):
     res = update_extensions(archive_dir, verbose, forum_ext_ids, known_ids,
                             new_ids)
     end_time = time.time()
-    log_summary(verbose, res, end_time - start_time)
+    log_summary(verbose, res, False, end_time - start_time)
+    log_summary(verbose, res, True, end_time - start_time)
 
 
 if __name__ == "__main__":
