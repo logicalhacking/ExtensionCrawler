@@ -16,18 +16,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-
 import sys
 from time import sleep
 from random import randint
 from datetime import datetime, timezone
 
+
 def google_dos_protection(max=3):
     sleep(randint(1, max) * .5)
+
 
 def log(verbose, msg):
     if verbose:
         sys.stdout.write(msg)
+
 
 def valueOf(value, default):
     if value is not None and value is not "":

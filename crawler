@@ -44,11 +44,13 @@ def log_summary(verbose, res):
     log(verbose, "Summary:\n")
     log(verbose, "    Updated {} out of {} extensions successfully\n".format(
         str(success), str(total)))
-    log(verbose, "    Not authorized:          {}\n".format(str(not_authorized)))
+    log(verbose,
+        "    Not authorized:          {}\n".format(str(not_authorized)))
     log(verbose, "    Raised Google DDOS:      {}\n".format(str(raised_ddos)))
     log(verbose, "    Not modified archives:   {}\n".format(str(not_modified)))
     log(verbose, "    Extensions not in store: {}\n".format(str(not_in_store)))
-    log(verbose, "    Unknown exception:       {}\n".format(str(has_exception)))
+    log(verbose,
+        "    Unknown exception:       {}\n".format(str(has_exception)))
 
 
 def main():

@@ -49,22 +49,22 @@ class RequestResult:
         self.exception = exception
 
     def is_ok(self):
-        return (self.exception is None) and (self.http_status==200)
+        return (self.exception is None) and (self.http_status == 200)
 
     def not_authorized(self):
-        return (self.exception is None) and (self.http_status==401)
+        return (self.exception is None) and (self.http_status == 401)
 
     def not_found(self):
-        return (self.exception is None) and (self.http_status==404)
+        return (self.exception is None) and (self.http_status == 404)
 
     def has_exception(self):
         return self.exception is not None
 
     def not_available(self):
-        return (self.exception is None) and (self.http_status==503)
+        return (self.exception is None) and (self.http_status == 503)
 
     def not_modified(self):
-        return ((self.exception is None) and (self.http_status==304))
+        return ((self.exception is None) and (self.http_status == 304))
 
 
 class UpdateResult:
@@ -76,9 +76,10 @@ class UpdateResult:
         self.res_support = res_support
 
     def is_ok(self):
-        return (self.res_overview.is_ok() and (self.res_crx.is_ok() or self.res_crx.not_modified()) and (
-            (self.res_reviews is None) or self.res_reviews.is_ok()) and (
-                (self.res_support is None) or self.res_support.is_ok()))
+        return (self.res_overview.is_ok() and
+                (self.res_crx.is_ok() or self.res_crx.not_modified()) and
+                ((self.res_reviews is None) or self.res_reviews.is_ok()) and (
+                    (self.res_support is None) or self.res_support.is_ok()))
 
     def not_authorized(self):
         return (self.res_overview.not_authorized() or
@@ -112,12 +113,13 @@ class UpdateResult:
         return self.res_crx.not_modified()
 
 
-
 def get_local_archive_dir(id):
-    return "{}/{}".format(id[:3],id)
+    return "{}/{}".format(id[:3], id)
+
 
 def get_local_archive_dirs(id):
     return [get_local_archive_dir(id)]
+
 
 def write_text(dir, fname, text):
     with open(os.path.join(dir, fname), 'w') as f:
@@ -133,6 +135,7 @@ def store_request_metadata(dir, fname, request):
 def store_request_text(dir, fname, request):
     write_text(dir, fname, request.text)
     store_request_metadata(dir, fname, request)
+
 
 def httpdate(dt):
     weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday()]
@@ -154,6 +157,8 @@ def last_modified_http_date(path):
     if path is "":
         return ""
     return httpdate(dateutil.parser.parse(last_modified_utc_date(path)))
+
+
 def last_crx(dir, extid):
     old_archives = sorted(
         glob.glob(os.path.join(os.path.dirname(dir), "*/*.crx")))
@@ -161,10 +166,6 @@ def last_crx(dir, extid):
     if old_archives != []:
         last_archive = old_archives[-1]
     return last_archive
-
-
-
-
 
 
 def update_overview(dir, verbose, ext_id):
@@ -207,10 +208,9 @@ def update_crx(dir, verbose, ext_id):
     if last_crx_file is not "":
         headers = {'If-Modified-Since': last_crx_http_date}
     try:
-        res = requests.get(
-            const_download_url().format(ext_id),
-            stream=True,
-            headers=headers)
+        res = requests.get(const_download_url().format(ext_id),
+                           stream=True,
+                           headers=headers)
         log(verbose, "{}".format(str(res.status_code)))
         extfilename = os.path.basename(res.url)
         store_request_metadata(dir, extfilename, res)
@@ -240,16 +240,12 @@ def update_reviews(dir, verbose, ext_id):
     try:
         google_dos_protection()
         res = requests.post(
-            const_review_url(),
-            data=const_review_payload(ext_id, "0",
-                                                              "100"))
+            const_review_url(), data=const_review_payload(ext_id, "0", "100"))
         log(verbose, "{}/".format(str(res.status_code)))
         store_request_text(dir, 'reviews000-099.text', res)
         google_dos_protection()
         res = requests.post(
-            const_review_url(),
-            data=const_review_payload(ext_id, "0",
-                                                              "100"))
+            const_review_url(), data=const_review_payload(ext_id, "0", "100"))
         log(verbose, "{}".format(str(res.status_code)))
         store_request_text(dir, 'reviews100-199.text', res)
     except Exception as e:
@@ -267,15 +263,13 @@ def update_support(dir, verbose, ext_id):
         google_dos_protection()
         res = requests.post(
             const_support_url(),
-            data=const_support_payload(ext_id, "0",
-                                                               "100"))
+            data=const_support_payload(ext_id, "0", "100"))
         log(verbose, "{}/".format(str(res.status_code)))
         store_request_text(dir, 'support000-099.text', res)
         google_dos_protection()
         res = requests.post(
             const_support_url(),
-            data=const_support_payload(ext_id, "100",
-                                                               "100"))
+            data=const_support_payload(ext_id, "100", "100"))
         log(verbose, "{}".format(str(res.status_code)))
         store_request_text(dir, 'support100-199.text', res)
     except Exception as e:
@@ -293,9 +287,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
     log(verbose, "\n")
     date = datetime.now(timezone.utc).isoformat()
     dir = os.path.join(
-        os.path.join(archivedir,
-                     get_local_archive_dir(ext_id)),
-        date)
+        os.path.join(archivedir, get_local_archive_dir(ext_id)), date)
     os.makedirs(dir, exist_ok=True)
     res_overview = update_overview(dir, verbose, ext_id)
     res_crx = update_crx(dir, verbose, ext_id)
@@ -335,6 +327,3 @@ def get_forum_ext_ids(confdir, verbose):
         ids = f.readlines()
     ids = [x.strip() for x in ids]
     return ids
-
-
-
