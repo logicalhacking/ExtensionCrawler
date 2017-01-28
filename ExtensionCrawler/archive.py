@@ -305,7 +305,7 @@ def update_extensions(archivedir, verbose, forums_ext_ids, known_ext_ids,
     def update_forums(ext_id):
         return (ext_id in forums_ext_ids)
 
-    ext_ids = known_ext_ids + new_ext_ids
+    ext_ids = sorted(list(set(known_ext_ids) | set(new_ext_ids)))
     log(verbose,
         "Updating {} extensions ({} new, {} including forums)\n".format(
             len(ext_ids), len(new_ext_ids), len(forums_ext_ids)))

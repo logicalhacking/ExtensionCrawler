@@ -111,9 +111,10 @@ def main(argv):
     forum_ext_ids = get_forum_ext_ids(conf_dir, verbose)
     existing_ids = get_existing_ids(archive_dir, verbose)
     known_ids = list(set(existing_ids) | set(forum_ext_ids))
-    new_ids = []
+    discovered_ids = []
     if discover:
-        new_ids = get_new_ids(verbose, known_ids)
+        discovered_ids = get_new_ids(verbose, known_ids)
+    new_ids = list(set(discovered_ids) - set(known_ids))
 
     res = update_extensions(archive_dir, verbose, forum_ext_ids, known_ids,
                             new_ids)
