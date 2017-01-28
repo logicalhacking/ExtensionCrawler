@@ -30,9 +30,11 @@ from ExtensionCrawler.util import *
 from ExtensionCrawler.discover import *
 import dateutil
 import dateutil.parser
+import time
+import datetime
 
 
-def log_summary(verbose, res):
+def log_summary(verbose, res, runtime=0):
     total = len(res)
     success = len(list(filter(lambda x: x.is_ok(), res)))
     not_authorized = len(list(filter(lambda x: x.not_authorized(), res)))
@@ -40,17 +42,19 @@ def log_summary(verbose, res):
     raised_ddos = len(list(filter(lambda x: x.raised_google_ddos(), res)))
     not_in_store = len(list(filter(lambda x: x.not_in_store(), res)))
     not_modified = len(list(filter(lambda x: x.not_modified(), res)))
+
     log(verbose, "\n")
     log(verbose, "Summary:\n")
     log(verbose, "    Updated {} out of {} extensions successfully\n".format(
         str(success), str(total)))
+    log(verbose, "    Not authorized:          {:8d}\n".format(not_authorized))
+    log(verbose, "    Raised Google DDOS:      {:8d}\n".format(raised_ddos))
+    log(verbose, "    Not modified archives:   {:8d}\n".format(not_modified))
+    log(verbose, "    Extensions not in store: {:8d}\n".format(not_in_store))
+    log(verbose, "    Unknown exception:       {:8d}\n".format(has_exception))
     log(verbose,
-        "    Not authorized:          {}\n".format(str(not_authorized)))
-    log(verbose, "    Raised Google DDOS:      {}\n".format(str(raised_ddos)))
-    log(verbose, "    Not modified archives:   {}\n".format(str(not_modified)))
-    log(verbose, "    Extensions not in store: {}\n".format(str(not_in_store)))
-    log(verbose,
-        "    Unknown exception:       {}\n".format(str(has_exception)))
+        "    Total runtime:            {}\n".format(
+            str(datetime.timedelta(seconds=int(runtime)))))
 
 
 def main():
@@ -59,6 +63,8 @@ def main():
     conf_dir = os.path.join(basedir, "conf")
     verbose = True
     skip_discovery = True
+
+    start_time = time.time()
 
     log(verbose, "Configuration:\n")
     log(verbose, "  Base dir:       {}\n".format(basedir))
@@ -76,8 +82,8 @@ def main():
 
     res = update_extensions(archive_dir, verbose, forum_ext_ids, existing_ids,
                             new_ids)
-
-    log_summary(verbose, res)
+    end_time = time.time()
+    log_summary(verbose, res, end_time - start_time)
 
 
 main()
