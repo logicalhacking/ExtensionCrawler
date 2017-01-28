@@ -29,7 +29,8 @@ from ExtensionCrawler.util import *
 from ExtensionCrawler.archive import *
 import dateutil
 import dateutil.parser
-
+from multiprocessing import Pool
+from functools import partial
 
 class Error(Exception):
     pass
@@ -302,17 +303,26 @@ def update_extension(archivedir, verbose, forums, ext_id):
 
 def update_extensions(archivedir, verbose, forums_ext_ids, known_ext_ids,
                       new_ext_ids):
-    def update_forums(ext_id):
-        return (ext_id in forums_ext_ids)
-
+    ext_with_forums=[]
+    ext_without_forums=[]
     ext_ids = sorted(list(set(known_ext_ids) | set(new_ext_ids)))
     log(verbose,
         "Updating {} extensions ({} new, {} including forums)\n".format(
             len(ext_ids), len(new_ext_ids), len(forums_ext_ids)))
-    return list(map(lambda ext_id: update_extension(archivedir, verbose,
-                                                    update_forums(ext_id), ext_id),
-                    ext_ids))
+    # First, update extensions with forums sequentially (and with delays) to
+    # avoid running into Googles DDOS detection. 
+    log(verbose,
+        "  Updating {} extensions including forums (sequentially))\n".format(len(forums_ext_ids)))
+    ext_with_forums=list(map(partial(update_extension,archivedir, verbose, True), forums_ext_ids))
 
+    # Second, update extensions without forums parallel to increase speed.
+    parallel_ids = list(set(ext_ids) - set(forums_ext_ids))
+    log(verbose,
+        "  Updating {} extensions excluding forums (parallel))\n".format(len(parallel_ids)))
+    with Pool(10) as p:
+        ext_without_forums = list(p.map(partial(update_extension,archivedir, verbose, False), parallel_ids))
+        
+    return ext_with_forums+ext_without_forums
 
 def get_existing_ids(archivedir, verbose):
     byte = '[0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z]'
