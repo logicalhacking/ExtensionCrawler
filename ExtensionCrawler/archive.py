@@ -170,17 +170,17 @@ def last_crx(dir, extid):
 
 
 def update_overview(dir, verbose, ext_id):
-    log(verbose, "           * overview page: ")
+    logtxt=logmsg(verbose, "", "           * overview page: ")
     try:
         res = requests.get(const_overview_url(ext_id))
-        log(verbose, "{}".format(str(res.status_code)))
+        logtxt=logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
         store_request_text(dir, 'overview.html', res)
     except Exception as e:
-        log(verbose, " / Exception: {}\n".format(str(e)))
+        logtxt=logmsg(verbose, logtxt," / Exception: {}\n".format(str(e)))
         write_text(dir, 'overview.html.exception', str(e))
-        return RequestResult(res, e)
-    log(verbose, "\n")
-    return RequestResult(res)
+        return RequestResult(res, e), logtxt
+    logtxt=logmsg(verbose, logtxt, "\n")
+    return RequestResult(res), logtxt
 
 
 def validate_crx_response(res, extid, extfilename):
@@ -203,7 +203,7 @@ def validate_crx_response(res, extid, extfilename):
 def update_crx(dir, verbose, ext_id):
     last_crx_file = last_crx(dir, ext_id)
     last_crx_http_date = last_modified_http_date(last_crx_file)
-    log(verbose, "           * crx archive (Last: {}):   ".format(
+    logtxt=logmsg(verbose, "", "           * crx archive (Last: {}):   ".format(
         valueOf(last_crx_http_date, "n/a")))
     headers = ""
     if last_crx_file is not "":
@@ -212,7 +212,7 @@ def update_crx(dir, verbose, ext_id):
         res = requests.get(const_download_url().format(ext_id),
                            stream=True,
                            headers=headers)
-        log(verbose, "{}".format(str(res.status_code)))
+        logtxt=logmsg(verbose, logtxt,"{}".format(str(res.status_code)))
         extfilename = os.path.basename(res.url)
         store_request_metadata(dir, extfilename, res)
 
@@ -228,75 +228,78 @@ def update_crx(dir, verbose, ext_id):
                     if chunk:  # filter out keep-alive new chunks
                         f.write(chunk)
     except Exception as e:
-        log(verbose, " / Exception: {}\n".format(str(e)))
+        logtxt=logmsg(verbose, logtxt," / Exception: {}\n".format(str(e)))
         write_text(dir, extfilename + ".exception", str(e))
-        return RequestResult(res, e)
-    log(verbose, "\n")
-    return RequestResult(res)
+        return RequestResult(res, e), logtxt
+    logtxt=logmsg(verbose, logtxt, "\n")
+    return RequestResult(res), logtxt
 
 
 def update_reviews(dir, verbose, ext_id):
-    log(verbose, "           * review page:   ")
+    logtxt=logmsg(verbose, "", "           * review page:   ")
     res = None
     try:
         google_dos_protection()
         res = requests.post(
             const_review_url(), data=const_review_payload(ext_id, "0", "100"))
-        log(verbose, "{}/".format(str(res.status_code)))
+        logtxt=logmsg(verbose, logtxt,"{}/".format(str(res.status_code)))
         store_request_text(dir, 'reviews000-099.text', res)
         google_dos_protection()
         res = requests.post(
             const_review_url(), data=const_review_payload(ext_id, "0", "100"))
-        log(verbose, "{}".format(str(res.status_code)))
+        logtxt=logmsg(verbose, logtxt,"{}".format(str(res.status_code)))
         store_request_text(dir, 'reviews100-199.text', res)
     except Exception as e:
-        log(verbose, " / Exception: {}\n".format(str(e)))
+        logtxt=logmsg(verbose, logtxt," / Exception: {}\n".format(str(e)))
         write_text(dir, 'reviews.html.exception', str(e))
-        return RequestResult(res, e)
-    log(verbose, "\n")
-    return RequestResult(res)
+        return RequestResult(res, e), logtxt
+    logtxt=logmsg(verbose, logtxt,"\n")
+    return RequestResult(res), logtxt
 
 
 def update_support(dir, verbose, ext_id):
-    log(verbose, "           * support page:  ")
+    logtxt=logmsg(verbose, "","           * support page:  ")
     res = None
     try:
         google_dos_protection()
         res = requests.post(
             const_support_url(),
             data=const_support_payload(ext_id, "0", "100"))
-        log(verbose, "{}/".format(str(res.status_code)))
+        logtxt=logmsg(verbose, logtxt,"{}/".format(str(res.status_code)))
         store_request_text(dir, 'support000-099.text', res)
         google_dos_protection()
         res = requests.post(
             const_support_url(),
             data=const_support_payload(ext_id, "100", "100"))
-        log(verbose, "{}".format(str(res.status_code)))
+        logtxt=logmsg(verbose, logtxt,"{}".format(str(res.status_code)))
         store_request_text(dir, 'support100-199.text', res)
     except Exception as e:
-        log(verbose, " / Exception: {}\n".format(str(e)))
+        logtxt=logmsg(verbose, logtxt," / Exception: {}\n".format(str(e)))
         write_text(dir, 'support.html.exception', str(e))
-        return RequestResult(res, e)
-    log(verbose, "\n")
-    return RequestResult(res)
+        return RequestResult(res, e), logtxt
+    logtxt=logmsg(verbose, logtxt,"\n")
+    return RequestResult(res), logtxt
 
 
 def update_extension(archivedir, verbose, forums, ext_id):
-    log(verbose, "    Updating {}".format(ext_id))
+    logtxt=logmsg(verbose,"","    Updating {}".format(ext_id))
     if forums:
-        log(verbose, " (including forums)")
-    log(verbose, "\n")
+        logtxt = logmsg(verbose,logtxt," (including forums)")
+    logtxt = logmsg(verbose,logtxt,"\n")
     date = datetime.now(timezone.utc).isoformat()
     dir = os.path.join(
         os.path.join(archivedir, get_local_archive_dir(ext_id)), date)
     os.makedirs(dir, exist_ok=True)
-    res_overview = update_overview(dir, verbose, ext_id)
-    res_crx = update_crx(dir, verbose, ext_id)
+    res_overview , msg_overview = update_overview(dir, verbose, ext_id)
+    res_crx , msg_crx = update_crx(dir, verbose, ext_id)
     res_reviews = None
+    msg_reviews = ""
     res_support = None
+    msg_support = ""
     if forums:
-        res_reviews = update_reviews(dir, verbose, ext_id)
-        res_support = update_support(dir, verbose, ext_id)
+        res_reviews, msg_reviews = update_reviews(dir, verbose, ext_id)
+        res_support, msg_support = update_support(dir, verbose, ext_id)
+    log(verbose,logtxt+msg_overview+msg_crx+msg_reviews+msg_support)
     return UpdateResult(ext_id, res_overview, res_crx, res_reviews,
                         res_support)
 
