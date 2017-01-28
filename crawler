@@ -95,6 +95,7 @@ def update_overview(dir, verbose, ext_id):
         store_request_text(dir, 'overview.html', res)
     except Exception as e:
         log(verbose, " / Exception: {}\n".format(str(e)))
+        write_text(dir, 'overview.html.exception', str(e))
         return RequestResult(res, e)
     log(verbose,"\n")
     return RequestResult(res)
@@ -117,6 +118,7 @@ def update_crx(dir, verbose, ext_id):
                     f.write(chunk)
     except Exception as e:
         log(verbose, " / Exception: {}\n".format(str(e)))
+        write_text(dir, extfilename+".exception", str(e))
         return RequestResult(res, e)
     log(verbose,"\n")
     return RequestResult(res)
@@ -138,6 +140,7 @@ def update_reviews(dir, verbose, ext_id):
         store_request_text(dir, 'reviews100-199.text', res)
     except Exception as e:
         log(verbose, " / Exception: {}\n".format(str(e)))
+        write_text(dir, 'reviews.html.exception', str(e))
         return RequestResult(res, e)
     log(verbose,"\n")
     return RequestResult(res)
@@ -159,6 +162,7 @@ def update_support(dir, verbose, ext_id):
         store_request_text(dir, 'support100-199.text', res)
     except Exception as e:
         log(verbose, " / Exception: {}\n".format(str(e)))
+        write_text(dir, 'support.html.exception', str(e))
         return RequestResult(res, e)
     log(verbose,"\n")
     return RequestResult(res)
@@ -249,6 +253,7 @@ def main():
     log(verbose, "    Archive dir:  {}\n".format(archive_dir))
     log(verbose, "    Conf. dir:    {}\n".format(conf_dir))
     log(verbose, "  Skip discovery: {}\n".format(skip_discovery))
+    log(verbose, "\n".format(skip_discovery))
 
     forum_ext_ids = get_forum_ext_ids(conf_dir, verbose)
     existing_ids = get_existing_ids(archive_dir, verbose)
