@@ -17,60 +17,20 @@
 #
 
 
-def const_sitemap_url():
-    return "https://chrome.google.com/webstore/sitemap"
+import sys
+from time import sleep
+from random import randint
+from datetime import datetime, timezone
 
+def google_dos_protection(max=3):
+    sleep(randint(1, max) * .5)
 
-def const_sitemap_scheme():
-    return "http://www.sitemaps.org/schemas/sitemap/0.9"
+def log(verbose, msg):
+    if verbose:
+        sys.stdout.write(msg)
 
-
-def const_overview_url(id):
-    return 'https://chrome.google.com/webstore/detail/{}'.format(id)
-
-
-def const_store_url():
-    return 'https://chrome.google.com/webstore'
-
-
-def const_review_url():
-    return 'https://chrome.google.com/reviews/components'
-
-
-def const_support_url():
-    return 'https://chrome.google.com/reviews/components'
-
-
-def const_download_url():
-    return 'https://clients2.google.com/service/update2/crx?response=redirect&nacl_arch=x86-64&prodversion=9999.0.9999.0&x=id%3D{}%26uc'
-
-
-def const_categories():
-    return [
-        'extensions', 'ext/22-accessibility', 'ext/10-blogging',
-        'ext/15-by-google', 'ext/11-web-development', 'ext/14-fun',
-        'ext/6-news', 'ext/28-photos', 'ext/7-productivity',
-        'ext/38-search-tools', 'ext/12-shopping', 'ext/1-communication',
-        'ext/13-sports'
-    ]
-
-
-def const_support_payload(ext_id, start, end):
-    return (
-        'req={{ "appId":94,' + '"version":"150922",' + '"hl":"en",' +
-        '"specs":[{{"type":"CommentThread",' +
-        '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",'
-        + '"groups":"chrome_webstore_support",' + '"startindex":"{}",' +
-        '"numresults":"{}",' + '"id":"379"}}],' + '"internedKeys":[],' +
-        '"internedValues":[]}}').format(ext_id, start, end)
-
-
-def const_review_payload(ext_id, start, end):
-    return (
-        'req={{ "appId":94,' + '"version":"150922",' + '"hl":"en",' +
-        '"specs":[{{"type":"CommentThread",' +
-        '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",'
-        + '"groups":"chrome_webstore",' + '"sortby":"cws_qscore",' +
-        '"startindex":"{}",' + '"numresults":"{}",' + '"id":"428"}}],' +
-        '"internedKeys":[],' + '"internedValues":[]}}').format(ext_id, start,
-                                                               end)
+def valueOf(value, default):
+    if value is not None and value is not "":
+        return value
+    else:
+        return default

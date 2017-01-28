@@ -111,14 +111,6 @@ class UpdateResult:
     def not_modified(self):
         return self.res_crx.not_modified()
 
-    
-def google_dos_protection(max=3):
-    sleep(randint(1, max) * .5)
-
-def log(verbose, msg):
-    if verbose:
-        sys.stdout.write(msg)
-
 
 def update_overview(dir, verbose, ext_id):
     log(verbose, "           * overview page: ")
@@ -149,13 +141,6 @@ def validate_crx_response(res, extfilename):
         raise CrawlError(
             extid, '{} is not a valid extension file name, skipping...'.format(
                 extfilename))
-
-
-def valueOf(value, default):
-    if value is not None and value is not "":
-        return value
-    else:
-        return default
 
 
 def update_crx(dir, verbose, ext_id):
