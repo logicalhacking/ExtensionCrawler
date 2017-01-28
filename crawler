@@ -48,19 +48,22 @@ class RequestResult:
         self.exception = exception
 
     def is_ok(self):
-        return (self.exception is None) and (self.http_status is 200)
+        return (self.exception is None) and (self.http_status==200)
 
     def not_authorized(self):
-        return (self.exception is None) and (self.http_status is 401)
+        return (self.exception is None) and (self.http_status==401)
 
     def not_found(self):
-        return (self.exception is None) and (self.http_status is 404)
+        return (self.exception is None) and (self.http_status==404)
 
     def has_exception(self):
         return self.exception is not None
 
     def not_available(self):
-        return (self.exception is None) and (self.http_status is 503)
+        return (self.exception is None) and (self.http_status==503)
+
+    def not_modified(self):
+        return ((self.exception is None) and (self.http_status==304))
 
 
 class UpdateResult:
@@ -72,7 +75,7 @@ class UpdateResult:
         self.res_support = res_support
 
     def is_ok(self):
-        return (self.res_overview.is_ok() and self.res_crx.is_ok() and (
+        return (self.res_overview.is_ok() and (self.res_crx.is_ok() or self.res_crx.not_modified()) and (
             (self.res_reviews is None) or self.res_reviews.is_ok()) and (
                 (self.res_support is None) or self.res_support.is_ok()))
 
@@ -104,7 +107,10 @@ class UpdateResult:
             or (self.res_support is not None and
                 self.res_support.not_available()))
 
+    def not_modified(self):
+        return self.res_crx.not_modified()
 
+    
 def google_dos_protection(max=3):
     sleep(randint(1, max) * .5)
 
@@ -354,14 +360,16 @@ def log_summary(verbose, res):
     has_exception = len(list(filter(lambda x: x.has_exception(), res)))
     raised_ddos = len(list(filter(lambda x: x.raised_google_ddos(), res)))
     not_in_store = len(list(filter(lambda x: x.not_in_store(), res)))
+    not_modified = len(list(filter(lambda x: x.not_modified(), res)))
     log(verbose, "\n")
     log(verbose, "Summary:\n")
     log(verbose, "    Updated {} out of {} extensions successfully\n".format(
         str(success), str(total)))
-    log(verbose, "    Not authorized:        {}\n".format(str(not_authorized)))
-    log(verbose, "    Raised Google DDOS:    {}\n".format(str(raised_ddos)))
-    log(verbose, "    Extenion not in store: {}\n".format(str(not_in_store)))
-    log(verbose, "    Unknown exception:     {}\n".format(str(has_exception)))
+    log(verbose, "    Not authorized:          {}\n".format(str(not_authorized)))
+    log(verbose, "    Raised Google DDOS:      {}\n".format(str(raised_ddos)))
+    log(verbose, "    Updated archives:        {}\n".format(str(success-not_modified)))
+    log(verbose, "    Extensions not in store: {}\n".format(str(not_in_store)))
+    log(verbose, "    Unknown exception:       {}\n".format(str(has_exception)))
 
 
 def main():
