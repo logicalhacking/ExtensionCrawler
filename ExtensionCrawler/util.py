@@ -29,7 +29,7 @@ def google_dos_protection(max=3):
 def log(verbose, msg):
     if verbose:
         sys.stdout.write(msg)
-
+        sys.stdout.flush()
 
 def valueOf(value, default):
     if value is not None and value is not "":
