@@ -91,8 +91,14 @@ def main(argv):
         elif opt == '-d':
             discover = True
 
-    archive_dir = os.path.join(basedir, "extensions")
+    archive_dir = os.path.join(basedir, "data")
+    os.makedirs(archive_dir, exist_ok=True)
     conf_dir = os.path.join(basedir, "conf")
+    open(os.path.join(conf_dir,"forums.conf"), 'a').close()
+    os.makedirs(conf_dir, exist_ok=True)
+    log_dir = os.path.join(basedir, "log")
+    os.makedirs(log_dir, exist_ok=True)
+
     start_time = time.time()
 
     log(verbose, "Configuration:\n")
