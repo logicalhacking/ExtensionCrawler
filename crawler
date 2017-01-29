@@ -43,9 +43,10 @@ def log_failures_to_file(dir,today, res):
     write_text(dir,today+"-raised-exception.log",has_exception)
     raised_ddos = reduce(lambda x,y: x+"\n"+y, sorted(map(lambda x: x.id, filter(lambda x: x.raised_google_ddos(), res))),"")
     write_text(dir,today+"-raised-ddos.log",raised_ddos)
-    not_in_store = reduce(lambda x,y: x+"\n"+y, sorted(map(lambda x: x.id, filter(lambda x: x.not_in_store(), res))),"\n")
+    not_in_store = reduce(lambda x,y: x+"\n"+y, sorted(map(lambda x: x.id, filter(lambda x: x.not_in_store(), res))),"")
     write_text(dir,today+"-not-in-store.log",not_in_store)
-    
+    new = reduce(lambda x,y: x+"\n"+y, sorted(map(lambda x: x.id, filter(lambda x: x.is_new(), res))),"")
+    write_text(dir,today+"-new-in-store.log",new)
 
 def log_summary(verbose, res, stderr=False, runtime=0):
     def p(s):
@@ -61,11 +62,15 @@ def log_summary(verbose, res, stderr=False, runtime=0):
     raised_ddos = len(list(filter(lambda x: x.raised_google_ddos(), res)))
     not_in_store = len(list(filter(lambda x: x.not_in_store(), res)))
     not_modified = len(list(filter(lambda x: x.not_modified(), res)))
+    new = len(list(filter(lambda x: x.is_new(), res)))
+    updated = len(list(filter(lambda x: x.is_ok() and not x.not_modified(), res)))
 
     p("\n")
     p("Summary:\n")
     p("    Updated {} out of {} extensions successfully\n".format(
         str(success), str(total)))
+    p("    Updated extensions:      {:8d}\n".format(updated))
+    p("    New extensions:          {:8d}\n".format(new))
     p("    Not authorized:          {:8d}\n".format(not_authorized))
     p("    Raised Google DDOS:      {:8d}\n".format(raised_ddos))
     p("    Not modified archives:   {:8d}\n".format(not_modified))
@@ -127,10 +132,10 @@ def main(argv):
     discovered_ids = []
     if discover:
         discovered_ids = get_new_ids(verbose, known_ids)
-    new_ids = list(set(discovered_ids) - set(known_ids))
+    ext_ids = list(set(discovered_ids) | set(known_ids))
 
-    res = update_extensions(archive_dir, verbose, forum_ext_ids, known_ids,
-                            new_ids)
+    res = update_extensions(archive_dir, verbose, forum_ext_ids, ext_ids)
+    
     end_time = time.time()
     log_summary(verbose, res, False, end_time - start_time)
     log_summary(verbose, res, True, end_time - start_time)

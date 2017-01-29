@@ -70,13 +70,16 @@ class RequestResult:
 
 
 class UpdateResult:
-    def __init__(self, id, res_overview, res_crx, res_reviews, res_support):
+    def __init__(self, id, is_new, res_overview, res_crx, res_reviews, res_support):
         self.id = id
+        self.new = is_new
         self.res_overview = res_overview
         self.res_crx = res_crx
         self.res_reviews = res_reviews
         self.res_support = res_support
 
+    def is_new(self):
+        return self.new
     def is_ok(self):
         return (self.res_overview.is_ok() and
                 (self.res_crx.is_ok() or self.res_crx.not_modified()) and
@@ -287,12 +290,15 @@ def update_support(dir, verbose, ext_id):
 
 def update_extension(archivedir, verbose, forums, ext_id):
     logtxt = logmsg(verbose, "", "    Updating {}".format(ext_id))
+    is_new = False
     if forums:
         logtxt = logmsg(verbose, logtxt, " (including forums)")
     logtxt = logmsg(verbose, logtxt, "\n")
     date = datetime.now(timezone.utc).isoformat()
     dir = os.path.join(
         os.path.join(archivedir, get_local_archive_dir(ext_id)), date)
+    if not os.path.exists(os.path.dirname(dir)):
+        is_new=True
     os.makedirs(dir, exist_ok=True)
     res_overview, msg_overview = update_overview(dir, verbose, ext_id)
     res_crx, msg_crx = update_crx(dir, verbose, ext_id)
@@ -304,18 +310,18 @@ def update_extension(archivedir, verbose, forums, ext_id):
         res_reviews, msg_reviews = update_reviews(dir, verbose, ext_id)
         res_support, msg_support = update_support(dir, verbose, ext_id)
     log(verbose, logtxt + msg_overview + msg_crx + msg_reviews + msg_support)
-    return UpdateResult(ext_id, res_overview, res_crx, res_reviews,
+    return UpdateResult(ext_id, is_new, res_overview, res_crx, res_reviews,
                         res_support)
 
 
-def update_extensions(archivedir, verbose, forums_ext_ids, known_ext_ids,
-                      new_ext_ids):
+def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
     ext_with_forums = []
     ext_without_forums = []
-    ext_ids = sorted(list(set(known_ext_ids) | set(new_ext_ids)))
+    ext_ids = list(set(ext_ids) - set(forums_ext_ids))
+    forums_ext_ids = list(set(forums_ext_ids))
     log(verbose,
-        "Updating {} extensions ({} new, {} including forums)\n".format(
-            len(ext_ids), len(new_ext_ids), len(forums_ext_ids)))
+        "Updating {} extensions ({} including forums)\n".format(
+            len(ext_ids), len(forums_ext_ids)))
     # First, update extensions with forums sequentially (and with delays) to
     # avoid running into Googles DDOS detection. 
     log(verbose,
