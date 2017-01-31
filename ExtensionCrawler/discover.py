@@ -35,13 +35,13 @@ def crawl_nearly_all_of_ext_ids():
             ExtensionCrawler.config.const_sitemap_url()), url)
 
     shard_elems = get_inner_elems(
-        requests.get(ExtensionCrawler.config.const_sitemap_url()).text)
+        requests.get(ExtensionCrawler.config.const_sitemap_url(),timeout=10).text)
     shard_urls = list(
         # The urls with a language parameter attached return a subset
         # of the ids that get returned by the plain urls, therefore we
         # skip urls with a language parameter
         filter(is_generic_url, ([elem.text for elem in shard_elems])))
-    shards = list(map(lambda u: requests.get(u).text, shard_urls))
+    shards = list(map(lambda u: requests.get(u,timeout=10).text, shard_urls))
 
     overview_urls = reduce(
         lambda x, y: x + y,

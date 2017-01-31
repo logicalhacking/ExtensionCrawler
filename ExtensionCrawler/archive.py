@@ -175,8 +175,9 @@ def last_crx(dir, extid):
 
 def update_overview(dir, verbose, ext_id):
     logtxt = logmsg(verbose, "", "           * overview page: ")
+    res = None
     try:
-        res = requests.get(const_overview_url(ext_id))
+        res = requests.get(const_overview_url(ext_id),timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
         store_request_text(dir, 'overview.html', res)
     except Exception as e:
@@ -205,6 +206,7 @@ def validate_crx_response(res, extid, extfilename):
 
 
 def update_crx(dir, verbose, ext_id):
+    res = None
     last_crx_file = last_crx(dir, ext_id)
     last_crx_http_date = last_modified_http_date(last_crx_file)
     logtxt = logmsg(verbose, "",
@@ -216,7 +218,7 @@ def update_crx(dir, verbose, ext_id):
     try:
         res = requests.get(const_download_url().format(ext_id),
                            stream=True,
-                           headers=headers)
+                           headers=headers,timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
         extfilename = os.path.basename(res.url)
         if re.search('&', extfilename):
@@ -248,12 +250,12 @@ def update_reviews(dir, verbose, ext_id):
     try:
         google_dos_protection()
         res = requests.post(
-            const_review_url(), data=const_review_payload(ext_id, "0", "100"))
+            const_review_url(), data=const_review_payload(ext_id, "0", "100"),timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
         store_request_text(dir, 'reviews000-099.text', res)
         google_dos_protection()
         res = requests.post(
-            const_review_url(), data=const_review_payload(ext_id, "0", "100"))
+            const_review_url(), data=const_review_payload(ext_id, "0", "100"),timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
         store_request_text(dir, 'reviews100-199.text', res)
     except Exception as e:
@@ -271,13 +273,13 @@ def update_support(dir, verbose, ext_id):
         google_dos_protection()
         res = requests.post(
             const_support_url(),
-            data=const_support_payload(ext_id, "0", "100"))
+            data=const_support_payload(ext_id, "0", "100"),timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
         store_request_text(dir, 'support000-099.text', res)
         google_dos_protection()
         res = requests.post(
             const_support_url(),
-            data=const_support_payload(ext_id, "100", "100"))
+            data=const_support_payload(ext_id, "100", "100"),timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
         store_request_text(dir, 'support100-199.text', res)
     except Exception as e:
