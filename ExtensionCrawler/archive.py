@@ -207,6 +207,7 @@ def validate_crx_response(res, extid, extfilename):
 
 def update_crx(dir, verbose, ext_id):
     res = None
+    extfilename = "default_ext_archive.crx" 
     last_crx_file = last_crx(dir, ext_id)
     last_crx_http_date = last_modified_http_date(last_crx_file)
     logtxt = logmsg(verbose, "",
