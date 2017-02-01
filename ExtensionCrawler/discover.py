@@ -51,7 +51,11 @@ def crawl_nearly_all_of_ext_ids():
 
 def get_new_ids(verbose, known_ids):
     log(verbose, "Discovering new ids ... \n")
-    discovered_ids = ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
+    discovered_ids = []
+    try:
+      discovered_ids = ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
+    except Exception as e:
+      log(verbose, "  EXCEPTION during discovering of new ids: {}\n".format(str(e)))
     new_ids = list(set(discovered_ids) - set(known_ids))
     log(verbose, "  Discovered {} new extensions (out of {})\n".format(
         len(new_ids), len(discovered_ids)))
