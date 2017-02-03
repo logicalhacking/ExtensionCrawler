@@ -88,7 +88,7 @@ def help():
 
 
 def main(argv):
-    today = datetime.date.today().isoformat()
+    today = datetime.datetime.now(datetime.timezone.utc).isoformat()
     basedir = "archive"
     verbose = True
     discover = False
