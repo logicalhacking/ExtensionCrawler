@@ -19,7 +19,6 @@
 import sys
 from time import sleep
 from random import randint
-from datetime import datetime, timezone
 
 
 def google_dos_protection(max=3):

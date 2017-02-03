@@ -23,7 +23,7 @@ import re
 import requests
 from time import sleep
 from random import randint
-from datetime import datetime, timezone
+import datetime
 from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 from ExtensionCrawler.archive import *
@@ -297,7 +297,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
     if forums:
         logtxt = logmsg(verbose, logtxt, " (including forums)")
     logtxt = logmsg(verbose, logtxt, "\n")
-    date = datetime.now(timezone.utc).isoformat()
+    date = datetime.datetime.now(datetime.timezone.utc).isoformat()
     dir = os.path.join(
         os.path.join(archivedir, get_local_archive_dir(ext_id)), date)
     if not os.path.exists(os.path.dirname(dir)):

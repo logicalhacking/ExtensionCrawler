@@ -23,7 +23,7 @@ import re
 import requests
 from time import sleep
 from random import randint
-from datetime import datetime, timezone
+import datetime
 from ExtensionCrawler.discover import *
 from ExtensionCrawler.archive import *
 from ExtensionCrawler.util import *
@@ -31,7 +31,6 @@ from ExtensionCrawler.discover import *
 import dateutil
 import dateutil.parser
 import time
-import datetime
 import getopt
 
 def log_failures_to_file(dir,today, res):
