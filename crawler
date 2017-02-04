@@ -140,9 +140,10 @@ def main(argv):
     has_exception = list(filter(lambda x: x.has_exception(),res))
     if not (has_exception ==[]): 
       log(verbose,"  {} extensions with unknown exceptions, start another try ...\n".format(str(len(has_exception))))
+      has_exception_ids = list(map(lambda x: x.id,has_exception))
       oldres = list(set(res)-set(has_exception))
-      forum_ext_ids_except = list(set(forum_ext_ids).intersection(set(map(lambda x: x.id, res))))
-      ext_ids_except = sorted(set(map(lambda x: x.id,has_exception)) - set(forum_ext_ids_except))
+      forum_ext_ids_except = list(set(forum_ext_ids).intersection(set(has_exception_ids)))
+      ext_ids_except = sorted(list(set(has_exception_ids) - set(forum_ext_ids_except)))
       res_update = update_extensions(archive_dir, verbose, forum_ext_ids_except, ext_ids_except)
       res = oldres+res_update 
 
