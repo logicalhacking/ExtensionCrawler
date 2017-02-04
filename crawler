@@ -33,19 +33,41 @@ import dateutil.parser
 import time
 import getopt
 
-def log_failures_to_file(dir,today, res):
-    not_authorized = reduce(lambda x,y: x+"\n"+y, sorted(map(lambda x: x.id,filter(lambda x: x.not_authorized(), res))),"")
-    write_text(dir,today+"-not-authorized.log",not_authorized)
-    updated = reduce(lambda x,y: x+"\n"+y, sorted(map(lambda x: x.id, filter(lambda x: x.is_ok() and not x.not_modified(), res))),"")
-    write_text(dir,today+"-updated.log",updated)
-    has_exception = reduce(lambda x,y: x+"\n"+y, sorted(map(lambda x: x.id, filter(lambda x: x.has_exception(), res))),"")
-    write_text(dir,today+"-raised-exception.log",has_exception)
-    raised_ddos = reduce(lambda x,y: x+"\n"+y, sorted(map(lambda x: x.id, filter(lambda x: x.raised_google_ddos(), res))),"")
-    write_text(dir,today+"-raised-ddos.log",raised_ddos)
-    not_in_store = reduce(lambda x,y: x+"\n"+y, sorted(map(lambda x: x.id, filter(lambda x: x.not_in_store(), res))),"")
-    write_text(dir,today+"-not-in-store.log",not_in_store)
-    new = reduce(lambda x,y: x+"\n"+y, sorted(map(lambda x: x.id, filter(lambda x: x.is_new(), res))),"")
-    write_text(dir,today+"-new-in-store.log",new)
+
+def log_failures_to_file(dir, today, res):
+    not_authorized = reduce(
+        lambda x, y: x + "\n" + y,
+        sorted(map(lambda x: x.id, filter(lambda x: x.not_authorized(), res))),
+        "")
+    write_text(dir, today + "-not-authorized.log", not_authorized)
+    updated = reduce(
+        lambda x, y: x + "\n" + y,
+        sorted(
+            map(lambda x: x.id,
+                filter(lambda x: x.is_ok() and not x.not_modified(), res))),
+        "")
+    write_text(dir, today + "-updated.log", updated)
+    has_exception = reduce(
+        lambda x, y: x + "\n" + y,
+        sorted(map(lambda x: x.id, filter(lambda x: x.has_exception(), res))),
+        "")
+    write_text(dir, today + "-raised-exception.log", has_exception)
+    raised_ddos = reduce(
+        lambda x, y: x + "\n" + y,
+        sorted(
+            map(lambda x: x.id, filter(lambda x: x.raised_google_ddos(),
+                                       res))), "")
+    write_text(dir, today + "-raised-ddos.log", raised_ddos)
+    not_in_store = reduce(
+        lambda x, y: x + "\n" + y,
+        sorted(map(lambda x: x.id, filter(lambda x: x.not_in_store(), res))),
+        "")
+    write_text(dir, today + "-not-in-store.log", not_in_store)
+    new = reduce(
+        lambda x, y: x + "\n" + y,
+        sorted(map(lambda x: x.id, filter(lambda x: x.is_new(), res))), "")
+    write_text(dir, today + "-new-in-store.log", new)
+
 
 def log_summary(verbose, res, stderr=False, runtime=0):
     def p(s):
@@ -62,7 +84,8 @@ def log_summary(verbose, res, stderr=False, runtime=0):
     not_in_store = len(list(filter(lambda x: x.not_in_store(), res)))
     not_modified = len(list(filter(lambda x: x.not_modified(), res)))
     new = len(list(filter(lambda x: x.is_new(), res)))
-    updated = len(list(filter(lambda x: x.is_ok() and not x.not_modified(), res)))
+    updated = len(
+        list(filter(lambda x: x.is_ok() and not x.not_modified(), res)))
 
     p("\n")
     p("Summary:\n")
@@ -134,23 +157,28 @@ def main(argv):
     ext_ids = list(set(discovered_ids) | set(known_ids))
 
     res = update_extensions(archive_dir, verbose, forum_ext_ids, ext_ids)
-   
+
     # We re-try (once) the extensions with unknown exceptions, as 
     # they are often temporary    
-    has_exception = list(filter(lambda x: x.has_exception(),res))
-    if not (has_exception ==[]): 
-      log(verbose,"  {} extensions with unknown exceptions, start another try ...\n".format(str(len(has_exception))))
-      has_exception_ids = list(map(lambda x: x.id,has_exception))
-      oldres = list(set(res)-set(has_exception))
-      forum_ext_ids_except = list(set(forum_ext_ids).intersection(set(has_exception_ids)))
-      ext_ids_except = sorted(list(set(has_exception_ids) - set(forum_ext_ids_except)))
-      res_update = update_extensions(archive_dir, verbose, forum_ext_ids_except, ext_ids_except)
-      res = oldres+res_update 
+    has_exception = list(filter(lambda x: x.has_exception(), res))
+    if not (has_exception == []):
+        log(verbose,
+            "  {} extensions with unknown exceptions, start another try ...\n".
+            format(str(len(has_exception))))
+        has_exception_ids = list(map(lambda x: x.id, has_exception))
+        oldres = list(set(res) - set(has_exception))
+        forum_ext_ids_except = list(
+            set(forum_ext_ids).intersection(set(has_exception_ids)))
+        ext_ids_except = sorted(
+            list(set(has_exception_ids) - set(forum_ext_ids_except)))
+        res_update = update_extensions(archive_dir, verbose,
+                                       forum_ext_ids_except, ext_ids_except)
+        res = oldres + res_update
 
     end_time = time.time()
     log_summary(verbose, res, False, end_time - start_time)
     log_summary(verbose, res, True, end_time - start_time)
-    log_failures_to_file(log_dir,today, res)
+    log_failures_to_file(log_dir, today, res)
 
 
 if __name__ == "__main__":
