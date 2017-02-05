@@ -70,7 +70,8 @@ class RequestResult:
 
 
 class UpdateResult:
-    def __init__(self, id, is_new, res_overview, res_crx, res_reviews, res_support):
+    def __init__(self, id, is_new, res_overview, res_crx, res_reviews,
+                 res_support):
         self.id = id
         self.new = is_new
         self.res_overview = res_overview
@@ -80,6 +81,7 @@ class UpdateResult:
 
     def is_new(self):
         return self.new
+
     def is_ok(self):
         return (self.res_overview.is_ok() and
                 (self.res_crx.is_ok() or self.res_crx.not_modified()) and
@@ -177,7 +179,7 @@ def update_overview(dir, verbose, ext_id):
     logtxt = logmsg(verbose, "", "           * overview page: ")
     res = None
     try:
-        res = requests.get(const_overview_url(ext_id),timeout=10)
+        res = requests.get(const_overview_url(ext_id), timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
         store_request_text(dir, 'overview.html', res)
     except Exception as e:
@@ -207,7 +209,7 @@ def validate_crx_response(res, extid, extfilename):
 
 def update_crx(dir, verbose, ext_id):
     res = None
-    extfilename = "default_ext_archive.crx" 
+    extfilename = "default_ext_archive.crx"
     last_crx_file = last_crx(dir, ext_id)
     last_crx_http_date = last_modified_http_date(last_crx_file)
     logtxt = logmsg(verbose, "",
@@ -219,7 +221,8 @@ def update_crx(dir, verbose, ext_id):
     try:
         res = requests.get(const_download_url().format(ext_id),
                            stream=True,
-                           headers=headers,timeout=10)
+                           headers=headers,
+                           timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
         extfilename = os.path.basename(res.url)
         if re.search('&', extfilename):
@@ -251,12 +254,16 @@ def update_reviews(dir, verbose, ext_id):
     try:
         google_dos_protection()
         res = requests.post(
-            const_review_url(), data=const_review_payload(ext_id, "0", "100"),timeout=10)
+            const_review_url(),
+            data=const_review_payload(ext_id, "0", "100"),
+            timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
         store_request_text(dir, 'reviews000-099.text', res)
         google_dos_protection()
         res = requests.post(
-            const_review_url(), data=const_review_payload(ext_id, "0", "100"),timeout=10)
+            const_review_url(),
+            data=const_review_payload(ext_id, "0", "100"),
+            timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
         store_request_text(dir, 'reviews100-199.text', res)
     except Exception as e:
@@ -274,13 +281,15 @@ def update_support(dir, verbose, ext_id):
         google_dos_protection()
         res = requests.post(
             const_support_url(),
-            data=const_support_payload(ext_id, "0", "100"),timeout=10)
+            data=const_support_payload(ext_id, "0", "100"),
+            timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
         store_request_text(dir, 'support000-099.text', res)
         google_dos_protection()
         res = requests.post(
             const_support_url(),
-            data=const_support_payload(ext_id, "100", "100"),timeout=10)
+            data=const_support_payload(ext_id, "100", "100"),
+            timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
         store_request_text(dir, 'support100-199.text', res)
     except Exception as e:
@@ -301,7 +310,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
     dir = os.path.join(
         os.path.join(archivedir, get_local_archive_dir(ext_id)), date)
     if not os.path.exists(os.path.dirname(dir)):
-        is_new=True
+        is_new = True
     os.makedirs(dir, exist_ok=True)
     res_overview, msg_overview = update_overview(dir, verbose, ext_id)
     res_crx, msg_crx = update_crx(dir, verbose, ext_id)
@@ -322,9 +331,8 @@ def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
     ext_without_forums = []
     ext_ids = list(set(ext_ids) - set(forums_ext_ids))
     forums_ext_ids = list(set(forums_ext_ids))
-    log(verbose,
-        "Updating {} extensions ({} including forums)\n".format(
-            len(ext_ids), len(forums_ext_ids)))
+    log(verbose, "Updating {} extensions ({} including forums)\n".format(
+        len(ext_ids), len(forums_ext_ids)))
     # First, update extensions with forums sequentially (and with delays) to
     # avoid running into Googles DDOS detection. 
     log(verbose,
