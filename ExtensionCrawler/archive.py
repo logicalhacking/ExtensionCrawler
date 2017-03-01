@@ -127,7 +127,7 @@ def get_local_archive_dir(id):
 def get_local_archive_dirs(id):
     return [get_local_archive_dir(id)]
 
-
+# TODO 
 def write_text(dir, fname, text):
     with open(os.path.join(dir, fname), 'w') as f:
         f.write(text)
@@ -153,7 +153,7 @@ def httpdate(dt):
     return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (
         weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
 
-
+#TODO
 def last_modified_utc_date(path):
     if path is "":
         return ""
@@ -165,15 +165,16 @@ def last_modified_http_date(path):
         return ""
     return httpdate(dateutil.parser.parse(last_modified_utc_date(path)))
 
-
+# DONE (check)
 def last_crx(dir, extid):
-    old_archives = sorted(
-        glob.glob(os.path.join(os.path.dirname(dir), "*/*.crx")))
-    last_archive = ""
-    if old_archives != []:
-        last_archive = old_archives[-1]
-    return last_archive
-
+    last_crx = ""
+    tar=os.path.join(os.path.dirname(os.path.dirname(dir)),extid+".tar")
+    if os.path.exists(tar):
+        archive=ReadTarFS(tar)
+        old_crxs=sorted(list(archive.walk.files(filter=['*.crx'])))
+        if old_crxs != []:
+            last_crx = old_crxs[-1]
+    return last_crx
 
 def update_overview(dir, verbose, ext_id):
     logtxt = logmsg(verbose, "", "           * overview page: ")
@@ -207,6 +208,7 @@ def validate_crx_response(res, extid, extfilename):
                 extfilename))
 
 
+# TODO
 def update_crx(dir, verbose, ext_id):
     res = None
     extfilename = "default_ext_archive.crx"
@@ -300,6 +302,7 @@ def update_support(dir, verbose, ext_id):
     return RequestResult(res), logtxt
 
 
+# TODO
 def update_extension(archivedir, verbose, forums, ext_id):
     logtxt = logmsg(verbose, "", "    Updating {}".format(ext_id))
     is_new = False
@@ -361,8 +364,8 @@ def get_existing_ids(archivedir, verbose):
     byte = '[0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z]'
     word = byte + byte + byte + byte
     return list(
-        map(lambda d: re.sub("^.*\/", "", d),
-            glob.glob(os.path.join(archivedir, "*", word))))
+        map(lambda d: re.sub(".tar$","",re.sub("^.*\/", "", d)),
+            glob.glob(os.path.join(archivedir, "*", word+".tar"))))
 
 
 def get_forum_ext_ids(confdir, verbose):
