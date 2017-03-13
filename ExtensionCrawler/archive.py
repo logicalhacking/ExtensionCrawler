@@ -31,7 +31,9 @@ import dateutil
 import dateutil.parser
 from multiprocessing import Pool
 from functools import partial
-
+import shutil
+import tarfile
+from fs.tarfs import ReadTarFS;
 
 class Error(Exception):
     pass
@@ -114,34 +116,31 @@ class UpdateResult:
         return (
             (self.res_reviews is not None and self.res_reviews.not_available())
             or (self.res_support is not None and
-                self.res_support.not_available()))
+                 self.res_support.not_available()))
 
     def not_modified(self):
         return self.res_crx.not_modified()
 
-
+    
 def get_local_archive_dir(id):
-    return "{}/{}".format(id[:3], id)
+    return "{}".format(id[:3])
 
-
-def get_local_archive_dirs(id):
-    return [get_local_archive_dir(id)]
-
-# TODO 
-def write_text(dir, fname, text):
+def write_text(tar,date, fname, text):
+    dir=os.path.join(os.path.splitext(tar)[0],date)
+    os.makedirs(dir, exist_ok=True)
     with open(os.path.join(dir, fname), 'w') as f:
         f.write(text)
 
 
-def store_request_metadata(dir, fname, request):
-    write_text(dir, fname + ".headers", str(request.headers))
-    write_text(dir, fname + ".status", str(request.status_code))
-    write_text(dir, fname + ".url", str(request.url))
+def store_request_metadata(tar,date, fname, request):
+    write_text(tar,date, fname + ".headers", str(request.headers))
+    write_text(tar,date, fname + ".status", str(request.status_code))
+    write_text(tar,date, fname + ".url", str(request.url))
 
 
-def store_request_text(dir, fname, request):
-    write_text(dir, fname, request.text)
-    store_request_metadata(dir, fname, request)
+def store_request_text(tar,date, fname, request):
+    write_text(tar,date, fname, request.text)
+    store_request_metadata(tar,date, fname, request)
 
 
 def httpdate(dt):
@@ -153,7 +152,6 @@ def httpdate(dt):
     return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (
         weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
 
-#TODO
 def last_modified_utc_date(path):
     if path is "":
         return ""
@@ -165,10 +163,9 @@ def last_modified_http_date(path):
         return ""
     return httpdate(dateutil.parser.parse(last_modified_utc_date(path)))
 
-# DONE (check)
-def last_crx(dir, extid):
+def last_crx(archivedir, extid):
     last_crx = ""
-    tar=os.path.join(os.path.dirname(os.path.dirname(dir)),extid+".tar")
+    tar=os.path.join(archivedir,get_local_archive_dir(extid),extid+".tar")
     if os.path.exists(tar):
         archive=ReadTarFS(tar)
         old_crxs=sorted(list(archive.walk.files(filter=['*.crx'])))
@@ -176,16 +173,16 @@ def last_crx(dir, extid):
             last_crx = old_crxs[-1]
     return last_crx
 
-def update_overview(dir, verbose, ext_id):
+def update_overview(tar, date, verbose, ext_id):
     logtxt = logmsg(verbose, "", "           * overview page: ")
     res = None
     try:
         res = requests.get(const_overview_url(ext_id), timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
-        store_request_text(dir, 'overview.html', res)
+        store_request_text(tar,date, 'overview.html', res)
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
-        write_text(dir, 'overview.html.exception', str(e))
+        write_text(tar, date, 'overview.html.exception', str(e))
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
     return RequestResult(res), logtxt
@@ -208,11 +205,10 @@ def validate_crx_response(res, extid, extfilename):
                 extfilename))
 
 
-# TODO
-def update_crx(dir, verbose, ext_id):
+def update_crx(archive_dir, verbose, ext_id, date):
     res = None
     extfilename = "default_ext_archive.crx"
-    last_crx_file = last_crx(dir, ext_id)
+    last_crx_file = last_crx(archive_dir, ext_id)
     last_crx_http_date = last_modified_http_date(last_crx_file)
     logtxt = logmsg(verbose, "",
                     "           * crx archive (Last: {}):   ".format(
@@ -229,10 +225,13 @@ def update_crx(dir, verbose, ext_id):
         extfilename = os.path.basename(res.url)
         if re.search('&', extfilename):
             extfilename = "default.crx"
-        store_request_metadata(dir, extfilename, res)
+        tar=os.path.join(archive_dir,get_local_archive_dir(ext_id),ext_id+".tar")
+        dir=os.path.join(os.path.splitext(tar)[0],date)
+
+        store_request_metadata(tar, date, extfilename, res)
 
         if res.status_code == 304:
-            write_text(dir, extfilename + ".link",
+            write_text(tar,date, extfilename + ".link",
                        os.path.join("..",
                                     last_modified_utc_date(last_crx_file),
                                     extfilename) + "\n")
@@ -250,7 +249,8 @@ def update_crx(dir, verbose, ext_id):
     return RequestResult(res), logtxt
 
 
-def update_reviews(dir, verbose, ext_id):
+def update_reviews(tar,date, verbose, ext_id):
+    dir=os.path.join(os.path.splitext(tar)[0],date)
     logtxt = logmsg(verbose, "", "           * review page:   ")
     res = None
     try:
@@ -260,23 +260,24 @@ def update_reviews(dir, verbose, ext_id):
             data=const_review_payload(ext_id, "0", "100"),
             timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
-        store_request_text(dir, 'reviews000-099.text', res)
+        store_request_text(tar,date, 'reviews000-099.text', res)
         google_dos_protection()
         res = requests.post(
             const_review_url(),
             data=const_review_payload(ext_id, "0", "100"),
             timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
-        store_request_text(dir, 'reviews100-199.text', res)
+        store_request_text(tar,date, 'reviews100-199.text', res)
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
-        write_text(dir, 'reviews.html.exception', str(e))
+        write_text(tar,date, 'reviews.html.exception', str(e))
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
     return RequestResult(res), logtxt
 
 
-def update_support(dir, verbose, ext_id):
+def update_support(tar, date, verbose, ext_id):
+    dir=os.path.join(os.path.splitext(tar)[0],date)
     logtxt = logmsg(verbose, "", "           * support page:  ")
     res = None
     try:
@@ -286,48 +287,60 @@ def update_support(dir, verbose, ext_id):
             data=const_support_payload(ext_id, "0", "100"),
             timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
-        store_request_text(dir, 'support000-099.text', res)
+        store_request_text(tar,date, 'support000-099.text', res)
         google_dos_protection()
         res = requests.post(
             const_support_url(),
             data=const_support_payload(ext_id, "100", "100"),
             timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
-        store_request_text(dir, 'support100-199.text', res)
+        store_request_text(tar,date, 'support100-199.text', res)
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
-        write_text(dir, 'support.html.exception', str(e))
+        write_text(tar,date, 'support.html.exception', str(e))
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
     return RequestResult(res), logtxt
 
 
-# TODO
 def update_extension(archivedir, verbose, forums, ext_id):
     logtxt = logmsg(verbose, "", "    Updating {}".format(ext_id))
     is_new = False
+
     if forums:
         logtxt = logmsg(verbose, logtxt, " (including forums)")
     logtxt = logmsg(verbose, logtxt, "\n")
     date = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    dir = os.path.join(
-        os.path.join(archivedir, get_local_archive_dir(ext_id)), date)
-    if not os.path.exists(os.path.dirname(dir)):
+
+    tardir = os.path.join(archivedir, get_local_archive_dir(ext_id),ext_id)
+    tar = (tardir+".tar")
+    if not os.path.exists(tar):
         is_new = True
-    os.makedirs(dir, exist_ok=True)
-    res_overview, msg_overview = update_overview(dir, verbose, ext_id)
-    res_crx, msg_crx = update_crx(dir, verbose, ext_id)
+    else:
+        shutil.rmtree(path=tardir,ignore_errors=True)
+        ar = tarfile.open(tar)
+        ar.extractall(path=os.path.join(archivedir, get_local_archive_dir(ext_id)))
+        ar.close
+    
+    os.makedirs(os.path.join(archivedir, get_local_archive_dir(ext_id), ext_id), exist_ok=True)
+    res_overview, msg_overview = update_overview(tar, date,verbose, ext_id)
+    res_crx, msg_crx = update_crx(archivedir, verbose, ext_id, date)
     res_reviews = None
     msg_reviews = ""
     res_support = None
     msg_support = ""
     if forums:
-        res_reviews, msg_reviews = update_reviews(dir, verbose, ext_id)
-        res_support, msg_support = update_support(dir, verbose, ext_id)
+        res_reviews, msg_reviews = update_reviews(tar, date,verbose, ext_id)
+        res_support, msg_support = update_support(tar, date,verbose, ext_id)
     log(verbose, logtxt + msg_overview + msg_crx + msg_reviews + msg_support)
+    if os.path.exists(tar):
+        shutil.move(tar,tardir+".bak.tar")
+    ar=tarfile.open(tar, mode='w')
+    ar.add(tardir, arcname=ext_id)
+    ar.close()
+    shutil.rmtree(path=os.path.join(archivedir, get_local_archive_dir(ext_id),ext_id))
     return UpdateResult(ext_id, is_new, res_overview, res_crx, res_reviews,
                         res_support)
-
 
 def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
     ext_with_forums = []
@@ -341,6 +354,7 @@ def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
     log(verbose,
         "  Updating {} extensions including forums (sequentially))\n".format(
             len(forums_ext_ids)))
+
     ext_with_forums = list(
         map(
             partial(update_extension, archivedir, verbose, True),
