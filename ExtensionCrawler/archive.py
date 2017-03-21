@@ -220,6 +220,9 @@ def update_crx(archive_dir, verbose, ext_id, date):
                     "           * crx archive (Last: {}):   ".format(
                         valueOf(last_crx_http_date, "n/a")))
     headers = ""
+    tar = os.path.join(archive_dir,
+                       get_local_archive_dir(ext_id), ext_id + ".tar")
+    dir = os.path.join(os.path.splitext(tar)[0], date)
     if last_crx_file is not "":
         headers = {'If-Modified-Since': last_crx_http_date}
     try:
@@ -231,9 +234,6 @@ def update_crx(archive_dir, verbose, ext_id, date):
         extfilename = os.path.basename(res.url)
         if re.search('&', extfilename):
             extfilename = "default.crx"
-        tar = os.path.join(archive_dir,
-                           get_local_archive_dir(ext_id), ext_id + ".tar")
-        dir = os.path.join(os.path.splitext(tar)[0], date)
 
         store_request_metadata(tar, date, extfilename, res)
 
