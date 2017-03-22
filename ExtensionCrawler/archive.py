@@ -377,7 +377,7 @@ def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
     log(verbose,
         "  Updating {} extensions excluding forums (parallel))\n".format(
             len(parallel_ids)))
-    with Pool(16) as p:
+    with Pool(24) as p:
         ext_without_forums = list(
             p.map(
                 partial(update_extension, archivedir, verbose, False),
