@@ -73,10 +73,11 @@ class RequestResult:
 
 
 class UpdateResult:
-    def __init__(self, id, is_new, res_overview, res_crx, res_reviews,
+    def __init__(self, id, is_new, exception, res_overview, res_crx, res_reviews,
                  res_support):
         self.id = id
         self.new = is_new
+        self.exception = exception
         self.res_overview = res_overview
         self.res_crx = res_crx
         self.res_reviews = res_reviews
@@ -122,7 +123,9 @@ class UpdateResult:
     def not_modified(self):
         return self.res_crx.not_modified()
 
-
+    def corrupt_tar(self):
+        return self.exception is not None
+    
 def get_local_archive_dir(id):
     return "{}".format(id[:3])
 
@@ -313,6 +316,7 @@ def update_support(tar, date, verbose, ext_id):
 def update_extension(archivedir, verbose, forums, ext_id):
     logtxt = logmsg(verbose, "", "    Updating {}".format(ext_id))
     is_new = False
+    tar_exception = None
 
     if forums:
         logtxt = logmsg(verbose, logtxt, " (including forums)")
@@ -325,11 +329,18 @@ def update_extension(archivedir, verbose, forums, ext_id):
         is_new = True
     else:
         shutil.rmtree(path=tardir, ignore_errors=True)
-        ar = tarfile.open(tar)
-        ar.extractall(path=os.path.join(archivedir,
-                                        get_local_archive_dir(ext_id)))
-        ar.close
-
+        try:
+            ar = tarfile.open(tar)
+            ar.extractall(path=os.path.join(archivedir,
+                                            get_local_archive_dir(ext_id)))
+            ar.close
+        except Exception as e:
+            logtxt = logmsg(verbose, logtxt, "           * FATAL: tar file corrupt ")
+            logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+            shutil.move(tar, tardir+".corrupt."+date+".tar")
+            write_text(tar, date, ext_id+".corrupt."+date+".exception", str(e))
+            tar_exception = e
+            
     os.makedirs(
         os.path.join(archivedir, get_local_archive_dir(ext_id), ext_id),
         exist_ok=True)
@@ -350,7 +361,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
     ar.close()
     shutil.rmtree(path=os.path.join(archivedir,
                                     get_local_archive_dir(ext_id), ext_id))
-    return UpdateResult(ext_id, is_new, res_overview, res_crx, res_reviews,
+    return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx, res_reviews,
                         res_support)
 
 
