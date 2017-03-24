@@ -253,7 +253,7 @@ def update_crx(archive_dir, verbose, ext_id, date):
                         f.write(chunk)
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
-        write_text(dir, extfilename + ".exception", str(e))
+        write_text(tar,date, extfilename + ".exception", str(e))
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
     return RequestResult(res), logtxt
