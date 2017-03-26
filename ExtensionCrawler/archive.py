@@ -358,13 +358,25 @@ def update_extension(archivedir, verbose, forums, ext_id):
         res_reviews, msg_reviews = update_reviews(tar, date, verbose, ext_id)
         res_support, msg_support = update_support(tar, date, verbose, ext_id)
     log(verbose, logtxt + msg_overview + msg_crx + msg_reviews + msg_support)
-    if os.path.exists(tar):
-        shutil.move(tar, tardir + ".bak.tar")
+
+    try:
+        if os.path.exists(tardir + "bak.tar"):
+            shutil.move(tardir + ".bak.tar", tardir + ".bak." + date + ".tar")
+            os.remove(tardir + ".bak." + date + ".tar")
+        if os.path.exists(tar):
+            shutil.move(tar, tardir + ".bak.tar")
+    except Exception:
+        pass
+
     ar = tarfile.open(tar, mode='w')
     ar.add(tardir, arcname=ext_id)
     ar.close()
-    shutil.rmtree(path=os.path.join(archivedir,
-                                    get_local_archive_dir(ext_id), ext_id))
+    try:
+        shutil.rmtree(path=os.path.join(archivedir,
+                                        get_local_archive_dir(ext_id), ext_id))
+    except Exception:
+        pass
+
     return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
                         res_reviews, res_support)
 
