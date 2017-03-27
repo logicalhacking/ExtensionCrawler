@@ -329,6 +329,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
     if not os.path.exists(tar):
         is_new = True
     else:
+        os.sync()
         shutil.rmtree(path=tardir, ignore_errors=True)
         try:
             ar = tarfile.open(tar)
@@ -360,6 +361,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
     log(verbose, logtxt + msg_overview + msg_crx + msg_reviews + msg_support)
 
     try:
+        os.sync()
         if os.path.exists(tardir + "bak.tar"):
             shutil.move(tardir + ".bak.tar", tardir + ".bak." + date + ".tar")
             os.remove(tardir + ".bak." + date + ".tar")
