@@ -337,14 +337,18 @@ def update_extension(archivedir, verbose, forums, ext_id):
                                             get_local_archive_dir(ext_id)))
             ar.close
         except Exception as e:
-            logtxt = logmsg(verbose, logtxt,
-                            "           * FATAL: tar file corrupt ")
+            logtxt = logmsg(
+                verbose, logtxt,
+                "           * FATAL: tar file corrupt (during unarchiving)")
             logtxt = logmsg(verbose, logtxt,
                             " / Exception: {}\n".format(str(e)))
-            shutil.move(tar, tardir + ".corrupt." + date + ".tar")
-            write_text(tar, date, ext_id + ".corrupt." + date + ".exception",
-                       str(e))
             tar_exception = e
+            try:
+                shutil.move(tar, tardir + ".corrupt." + date + ".tar")
+                write_text(tar, date,
+                           ext_id + ".corrupt." + date + ".exception", str(e))
+            except Exception:
+                pass
 
     os.makedirs(
         os.path.join(archivedir, get_local_archive_dir(ext_id), ext_id),
@@ -365,19 +369,46 @@ def update_extension(archivedir, verbose, forums, ext_id):
         if os.path.exists(tardir + "bak.tar"):
             shutil.move(tardir + ".bak.tar", tardir + ".bak." + date + ".tar")
             os.remove(tardir + ".bak." + date + ".tar")
-        if os.path.exists(tar):
-            shutil.move(tar, tardir + ".bak.tar")
     except Exception:
         pass
 
-    ar = tarfile.open(tar, mode='w')
-    ar.add(tardir, arcname=ext_id)
-    ar.close()
+    try:
+        if os.path.exists(tar):
+            shutil.move(tar, tardir + ".bak.tar")
+    except Exception as e:
+        logtxt = logmsg(verbose, logtxt,
+                        "           * FATAL: cannot rename old tar archive")
+        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+        tar_exception = e
+        try:
+            write_text(tar, date, ext_id + ".tar.rename.exception", str(e))
+        except Exception:
+            pass
+    try:
+        ar = tarfile.open(tar, mode='w')
+        ar.add(tardir, arcname=ext_id)
+        ar.close()
+    except Exception as e:
+        logtxt = logmsg(verbose, logtxt,
+                        "           * FATAL: cannot create tar archive")
+        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+        tar_exception = e
+        try:
+            write_text(tar, date, ext_id + ".tar.create.exception", str(e))
+        except Exception:
+            pass
     try:
         shutil.rmtree(path=os.path.join(archivedir,
                                         get_local_archive_dir(ext_id), ext_id))
-    except Exception:
-        pass
+    except Exception as e:
+        logtxt = logmsg(verbose, logtxt,
+                        "           * FATAL: cannot remove archive directory")
+        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+        tar_exception = e
+        try:
+            write_text(tar, date, ext_id + ".dir.remove.exception", str(e))
+        except Exception:
+            pass
 
     return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
                         res_reviews, res_support)
