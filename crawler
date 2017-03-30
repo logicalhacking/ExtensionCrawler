@@ -75,8 +75,10 @@ def log_failures_to_file(dir, today, res):
     write_log(dir, today + "-new-in-store.log", new)
     file_corruption = reduce(
         lambda x, y: x + "\n" + y,
-        sorted(map(lambda x: x.id, filter(lambda x: x.corrupt_tar(), res))), "")
+        sorted(map(lambda x: x.id, filter(lambda x: x.corrupt_tar(), res))),
+        "")
     write_log(dir, today + "-file-corruption.log", file_corruption)
+
 
 def log_summary(verbose, res, stderr=False, runtime=0):
     def p(s):
@@ -116,9 +118,10 @@ def log_summary(verbose, res, stderr=False, runtime=0):
     if not (corrupt_tar_archives == []):
         p("\n\n")
         p("List of extensions with corrupted files/archives:\n")
-        list(map(lambda x: p("    "+x.id+": "+str(x.exception)+"\n"),corrupt_tar_archives))
+        list(
+            map(lambda x: p("    " + x.id + ": " + str(x.exception) + "\n"),
+                corrupt_tar_archives))
         p("\n")
-
 
 
 def help():
