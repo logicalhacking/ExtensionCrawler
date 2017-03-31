@@ -34,7 +34,7 @@ from functools import partial
 import shutil
 import tarfile
 from fs.tarfs import ReadTarFS
-
+import tempfile
 
 class Error(Exception):
     pass
@@ -318,7 +318,9 @@ def update_extension(archivedir, verbose, forums, ext_id):
     logtxt = logmsg(verbose, "", "    Updating {}".format(ext_id))
     is_new = False
     tar_exception = None
-
+    tmptardir= ""
+    tmptar = ""
+    
     if forums:
         logtxt = logmsg(verbose, logtxt, " (including forums)")
     logtxt = logmsg(verbose, logtxt, "\n")
@@ -332,8 +334,16 @@ def update_extension(archivedir, verbose, forums, ext_id):
         os.sync()
         shutil.rmtree(path=tardir, ignore_errors=True)
         try:
+            tmptardir=tempfile.mkdtemp()
+            tmptar   = tmptardir + ".tar"
+            logtxt = logmsg(verbose, "", "    tmptardir =  {}\n".format(tmptardir))
+            os.makedirs(
+                os.path.join(tmptardir, get_local_archive_dir(ext_id)),
+                exist_ok=True)
+
             ar = tarfile.open(tar)
-            ar.extractall(path=os.path.join(archivedir,
+            
+            ar.extractall(path=os.path.join(tmptardir,
                                             get_local_archive_dir(ext_id)))
             ar.close
         except Exception as e:
@@ -353,15 +363,15 @@ def update_extension(archivedir, verbose, forums, ext_id):
     os.makedirs(
         os.path.join(archivedir, get_local_archive_dir(ext_id), ext_id),
         exist_ok=True)
-    res_overview, msg_overview = update_overview(tar, date, verbose, ext_id)
+    res_overview, msg_overview = update_overview(tmptar, date, verbose, ext_id)
     res_crx, msg_crx = update_crx(archivedir, verbose, ext_id, date)
     res_reviews = None
     msg_reviews = ""
     res_support = None
     msg_support = ""
     if forums:
-        res_reviews, msg_reviews = update_reviews(tar, date, verbose, ext_id)
-        res_support, msg_support = update_support(tar, date, verbose, ext_id)
+        res_reviews, msg_reviews = update_reviews(tmptar, date, verbose, ext_id)
+        res_support, msg_support = update_support(tmptar, date, verbose, ext_id)
     log(verbose, logtxt + msg_overview + msg_crx + msg_reviews + msg_support)
 
     try:
@@ -386,7 +396,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
             pass
     try:
         ar = tarfile.open(tar, mode='w')
-        ar.add(tardir, arcname=ext_id)
+        ar.add(tmptardir, arcname=ext_id)
         ar.close()
     except Exception as e:
         logtxt = logmsg(verbose, logtxt,
@@ -398,8 +408,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
         except Exception:
             pass
     try:
-        shutil.rmtree(path=os.path.join(archivedir,
-                                        get_local_archive_dir(ext_id), ext_id))
+        shutil.rmtree(path=tmptardir)
     except Exception as e:
         logtxt = logmsg(verbose, logtxt,
                         "           * FATAL: cannot remove archive directory")
