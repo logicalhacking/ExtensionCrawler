@@ -336,7 +336,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
         try:
             tmptardir=tempfile.mkdtemp()
             tmptar   = tmptardir + ".tar"
-            logtxt = logmsg(verbose, "", "    tmptardir =  {}\n".format(tmptardir))
+            logtxt = logmsg(verbose, logtxt, "           * tmptardir =  {}\n".format(tmptardir))
             os.makedirs(
                 os.path.join(tmptardir, get_local_archive_dir(ext_id)),
                 exist_ok=True)
