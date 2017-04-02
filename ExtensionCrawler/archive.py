@@ -36,6 +36,7 @@ import tarfile
 from fs.tarfs import ReadTarFS
 import tempfile
 
+
 class Error(Exception):
     pass
 
@@ -318,9 +319,9 @@ def update_extension(archivedir, verbose, forums, ext_id):
     logtxt = logmsg(verbose, "", "    Updating {}".format(ext_id))
     is_new = False
     tar_exception = None
-    tmptardir= ""
+    tmptardir = ""
     tmptar = ""
-    
+
     if forums:
         logtxt = logmsg(verbose, logtxt, " (including forums)")
     logtxt = logmsg(verbose, logtxt, "\n")
@@ -334,15 +335,16 @@ def update_extension(archivedir, verbose, forums, ext_id):
         os.sync()
         shutil.rmtree(path=tardir, ignore_errors=True)
         try:
-            tmptardir=tempfile.mkdtemp()
-            tmptar   = tmptardir + ".tar"
-            logtxt = logmsg(verbose, logtxt, "           * tmptardir =  {}\n".format(tmptardir))
+            tmptardir = tempfile.mkdtemp()
+            tmptar = tmptardir + ".tar"
+            logtxt = logmsg(verbose, logtxt,
+                            "           * tmptardir =  {}\n".format(tmptardir))
             os.makedirs(
                 os.path.join(tmptardir, get_local_archive_dir(ext_id)),
                 exist_ok=True)
 
             ar = tarfile.open(tar)
-            
+
             ar.extractall(path=os.path.join(tmptardir,
                                             get_local_archive_dir(ext_id)))
             ar.close
@@ -370,8 +372,10 @@ def update_extension(archivedir, verbose, forums, ext_id):
     res_support = None
     msg_support = ""
     if forums:
-        res_reviews, msg_reviews = update_reviews(tmptar, date, verbose, ext_id)
-        res_support, msg_support = update_support(tmptar, date, verbose, ext_id)
+        res_reviews, msg_reviews = update_reviews(tmptar, date, verbose,
+                                                  ext_id)
+        res_support, msg_support = update_support(tmptar, date, verbose,
+                                                  ext_id)
     log(verbose, logtxt + msg_overview + msg_crx + msg_reviews + msg_support)
 
     try:
