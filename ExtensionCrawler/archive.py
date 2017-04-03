@@ -132,8 +132,8 @@ def get_local_archive_dir(id):
     return "{}".format(id[:3])
 
 
-def write_text(tar, date, fname, text):
-    dir = os.path.join(os.path.splitext(tar)[0], date)
+def write_text(tardir, date, fname, text):
+    dir = os.path.join(tardir, date)
     os.makedirs(dir, exist_ok=True)
     with open(os.path.join(dir, fname), 'w') as f:
         f.write(text)
@@ -219,15 +219,12 @@ def validate_crx_response(res, extid, extfilename):
 def update_crx(archive_dir, verbose, ext_id, date):
     res = None
     extfilename = "default_ext_archive.crx"
-    last_crx_file = last_crx(archive_dir, ext_id)
+    last_crx_file = last_crx(archive_dir, ext_id) # // TODO 
     last_crx_http_date = last_modified_http_date(last_crx_file)
     logtxt = logmsg(verbose, "",
                     "           * crx archive (Last: {}):   ".format(
                         valueOf(last_crx_http_date, "n/a")))
     headers = ""
-    tar = os.path.join(archive_dir,
-                       get_local_archive_dir(ext_id), ext_id + ".tar")
-    dir = os.path.join(os.path.splitext(tar)[0], date)
     if last_crx_file is not "":
         headers = {'If-Modified-Since': last_crx_http_date}
     try:
@@ -240,22 +237,22 @@ def update_crx(archive_dir, verbose, ext_id, date):
         if re.search('&', extfilename):
             extfilename = "default.crx"
 
-        store_request_metadata(tar, date, extfilename, res)
+        store_request_metadata(archive_dir, date, extfilename, res)
 
         if res.status_code == 304:
-            write_text(tar, date, extfilename + ".link",
+            write_text(archive_dir, date, extfilename + ".link",
                        os.path.join("..",
                                     last_modified_utc_date(last_crx_file),
                                     extfilename) + "\n")
         elif res.status_code == 200:
             validate_crx_response(res, ext_id, extfilename)
-            with open(os.path.join(dir, extfilename), 'wb') as f:
+            with open(os.path.join(archive_dir, date, extfilename), 'wb') as f:
                 for chunk in res.iter_content(chunk_size=512 * 1024):
                     if chunk:  # filter out keep-alive new chunks
                         f.write(chunk)
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
-        write_text(tar, date, extfilename + ".exception", str(e))
+        write_text(archive_dir, date, extfilename + ".exception", str(e))
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
     return RequestResult(res), logtxt
@@ -329,24 +326,37 @@ def update_extension(archivedir, verbose, forums, ext_id):
 
     tardir = os.path.join(archivedir, get_local_archive_dir(ext_id), ext_id)
     tar = (tardir + ".tar")
+
+    
+    
+    try:
+        tmpdir = tempfile.mkdtemp()
+        tmptardir = os.path.join(tmpdir,ext_id)
+        tmptar = tmptardir + ".tar"
+        logtxt = logmsg(verbose, logtxt,
+                        "           * tmptardir =  {}\n".format(tmptardir))
+        os.makedirs(
+             os.path.join(archivedir,get_local_archive_dir(ext_id)),
+             exist_ok=True)
+    except Exception as e:
+        logtxt = logmsg(
+            verbose, logtxt,
+            "           * FATAL: cannot create tmpdir")
+        logtxt = logmsg(verbose, logtxt,
+                        " / Exception: {}\n".format(str(e)))
+        tar_exception = e
+        return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
+                            res_reviews, res_support)
+
+    
     if not os.path.exists(tar):
         is_new = True
     else:
         os.sync()
-        shutil.rmtree(path=tardir, ignore_errors=True)
         try:
-            tmptardir = tempfile.mkdtemp()
-            tmptar = tmptardir + ".tar"
-            logtxt = logmsg(verbose, logtxt,
-                            "           * tmptardir =  {}\n".format(tmptardir))
-            os.makedirs(
-                os.path.join(tmptardir, get_local_archive_dir(ext_id)),
-                exist_ok=True)
 
             ar = tarfile.open(tar)
-
-            ar.extractall(path=os.path.join(tmptardir,
-                                            get_local_archive_dir(ext_id)))
+            ar.extractall(path=tmpdir)
             ar.close
         except Exception as e:
             logtxt = logmsg(
@@ -362,19 +372,16 @@ def update_extension(archivedir, verbose, forums, ext_id):
             except Exception:
                 pass
 
-    os.makedirs(
-        os.path.join(archivedir, get_local_archive_dir(ext_id), ext_id),
-        exist_ok=True)
-    res_overview, msg_overview = update_overview(tmptar, date, verbose, ext_id)
-    res_crx, msg_crx = update_crx(archivedir, verbose, ext_id, date)
+    res_overview, msg_overview = update_overview(tmptardir, date, verbose, ext_id)
+    res_crx, msg_crx = update_crx(tmptardir, verbose, ext_id, date)
     res_reviews = None
     msg_reviews = ""
     res_support = None
     msg_support = ""
     if forums:
-        res_reviews, msg_reviews = update_reviews(tmptar, date, verbose,
+        res_reviews, msg_reviews = update_reviews(tmptardir, date, verbose,
                                                   ext_id)
-        res_support, msg_support = update_support(tmptar, date, verbose,
+        res_support, msg_support = update_support(tmptardir, date, verbose,
                                                   ext_id)
     log(verbose, logtxt + msg_overview + msg_crx + msg_reviews + msg_support)
 
@@ -395,9 +402,10 @@ def update_extension(archivedir, verbose, forums, ext_id):
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
         try:
-            write_text(tar, date, ext_id + ".tar.rename.exception", str(e))
+            write_text(tardir, date, ext_id + ".tar.rename.exception", str(e))
         except Exception:
             pass
+
     try:
         ar = tarfile.open(tar, mode='w')
         ar.add(tmptardir, arcname=ext_id)
@@ -408,18 +416,18 @@ def update_extension(archivedir, verbose, forums, ext_id):
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
         try:
-            write_text(tar, date, ext_id + ".tar.create.exception", str(e))
+            write_text(tardir, date, ext_id + ".tar.create.exception", str(e))
         except Exception:
             pass
     try:
-        shutil.rmtree(path=tmptardir)
+        shutil.rmtree(path=tmpdir)
     except Exception as e:
         logtxt = logmsg(verbose, logtxt,
                         "           * FATAL: cannot remove archive directory")
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
         try:
-            write_text(tar, date, ext_id + ".dir.remove.exception", str(e))
+            write_text(tardir, date, ext_id + ".dir.remove.exception", str(e))
         except Exception:
             pass
 
