@@ -216,10 +216,10 @@ def validate_crx_response(res, extid, extfilename):
                 extfilename))
 
 
-def update_crx(archive_dir, verbose, ext_id, date):
+def update_crx(archivedir, tmptardir, verbose, ext_id, date):
     res = None
     extfilename = "default_ext_archive.crx"
-    last_crx_file = last_crx(archive_dir, ext_id) # // TODO 
+    last_crx_file = last_crx(archivedir, ext_id) # // TODO 
     last_crx_http_date = last_modified_http_date(last_crx_file)
     logtxt = logmsg(verbose, "",
                     "           * crx archive (Last: {}):   ".format(
@@ -237,22 +237,22 @@ def update_crx(archive_dir, verbose, ext_id, date):
         if re.search('&', extfilename):
             extfilename = "default.crx"
 
-        store_request_metadata(archive_dir, date, extfilename, res)
+        store_request_metadata(tmptardir, date, extfilename, res)
 
         if res.status_code == 304:
-            write_text(archive_dir, date, extfilename + ".link",
+            write_text(tmptardir, date, extfilename + ".link",
                        os.path.join("..",
                                     last_modified_utc_date(last_crx_file),
                                     extfilename) + "\n")
         elif res.status_code == 200:
             validate_crx_response(res, ext_id, extfilename)
-            with open(os.path.join(archive_dir, date, extfilename), 'wb') as f:
+            with open(os.path.join(tmptardir, date, extfilename), 'wb') as f:
                 for chunk in res.iter_content(chunk_size=512 * 1024):
                     if chunk:  # filter out keep-alive new chunks
                         f.write(chunk)
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
-        write_text(archive_dir, date, extfilename + ".exception", str(e))
+        write_text(tmptardir, date, extfilename + ".exception", str(e))
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
     return RequestResult(res), logtxt
@@ -373,7 +373,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
                 pass
 
     res_overview, msg_overview = update_overview(tmptardir, date, verbose, ext_id)
-    res_crx, msg_crx = update_crx(tmptardir, verbose, ext_id, date)
+    res_crx, msg_crx = update_crx(archivedir, tmptardir, verbose, ext_id, date)
     res_reviews = None
     msg_reviews = ""
     res_support = None
