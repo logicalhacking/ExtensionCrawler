@@ -219,7 +219,7 @@ def validate_crx_response(res, extid, extfilename):
 def update_crx(archivedir, tmptardir, verbose, ext_id, date):
     res = None
     extfilename = "default_ext_archive.crx"
-    last_crx_file = last_crx(archivedir, ext_id) # // TODO 
+    last_crx_file = last_crx(archivedir, ext_id)
     last_crx_http_date = last_modified_http_date(last_crx_file)
     logtxt = logmsg(verbose, "",
                     "           * crx archive (Last: {}):   ".format(
@@ -327,28 +327,23 @@ def update_extension(archivedir, verbose, forums, ext_id):
     tardir = os.path.join(archivedir, get_local_archive_dir(ext_id), ext_id)
     tar = (tardir + ".tar")
 
-    
-    
     try:
         tmpdir = tempfile.mkdtemp()
-        tmptardir = os.path.join(tmpdir,ext_id)
+        tmptardir = os.path.join(tmpdir, ext_id)
         tmptar = tmptardir + ".tar"
         logtxt = logmsg(verbose, logtxt,
                         "           * tmptardir =  {}\n".format(tmptardir))
         os.makedirs(
-             os.path.join(archivedir,get_local_archive_dir(ext_id)),
-             exist_ok=True)
+            os.path.join(archivedir, get_local_archive_dir(ext_id)),
+            exist_ok=True)
     except Exception as e:
-        logtxt = logmsg(
-            verbose, logtxt,
-            "           * FATAL: cannot create tmpdir")
         logtxt = logmsg(verbose, logtxt,
-                        " / Exception: {}\n".format(str(e)))
+                        "           * FATAL: cannot create tmpdir")
+        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
-        return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
-                            res_reviews, res_support)
+        return UpdateResult(ext_id, is_new, tar_exception, res_overview,
+                            res_crx, res_reviews, res_support)
 
-    
     if not os.path.exists(tar):
         is_new = True
     else:
@@ -372,7 +367,8 @@ def update_extension(archivedir, verbose, forums, ext_id):
             except Exception:
                 pass
 
-    res_overview, msg_overview = update_overview(tmptardir, date, verbose, ext_id)
+    res_overview, msg_overview = update_overview(tmptardir, date, verbose,
+                                                 ext_id)
     res_crx, msg_crx = update_crx(archivedir, tmptardir, verbose, ext_id, date)
     res_reviews = None
     msg_reviews = ""
