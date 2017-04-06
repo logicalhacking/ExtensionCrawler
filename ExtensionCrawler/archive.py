@@ -344,28 +344,6 @@ def update_extension(archivedir, verbose, forums, ext_id):
         return UpdateResult(ext_id, is_new, tar_exception, res_overview,
                             res_crx, res_reviews, res_support)
 
-    if not os.path.exists(tar):
-        is_new = True
-    else:
-        os.sync()
-        try:
-
-            ar = tarfile.open(tar)
-            ar.extractall(path=tmpdir)
-            ar.close
-        except Exception as e:
-            logtxt = logmsg(
-                verbose, logtxt,
-                "           * FATAL: tar file corrupt (during unarchiving)")
-            logtxt = logmsg(verbose, logtxt,
-                            " / Exception: {}\n".format(str(e)))
-            tar_exception = e
-            try:
-                shutil.move(tar, tardir + ".corrupt." + date + ".tar")
-                write_text(tar, date,
-                           ext_id + ".corrupt." + date + ".exception", str(e))
-            except Exception:
-                pass
 
     res_overview, msg_overview = update_overview(tmptardir, date, verbose,
                                                  ext_id)
@@ -391,7 +369,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
 
     try:
         if os.path.exists(tar):
-            shutil.move(tar, tardir + ".bak.tar")
+            shutil.copyfile(tar, tardir + ".bak.tar")
     except Exception as e:
         logtxt = logmsg(verbose, logtxt,
                         "           * FATAL: cannot rename old tar archive")
@@ -403,7 +381,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
             pass
 
     try:
-        ar = tarfile.open(tar, mode='w')
+        ar = tarfile.open(tar, mode='a:')
         ar.add(tmptardir, arcname=ext_id)
         ar.close()
     except Exception as e:
