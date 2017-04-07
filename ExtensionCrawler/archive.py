@@ -380,6 +380,8 @@ def update_extension(archivedir, verbose, forums, ext_id):
         except Exception:
             pass
 
+    if not os.path.exists(tar):
+        is_new = True 
     try:
         ar = tarfile.open(tar, mode='a:')
         ar.add(tmptardir, arcname=ext_id)
