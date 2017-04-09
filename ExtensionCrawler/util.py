@@ -21,8 +21,8 @@ from time import sleep
 from random import randint
 
 
-def google_dos_protection(max=3):
-    sleep(randint(1, max) * .75)
+def google_dos_protection(max=2):
+    sleep(randint(1, max) * .6)
 
 
 def log(verbose, msg):
