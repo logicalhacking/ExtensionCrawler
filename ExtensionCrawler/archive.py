@@ -33,8 +33,8 @@ from multiprocessing import Pool
 from functools import partial
 import shutil
 import tarfile
-from fs.tarfs import ReadTarFS
 import tempfile
+import time
 
 
 class Error(Exception):
@@ -177,10 +177,12 @@ def last_crx(archivedir, extid):
     tar = os.path.join(archivedir, get_local_archive_dir(extid),
                        extid + ".tar")
     if os.path.exists(tar):
-        archive = ReadTarFS(tar)
-        old_crxs = sorted(list(archive.walk.files(filter=['*.crx'])))
+        t = tarfile.open(tar,'r')
+        old_crxs = sorted([x for x in t.getnames() if x.endswith(".crx")])
+        t.close()
         if old_crxs != []:
             last_crx = old_crxs[-1]
+    
     return last_crx
 
 
