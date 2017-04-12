@@ -265,7 +265,7 @@ def update_reviews(tar, date, verbose, ext_id):
     logtxt = logmsg(verbose, "", "           * review page:   ")
     res = None
     try:
-        google_dos_protection()
+        # google_dos_protection()
         res = requests.post(
             const_review_url(),
             data=const_review_payload(ext_id, "0", "100"),
@@ -292,7 +292,7 @@ def update_support(tar, date, verbose, ext_id):
     logtxt = logmsg(verbose, "", "           * support page:  ")
     res = None
     try:
-        google_dos_protection()
+        # google_dos_protection()
         res = requests.post(
             const_support_url(),
             data=const_support_payload(ext_id, "0", "100"),
@@ -349,7 +349,6 @@ def update_extension(archivedir, verbose, forums, ext_id):
 
     res_overview, msg_overview = update_overview(tmptardir, date, verbose,
                                                  ext_id)
-    res_crx, msg_crx = update_crx(archivedir, tmptardir, verbose, ext_id, date)
     res_reviews = None
     msg_reviews = ""
     res_support = None
@@ -357,6 +356,10 @@ def update_extension(archivedir, verbose, forums, ext_id):
     if forums:
         res_reviews, msg_reviews = update_reviews(tmptardir, date, verbose,
                                                   ext_id)
+    
+    res_crx, msg_crx = update_crx(archivedir, tmptardir, verbose, ext_id, date)
+    
+    if forums:
         res_support, msg_support = update_support(tmptardir, date, verbose,
                                                   ext_id)
     log(verbose, logtxt + msg_overview + msg_crx + msg_reviews + msg_support)
