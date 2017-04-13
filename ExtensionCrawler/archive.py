@@ -177,12 +177,12 @@ def last_crx(archivedir, extid):
     tar = os.path.join(archivedir, get_local_archive_dir(extid),
                        extid + ".tar")
     if os.path.exists(tar):
-        t = tarfile.open(tar,'r')
+        t = tarfile.open(tar, 'r')
         old_crxs = sorted([x for x in t.getnames() if x.endswith(".crx")])
         t.close()
         if old_crxs != []:
             last_crx = old_crxs[-1]
-    
+
     return last_crx
 
 
@@ -346,7 +346,6 @@ def update_extension(archivedir, verbose, forums, ext_id):
         return UpdateResult(ext_id, is_new, tar_exception, res_overview,
                             res_crx, res_reviews, res_support)
 
-
     res_overview, msg_overview = update_overview(tmptardir, date, verbose,
                                                  ext_id)
     res_reviews = None
@@ -356,9 +355,9 @@ def update_extension(archivedir, verbose, forums, ext_id):
     if forums:
         res_reviews, msg_reviews = update_reviews(tmptardir, date, verbose,
                                                   ext_id)
-    
+
     res_crx, msg_crx = update_crx(archivedir, tmptardir, verbose, ext_id, date)
-    
+
     if forums:
         res_support, msg_support = update_support(tmptardir, date, verbose,
                                                   ext_id)
@@ -386,7 +385,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
             pass
 
     if not os.path.exists(tar):
-        is_new = True 
+        is_new = True
     try:
         ar = tarfile.open(tar, mode='a:')
         ar.add(tmptardir, arcname=ext_id)
