@@ -265,7 +265,7 @@ def update_reviews(tar, date, verbose, ext_id):
     logtxt = logmsg(verbose, "", "           * review page:   ")
     res = None
     try:
-        # google_dos_protection()
+        google_dos_protection()
         res = requests.post(
             const_review_url(),
             data=const_review_payload(ext_id, "0", "100"),
@@ -292,7 +292,7 @@ def update_support(tar, date, verbose, ext_id):
     logtxt = logmsg(verbose, "", "           * support page:  ")
     res = None
     try:
-        # google_dos_protection()
+        google_dos_protection()
         res = requests.post(
             const_support_url(),
             data=const_support_payload(ext_id, "0", "100"),
