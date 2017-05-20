@@ -363,26 +363,28 @@ def update_extension(archivedir, verbose, forums, ext_id):
                                                   ext_id)
     log(verbose, logtxt + msg_overview + msg_crx + msg_reviews + msg_support)
 
-    try:
-        os.sync()
-        if os.path.exists(tardir + "bak.tar"):
-            shutil.move(tardir + ".bak.tar", tardir + ".bak." + date + ".tar")
-            os.remove(tardir + ".bak." + date + ".tar")
-    except Exception:
-        pass
-
-    try:
-        if os.path.exists(tar):
-            shutil.copyfile(tar, tardir + ".bak.tar")
-    except Exception as e:
-        logtxt = logmsg(verbose, logtxt,
-                        "           * FATAL: cannot rename old tar archive")
-        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
-        tar_exception = e
+    backup = False
+    if backup:
         try:
-            write_text(tardir, date, ext_id + ".tar.rename.exception", str(e))
+            os.sync()
+            if os.path.exists(tardir + "bak.tar"):
+                shutil.move(tardir + ".bak.tar", tardir + ".bak." + date + ".tar")
+                os.remove(tardir + ".bak." + date + ".tar")
         except Exception:
             pass
+
+        try:
+            if os.path.exists(tar):
+                shutil.copyfile(tar, tardir + ".bak.tar")
+        except Exception as e:
+            logtxt = logmsg(verbose, logtxt,
+                            "           * FATAL: cannot rename old tar archive")
+            logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+            tar_exception = e
+            try:
+                write_text(tardir, date, ext_id + ".tar.rename.exception", str(e))
+            except Exception:
+                pass
 
     if not os.path.exists(tar):
         is_new = True
