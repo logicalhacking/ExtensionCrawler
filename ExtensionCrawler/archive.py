@@ -513,5 +513,6 @@ def get_existing_ids(archivedir, verbose):
 def get_forum_ext_ids(confdir, verbose):
     with open(os.path.join(confdir, "forums.conf")) as f:
         ids = f.readlines()
+    r = re.compile('^[a-p]+$')
     ids = [x.strip() for x in ids]
-    return ids
+    return filter(r.match, ids)
