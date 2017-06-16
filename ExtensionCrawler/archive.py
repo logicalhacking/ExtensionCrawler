@@ -76,7 +76,7 @@ class RequestResult:
 
 class UpdateResult:
     def __init__(self, id, is_new, exception, res_overview, res_crx,
-                 res_reviews, res_support):
+                 res_reviews, res_support,res_sql):
         self.id = id
         self.new = is_new
         self.exception = exception
@@ -84,6 +84,7 @@ class UpdateResult:
         self.res_crx = res_crx
         self.res_reviews = res_reviews
         self.res_support = res_support
+        self.res_sql = res_sql
 
     def is_new(self):
         return self.new
@@ -127,6 +128,9 @@ class UpdateResult:
 
     def corrupt_tar(self):
         return self.exception is not None
+
+    def sql_exception(self):
+        return self.res_sql is not None
 
 
 def write_text(tardir, date, fname, text):
@@ -354,6 +358,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
     logtxt = logmsg(verbose, "", "    Updating {}".format(ext_id))
     is_new = False
     tar_exception = None
+    sql_exception = None
     tmptardir = ""
     tmptar = ""
 
@@ -380,7 +385,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
         return UpdateResult(ext_id, is_new, tar_exception, res_overview,
-                            res_crx, res_reviews, res_support)
+                            res_crx, res_reviews, res_support, sql_exception)
 
     res_overview, msg_overview = update_overview(tmptardir, date, verbose,
                                                  ext_id)
@@ -452,8 +457,12 @@ def update_extension(archivedir, verbose, forums, ext_id):
                         "           * Eventually failed create sqlite files")
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
 
-        tar_exception = e
+        sql_exception = e
 
+        try:
+            write_text(tardir, date, ext_id + ".sql.exception", str(e))
+        except Exception as e:
+            pass
     try:
         shutil.rmtree(path=tmpdir)
     except Exception as e:
@@ -467,7 +476,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
             pass
 
     return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
-                        res_reviews, res_support)
+                        res_reviews, res_support, sql_exception)
 
 
 def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
@@ -515,4 +524,4 @@ def get_forum_ext_ids(confdir, verbose):
         ids = f.readlines()
     r = re.compile('^[a-p]+$')
     ids = [x.strip() for x in ids]
-    return filter(r.match, ids)
+    return list(filter(r.match, ids))

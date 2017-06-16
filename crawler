@@ -81,6 +81,11 @@ def log_failures_to_file(dir, today, res):
         sorted(map(lambda x: x.id, filter(lambda x: x.corrupt_tar(), res))),
         "")
     write_log(dir, today + "-file-corruption.log", file_corruption)
+    sql_exception = reduce(
+        lambda x, y: x + "\n" + y,
+        sorted(map(lambda x: x.id, filter(lambda x: x.sql_exception(), res))),
+        "")
+    write_log(dir, today + "-sql-exception.log", sql_exception)
 
 
 def log_summary(verbose, res, stderr=False, runtime=0):
@@ -98,6 +103,7 @@ def log_summary(verbose, res, stderr=False, runtime=0):
     not_in_store = len(list(filter(lambda x: x.not_in_store(), res)))
     not_modified = len(list(filter(lambda x: x.not_modified(), res)))
     corrupt_tar_archives = list(filter(lambda x: x.corrupt_tar(), res))
+    sql_exception = len(list(filter(lambda x: x.sql_exception(), res)))
 
     new = len(list(filter(lambda x: x.is_new(), res)))
     updated = len(
@@ -115,6 +121,7 @@ def log_summary(verbose, res, stderr=False, runtime=0):
     p("    Extensions not in store: {:8d}\n".format(not_in_store))
     p("    Unknown exception:       {:8d}\n".format(has_exception))
     p("    Corrupt tar archives:    {:8d}\n".format(len(corrupt_tar_archives)))
+    p("    SQL exception:           {:8d}\n".format(sql_exception))
     p("    Total runtime:            {}\n".format(
         str(datetime.timedelta(seconds=int(runtime)))))
 
