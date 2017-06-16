@@ -185,6 +185,7 @@ def last_crx(archivedir, extid):
 
     return last_crx
 
+
 def last_etag(archivedir, extid, crxfile):
     etag = ""
     tar = os.path.join(archivedir, get_local_archive_dir(extid),
@@ -192,7 +193,7 @@ def last_etag(archivedir, extid, crxfile):
     try:
         if os.path.exists(tar):
             t = tarfile.open(tar, 'r')
-            headers= eval((t.extractfile(crxfile+".headers")).read())
+            headers = eval((t.extractfile(crxfile + ".headers")).read())
             etag = headers['ETag']
             t.close()
     except Exception as e:
@@ -236,7 +237,7 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
     res = None
     extfilename = "default_ext_archive.crx"
     last_crx_file = last_crx(archivedir, ext_id)
-    last_crx_etag =  last_etag(archivedir, ext_id, last_crx_file)
+    last_crx_etag = last_etag(archivedir, ext_id, last_crx_file)
     last_crx_http_date = last_modified_http_date(last_crx_file)
     logtxt = logmsg(verbose, "",
                     "           * crx archive (Last: {}): ".format(
@@ -255,20 +256,24 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
             extfilename = "default.crx"
 
         if res.status_code == 304:
-            res = requests.head(const_download_url().format(ext_id),timeout=10,allow_redirects=True)
+            res = requests.head(
+                const_download_url().format(ext_id),
+                timeout=10,
+                allow_redirects=True)
             etag = res.headers.get('Etag')
-            logtxt = logmsg(verbose, logtxt,
-                            ("               - checking etag, last: {}\n"+
-                             "                             current: {}\n").format(
-                        last_crx_etag,etag))
+            logtxt = logmsg(verbose, logtxt, (
+                "               - checking etag, last: {}\n" +
+                "                             current: {}\n").format(
+                    last_crx_etag, etag))
 
-            if((etag is not "") and (etag != last_crx_etag)):
-                logtxt = logmsg(verbose, logtxt,
-                        "               - downloading due to different etags\n")
+            if ((etag is not "") and (etag != last_crx_etag)):
+                logtxt = logmsg(
+                    verbose, logtxt,
+                    "               - downloading due to different etags\n")
 
                 res = requests.get(const_download_url().format(ext_id),
-                               stream=True,
-                               timeout=10)
+                                   stream=True,
+                                   timeout=10)
             else:
                 write_text(tmptardir, date, extfilename + ".link",
                            os.path.join("..",
@@ -283,7 +288,8 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                         f.write(chunk)
     except Exception as e:
         raise e
-        logtxt = logmsg(verbose, logtxt, "               - Exception: {}\n".format(str(e)))
+        logtxt = logmsg(verbose, logtxt,
+                        "               - Exception: {}\n".format(str(e)))
         write_text(tmptardir, date, extfilename + ".exception", str(e))
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
