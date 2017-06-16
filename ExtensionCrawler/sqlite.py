@@ -20,7 +20,7 @@ from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 from ExtensionCrawler.crx import *
 
-from ExtensionCrawler import archive 
+from ExtensionCrawler import archive
 
 from pathlib import Path
 import sqlite3
@@ -36,6 +36,7 @@ import tarfile
 class IncrementalSqliteUpdateError(Exception):
     def __init__(self, reason="unknown"):
         self.reason = reason
+
 
 def setup_tables(con):
     # TODO: delete old db if schemas don't match
@@ -89,13 +90,16 @@ def get_etag(datepath):
         with open(str(etagpath)) as f:
             return f.read()
 
+
 def get_overview_status(datepath):
     with open(str(datepath / "overview.html.status")) as f:
-       return int(f.read())
+        return int(f.read())
+
 
 def get_crx_status(datepath):
     with open(str(next(datepath.glob("*.crx.status")))) as f:
         return int(f.read())
+
 
 def parse_and_insert_overview(ext_id, date, datepath, con):
     overview_path = datepath / "overview.html"
@@ -103,15 +107,18 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
         contents = overview_file.read()
 
         # Extract extension name
-        match = re.search("""<meta itemprop="name" content="(.*?)"\s*/>""", contents)
+        match = re.search("""<meta itemprop="name" content="(.*?)"\s*/>""",
+                          contents)
         name = match.group(1) if match else None
 
         # Extract extension version
-        match = re.search("""<meta itemprop="version" content="(.*?)"\s*/>""", contents)
+        match = re.search("""<meta itemprop="version" content="(.*?)"\s*/>""",
+                          contents)
         version = match.group(1) if match else None
 
         # Extracts extension categories
-        match = re.search("""Attribute name="category">(.+?)</Attribute>""", contents)
+        match = re.search("""Attribute name="category">(.+?)</Attribute>""",
+                          contents)
         categories = match.group(1).split(",") if match else None
 
         # Extracts the number of downloads
@@ -122,14 +129,19 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
         doc = BeautifulSoup(contents, 'html.parser')
 
         description_parent = doc.find('div', itemprop="description")
-        description = str(description_parent.contents[0]) if description_parent and description_parent.contents else None
-        full_description = str(description_parent.parent) if description_parent else None
+        description = str(description_parent.contents[
+            0]) if description_parent and description_parent.contents else None
+        full_description = str(
+            description_parent.parent) if description_parent else None
 
         developer_parent = doc.find(class_=lambda cls: cls and "e-f-Me" in cls)
-        developer = str(developer_parent.contents[0]) if developer_parent else None
+        developer = str(
+            developer_parent.contents[0]) if developer_parent else None
 
-        last_updated_parent = doc.find(class_=lambda cls: cls and "h-C-b-p-D-xh-hh" in cls)
-        last_updated = str(last_updated_parent.contents[0]) if last_updated_parent else None
+        last_updated_parent = doc.find(
+            class_=lambda cls: cls and "h-C-b-p-D-xh-hh" in cls)
+        last_updated = str(
+            last_updated_parent.contents[0]) if last_updated_parent else None
 
         etag = get_etag(datepath)
 
@@ -137,10 +149,10 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
 
         crx_status = get_crx_status(datepath)
 
-
         con.execute("INSERT INTO extension VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                     (ext_id, date, name, version, description, downloads,
-                     full_description, developer, etag, last_updated, overview_status, crx_status))
+                     full_description, developer, etag, last_updated,
+                     overview_status, crx_status))
 
         if categories:
             for category in categories:
@@ -163,24 +175,28 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                     manifest = json.loads(m.read().decode("utf-8-sig"))
                     if "permissions" in manifest:
                         for permission in manifest["permissions"]:
-                            con.execute("INSERT OR REPLACE INTO permission VALUES (?,?)",
-                                        (etag, str(permission)))
+                            con.execute(
+                                "INSERT OR REPLACE INTO permission VALUES (?,?)",
+                                (etag, str(permission)))
                 except json.decoder.JSONDecodeError:
                     pass
 
             public_key = read_crx(str(crx_path)).pk
 
-            con.execute("INSERT INTO crx VALUES (?,?,?)", (etag, filename, public_key))
+            con.execute("INSERT INTO crx VALUES (?,?,?)",
+                        (etag, filename, public_key))
     except zipfile.BadZipFile as e:
         txt = logmsg(verbose, txt, indent + "- {} is not a zip file\n"
-                        .format(crx_path))
+                     .format(crx_path))
     return txt
 
 
-def update_sqlite_incremental(db_path, datepath, ext_id, date, verbose, indent):
+def update_sqlite_incremental(db_path, datepath, ext_id, date, verbose,
+                              indent):
     txt = ""
 
-    txt = logmsg(verbose, txt, indent + "- updating using {}\n".format(datepath))
+    txt = logmsg(verbose, txt,
+                 indent + "- updating using {}\n".format(datepath))
 
     if not db_path.exists():
         raise IncrementalSqliteUpdateError("db file not found")
@@ -191,12 +207,16 @@ def update_sqlite_incremental(db_path, datepath, ext_id, date, verbose, indent):
         crx_path = next(datepath.glob("*.crx"), None)
 
         etag = get_etag(datepath)
-        etag_already_in_db = next(con.execute("SELECT COUNT(etag) FROM crx WHERE etag=?", (etag,)))[0]
+        etag_already_in_db = next(
+            con.execute("SELECT COUNT(etag) FROM crx WHERE etag=?", (etag,
+                                                                     )))[0]
         if etag and not etag_already_in_db:
             if crx_path:
-                parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent)
+                parse_and_insert_crx(ext_id, date, datepath, con, verbose,
+                                     indent)
             else:
-                raise IncrementalSqliteUpdateError("etag not in db and no crx file present")
+                raise IncrementalSqliteUpdateError(
+                    "etag not in db and no crx file present")
 
     return txt
 
@@ -208,8 +228,8 @@ def update_sqlite_full(db_path, archivedir, ext_id, verbose, indent):
         os.remove(db_path)
 
     with tempfile.TemporaryDirectory() as tmpdir:
-      tar = archive_file(archivedir,ext_id)
-      with tarfile.open(tar) as t:
+        tar = archive_file(archivedir, ext_id)
+        with tarfile.open(tar) as t:
             t.extractall(tmpdir)
             iddir = Path(tmpdir) / ext_id
 
@@ -217,10 +237,12 @@ def update_sqlite_full(db_path, archivedir, ext_id, verbose, indent):
                 setup_tables(con)
             for datepath in sorted(iddir.iterdir()):
                 date = datepath.name
-                updatetxt = update_sqlite_incremental(db_path, datepath, ext_id, date, verbose, indent)
+                updatetxt = update_sqlite_incremental(
+                    db_path, datepath, ext_id, date, verbose, indent)
                 txt = logmsg(verbose, txt, updatetxt)
 
     return txt
+
 
 def update_sqlite(archivedir, tmptardir, ext_id, date, verbose, indent):
     txt = ""
@@ -229,22 +251,28 @@ def update_sqlite(archivedir, tmptardir, ext_id, date, verbose, indent):
     archivedir = Path(archivedir)
     indent2 = indent + 4 * " "
 
-
-    txt = logmsg(verbose, txt, indent + "* extracting information into SQLite db...\n")
+    txt = logmsg(verbose, txt,
+                 indent + "* extracting information into SQLite db...\n")
 
     db_path = Path(archivedir) / ext_id[:3] / (ext_id + ".sqlite")
 
     try:
-        txt = logmsg(verbose, txt, indent2 + "- attempting incremental update...\n")
-        updatetxt = update_sqlite_incremental(db_path, datepath, ext_id, date, verbose, indent2)
+        txt = logmsg(verbose, txt,
+                     indent2 + "- attempting incremental update...\n")
+        updatetxt = update_sqlite_incremental(db_path, datepath, ext_id, date,
+                                              verbose, indent2)
         txt = logmsg(verbose, txt, updatetxt)
     except IncrementalSqliteUpdateError as e:
-        txt = logmsg(verbose, txt, indent2 + "- incremental update failed: {}\n".format(e.reason))
+        txt = logmsg(verbose, txt, indent2 +
+                     "- incremental update failed: {}\n".format(e.reason))
         txt = logmsg(verbose, txt, indent2 + "- regenerating full db...\n")
         try:
-            fullmsg = update_sqlite_full(db_path, archivedir, ext_id, verbose, indent2)
+            fullmsg = update_sqlite_full(db_path, archivedir, ext_id, verbose,
+                                         indent2)
             txt = logmsg(verbose, txt, fullmsg)
         except IncrementalSqliteUpdateError as e:
-            txt = logmsg(verbose, txt, indent2 + "- full sqlite update failed: {}, giving up\n".format(e.reason))
+            txt = logmsg(verbose, txt, indent2 +
+                         "- full sqlite update failed: {}, giving up\n".format(
+                             e.reason))
 
     return txt

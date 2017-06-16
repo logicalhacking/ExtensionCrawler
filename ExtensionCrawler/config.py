@@ -18,6 +18,7 @@
 
 import os
 
+
 def const_sitemap_url():
     return "https://chrome.google.com/webstore/sitemap"
 
@@ -76,9 +77,11 @@ def const_review_payload(ext_id, start, end):
         '"internedKeys":[],' + '"internedValues":[]}}').format(ext_id, start,
                                                                end)
 
+
 def get_local_archive_dir(id):
     return "{}".format(id[:3])
 
-def archive_file(archivedir,ext_id):
-    return os.path.join(str(archivedir), get_local_archive_dir(ext_id),
-                       ext_id + ".tar")
+
+def archive_file(archivedir, ext_id):
+    return os.path.join(
+        str(archivedir), get_local_archive_dir(ext_id), ext_id + ".tar")

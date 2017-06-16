@@ -284,7 +284,8 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                 for chunk in res.iter_content(chunk_size=512 * 1024):
                     if chunk:  # filter out keep-alive new chunks
                         f.write(chunk)
-            write_text(tmptardir, date, extfilename + ".etag", res.headers.get("ETag"))
+            write_text(tmptardir, date, extfilename + ".etag",
+                       res.headers.get("ETag"))
     except Exception as e:
         raise e
         logtxt = logmsg(verbose, logtxt,
@@ -444,14 +445,14 @@ def update_extension(archivedir, verbose, forums, ext_id):
 
     try:
         msg_updatesqlite = update_sqlite(archivedir, tmptardir, ext_id, date,
-                                        verbose, 11 * " ")
+                                         verbose, 11 * " ")
         logtxt = logmsg(verbose, logtxt, msg_updatesqlite)
     except Exception as e:
-        logtxt = logmsg(verbose, logtxt, "           * Eventually failed create sqlite files")
+        logtxt = logmsg(verbose, logtxt,
+                        "           * Eventually failed create sqlite files")
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
 
         tar_exception = e
-
 
     try:
         shutil.rmtree(path=tmpdir)

@@ -34,7 +34,8 @@ import time
 import getopt
 
 # Script should run with python 3.5 
-assert sys.version_info >= (3,5) and sys.version_info < (3,6)
+assert sys.version_info >= (3, 5) and sys.version_info < (3, 6)
+
 
 def write_log(dir, fname, text):
     os.makedirs(dir, exist_ok=True)
