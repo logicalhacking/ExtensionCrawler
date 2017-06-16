@@ -27,6 +27,7 @@ import datetime
 from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 from ExtensionCrawler.archive import *
+from ExtensionCrawler.sqlite import *
 import dateutil
 import dateutil.parser
 from multiprocessing import Pool
@@ -397,7 +398,8 @@ def update_extension(archivedir, verbose, forums, ext_id):
     if forums:
         res_support, msg_support = update_support(tmptardir, date, verbose,
                                                   ext_id)
-    log(verbose, logtxt + msg_overview + msg_crx + msg_reviews + msg_support)
+
+    logtxt = logtxt + msg_overview + msg_crx + msg_reviews + msg_support
 
     backup = False
     if backup:
@@ -441,6 +443,11 @@ def update_extension(archivedir, verbose, forums, ext_id):
             write_text(tardir, date, ext_id + ".tar.create.exception", str(e))
         except Exception:
             pass
+
+    msg_updatesqlite = update_sqlite(archivedir, tmptardir, verbose, ext_id,
+                                     date)
+    log(verbose, logtxt + msg_updatesqlite)
+
     try:
         shutil.rmtree(path=tmpdir)
     except Exception as e:
