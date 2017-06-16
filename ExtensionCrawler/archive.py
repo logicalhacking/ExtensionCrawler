@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # Copyright (C) 2016,2017 The University of Sheffield, UK
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -262,6 +262,7 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                 timeout=10,
                 allow_redirects=True)
             etag = res.headers.get('Etag')
+            write_text(tmptardir, date, extfilename + ".etag", etag)
             logtxt = logmsg(verbose, logtxt, (
                 "               - checking etag, last: {}\n" +
                 "                             current: {}\n").format(
@@ -287,6 +288,7 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                 for chunk in res.iter_content(chunk_size=512 * 1024):
                     if chunk:  # filter out keep-alive new chunks
                         f.write(chunk)
+            write_text(tmptardir, date, extfilename + ".etag", res.headers.get("ETag"))
     except Exception as e:
         raise e
         logtxt = logmsg(verbose, logtxt,
@@ -444,9 +446,16 @@ def update_extension(archivedir, verbose, forums, ext_id):
         except Exception:
             pass
 
-    msg_updatesqlite = update_sqlite(archivedir, tmptardir, verbose, ext_id,
-                                     date)
-    log(verbose, logtxt + msg_updatesqlite)
+    try:
+        msg_updatesqlite = update_sqlite(archivedir, tmptardir, ext_id, date,
+                                        verbose, 11 * " ")
+        logtxt = logmsg(verbose, logtxt, msg_updatesqlite)
+    except Exception as e:
+        logtxt = logmsg(verbose, logtxt, "           * Eventually failed create sqlite files")
+        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+
+        tar_exception = e
+
 
     try:
         shutil.rmtree(path=tmpdir)
@@ -472,7 +481,7 @@ def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
     log(verbose, "Updating {} extensions ({} including forums)\n".format(
         len(ext_ids), len(forums_ext_ids)))
     # First, update extensions with forums sequentially (and with delays) to
-    # avoid running into Googles DDOS detection. 
+    # avoid running into Googles DDOS detection.
     log(verbose,
         "  Updating {} extensions including forums (sequentially))\n".format(
             len(forums_ext_ids)))
