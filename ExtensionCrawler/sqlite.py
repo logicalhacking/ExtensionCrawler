@@ -19,8 +19,8 @@
 from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 from ExtensionCrawler.crx import *
-from ExtensionCrawler.archive import *
 
+from ExtensionCrawler import archive 
 
 from pathlib import Path
 import sqlite3
@@ -31,16 +31,6 @@ import json
 import os
 import tempfile
 import tarfile
-
-
-
-def get_local_archive_dir(id):
-    return "{}".format(id[:3])
-
-def archive_file(archivedir,ext_id):
-    return os.path.join(str(archivedir), get_local_archive_dir(ext_id),
-                       ext_id + ".tar")
-
 
 
 class IncrementalSqliteUpdateError(Exception):

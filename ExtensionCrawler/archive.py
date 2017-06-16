@@ -26,7 +26,7 @@ from random import randint
 import datetime
 from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
-from ExtensionCrawler.archive import *
+from ExtensionCrawler.archive import archive_file
 from ExtensionCrawler.sqlite import *
 import dateutil
 import dateutil.parser
@@ -127,10 +127,6 @@ class UpdateResult:
 
     def corrupt_tar(self):
         return self.exception is not None
-
-
-def get_local_archive_dir(id):
-    return "{}".format(id[:3])
 
 
 def write_text(tardir, date, fname, text):
