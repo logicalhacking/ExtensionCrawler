@@ -185,6 +185,20 @@ def last_crx(archivedir, extid):
 
     return last_crx
 
+def last_etag(archivedir, extid, crxfile):
+    etag = ""
+    tar = os.path.join(archivedir, get_local_archive_dir(extid),
+                       extid + ".tar")
+    try:
+        if os.path.exists(tar):
+            t = tarfile.open(tar, 'r')
+            headers= eval((t.extractfile(crxfile+".headers")).read())
+            etag = headers['ETag']
+            t.close()
+    except Exception as e:
+        return ""
+    return etag
+
 
 def update_overview(tar, date, verbose, ext_id):
     logtxt = logmsg(verbose, "", "           * overview page: ")
@@ -222,9 +236,10 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
     res = None
     extfilename = "default_ext_archive.crx"
     last_crx_file = last_crx(archivedir, ext_id)
+    last_crx_etag =  last_etag(archivedir, ext_id, last_crx_file)
     last_crx_http_date = last_modified_http_date(last_crx_file)
     logtxt = logmsg(verbose, "",
-                    "           * crx archive (Last: {}):   ".format(
+                    "           * crx archive (Last: {}): ".format(
                         valueOf(last_crx_http_date, "n/a")))
     headers = ""
     if last_crx_file is not "":
@@ -234,26 +249,41 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                            stream=True,
                            headers=headers,
                            timeout=10)
-        logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
+        logtxt = logmsg(verbose, logtxt, "{}\n".format(str(res.status_code)))
         extfilename = os.path.basename(res.url)
         if re.search('&', extfilename):
             extfilename = "default.crx"
 
-        store_request_metadata(tmptardir, date, extfilename, res)
-
         if res.status_code == 304:
-            write_text(tmptardir, date, extfilename + ".link",
-                       os.path.join("..",
-                                    last_modified_utc_date(last_crx_file),
-                                    extfilename) + "\n")
-        elif res.status_code == 200:
+            res = requests.head(const_download_url().format(ext_id),timeout=10,allow_redirects=True)
+            etag = res.headers.get('Etag')
+            logtxt = logmsg(verbose, logtxt,
+                            ("               - checking etag, last: {}\n"+
+                             "                             current: {}\n").format(
+                        last_crx_etag,etag))
+
+            if((etag is not "") and (etag != last_crx_etag)):
+                logtxt = logmsg(verbose, logtxt,
+                        "               - downloading due to different etags\n")
+
+                res = requests.get(const_download_url().format(ext_id),
+                               stream=True,
+                               timeout=10)
+            else:
+                write_text(tmptardir, date, extfilename + ".link",
+                           os.path.join("..",
+                                        last_modified_utc_date(last_crx_file),
+                                        extfilename) + "\n")
+        store_request_metadata(tmptardir, date, extfilename, res)
+        if res.status_code == 200:
             validate_crx_response(res, ext_id, extfilename)
             with open(os.path.join(tmptardir, date, extfilename), 'wb') as f:
                 for chunk in res.iter_content(chunk_size=512 * 1024):
                     if chunk:  # filter out keep-alive new chunks
                         f.write(chunk)
     except Exception as e:
-        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+        raise e
+        logtxt = logmsg(verbose, logtxt, "               - Exception: {}\n".format(str(e)))
         write_text(tmptardir, date, extfilename + ".exception", str(e))
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
