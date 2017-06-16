@@ -32,6 +32,17 @@ import os
 import tempfile
 import tarfile
 
+
+
+def get_local_archive_dir(id):
+    return "{}".format(id[:3])
+
+def archive_file(archivedir,ext_id):
+    return os.path.join(str(archivedir), get_local_archive_dir(ext_id),
+                       ext_id + ".tar")
+
+
+
 class IncrementalSqliteUpdateError(Exception):
     def __init__(self, reason="unknown"):
         self.reason = reason
@@ -85,20 +96,20 @@ def get_etag(datepath):
     etagpath = next(datepath.glob("*.etag"), None)
 
     if etagpath:
-        with open(etagpath) as f:
+        with open(str(etagpath)) as f:
             return f.read()
 
 def get_overview_status(datepath):
-    with open(datepath / "overview.html.status") as f:
+    with open(str(datepath / "overview.html.status")) as f:
        return int(f.read())
 
 def get_crx_status(datepath):
-    with open(next(datepath.glob("*.crx.status"))) as f:
+    with open(str(next(datepath.glob("*.crx.status")))) as f:
         return int(f.read())
 
 def parse_and_insert_overview(ext_id, date, datepath, con):
     overview_path = datepath / "overview.html"
-    with open(overview_path) as overview_file:
+    with open(str(overview_path)) as overview_file:
         contents = overview_file.read()
 
         # Extract extension name
@@ -207,7 +218,8 @@ def update_sqlite_full(db_path, archivedir, ext_id, verbose, indent):
         os.remove(db_path)
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        with tarfile.open(archivedir / ext_id[:3] / (ext_id + ".tar")) as t:
+      tar = archive_file(archivedir,ext_id)
+      with tarfile.open(tar) as t:
             t.extractall(tmpdir)
             iddir = Path(tmpdir) / ext_id
 
