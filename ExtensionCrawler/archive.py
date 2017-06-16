@@ -475,6 +475,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
         except Exception:
             pass
 
+    log(verbose, logtxt)
     return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
                         res_reviews, res_support, sql_exception)
 
