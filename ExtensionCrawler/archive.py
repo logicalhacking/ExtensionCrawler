@@ -288,7 +288,6 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                     if chunk:  # filter out keep-alive new chunks
                         f.write(chunk)
     except Exception as e:
-        raise e
         logtxt = logmsg(verbose, logtxt,
                         "               - Exception: {}\n".format(str(e)))
         write_text(tmptardir, date, extfilename + ".exception", str(e))
