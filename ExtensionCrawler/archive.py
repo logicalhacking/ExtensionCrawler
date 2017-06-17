@@ -454,7 +454,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
             pass
 
     try:
-        sql_success, msg_updatesqlite = update_sqlite(archivedir, tmptardir, ext_id, date,
+        sql_success, msg_updatesqlite = update_sqlite(archivedir, tmptardir, ext_id, date, is_new,
                                          verbose, 11 * " ")
         logtxt = logmsg(verbose, logtxt, msg_updatesqlite)
 
