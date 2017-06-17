@@ -81,11 +81,18 @@ def log_failures_to_file(dir, today, res):
         sorted(map(lambda x: x.id, filter(lambda x: x.corrupt_tar(), res))),
         "")
     write_log(dir, today + "-file-corruption.log", file_corruption)
+    
     sql_exception = reduce(
         lambda x, y: x + "\n" + y,
         sorted(map(lambda x: x.id, filter(lambda x: x.sql_exception(), res))),
         "")
     write_log(dir, today + "-sql-exception.log", sql_exception)
+    
+    sql_success = reduce(
+        lambda x, y: x + "\n" + y,
+        sorted(map(lambda x: x.id, filter(lambda x: not x.sql_success(), res))),
+        "")
+    write_log(dir, today + "-sql-not-updated.log", sql_success)
 
 
 def log_summary(verbose, res, stderr=False, runtime=0):
@@ -104,6 +111,7 @@ def log_summary(verbose, res, stderr=False, runtime=0):
     not_modified = len(list(filter(lambda x: x.not_modified(), res)))
     corrupt_tar_archives = list(filter(lambda x: x.corrupt_tar(), res))
     sql_exception = len(list(filter(lambda x: x.sql_exception(), res)))
+    sql_success = len(list(filter(lambda x: x.sql_success(), res)))
 
     new = len(list(filter(lambda x: x.is_new(), res)))
     updated = len(
@@ -114,6 +122,7 @@ def log_summary(verbose, res, stderr=False, runtime=0):
     p("    Updated {} out of {} extensions successfully\n".format(
         str(success), str(total)))
     p("    Updated extensions:      {:8d}\n".format(updated))
+    p("    Updated SQL databases:   {:8d}\n".format(sql_success))
     p("    New extensions:          {:8d}\n".format(new))
     p("    Not authorized:          {:8d}\n".format(not_authorized))
     p("    Raised Google DDOS:      {:8d}\n".format(raised_ddos))

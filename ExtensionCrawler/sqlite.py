@@ -195,6 +195,7 @@ def update_sqlite_incremental(db_path, datepath, ext_id, date, verbose,
 
 
 def update_sqlite(archivedir, tmptardir, ext_id, date, verbose, indent):
+    update_successful = False
     txt = ""
     indent2 = indent + 4 * " "
 
@@ -211,9 +212,10 @@ def update_sqlite(archivedir, tmptardir, ext_id, date, verbose, indent):
         updatetxt = update_sqlite_incremental(db_path, datepath, ext_id, date,
                                               verbose, indent2)
         txt = logmsg(verbose, txt, updatetxt)
+        update_successful = True
     except SqliteUpdateError as e:
         txt = logmsg(
             verbose, txt,
             indent2 + "- incremental update failed: {}\n".format(e.reason))
 
-    return txt
+    return update_successful, txt

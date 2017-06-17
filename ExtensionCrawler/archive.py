@@ -76,7 +76,7 @@ class RequestResult:
 
 class UpdateResult:
     def __init__(self, id, is_new, exception, res_overview, res_crx,
-                 res_reviews, res_support,res_sql):
+                 res_reviews, res_support,res_sql, sql_update):
         self.id = id
         self.new = is_new
         self.exception = exception
@@ -85,6 +85,7 @@ class UpdateResult:
         self.res_reviews = res_reviews
         self.res_support = res_support
         self.res_sql = res_sql
+        self.sql_update = sql_update
 
     def is_new(self):
         return self.new
@@ -131,6 +132,9 @@ class UpdateResult:
 
     def sql_exception(self):
         return self.res_sql is not None
+    
+    def sql_success(self):
+        return self.sql_update
 
 
 def write_text(tardir, date, fname, text):
@@ -359,6 +363,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
     is_new = False
     tar_exception = None
     sql_exception = None
+    sql_success = False
     tmptardir = ""
     tmptar = ""
 
@@ -385,7 +390,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
         return UpdateResult(ext_id, is_new, tar_exception, res_overview,
-                            res_crx, res_reviews, res_support, sql_exception)
+                            res_crx, res_reviews, res_support, sql_exception, False)
 
     res_overview, msg_overview = update_overview(tmptardir, date, verbose,
                                                  ext_id)
@@ -449,12 +454,13 @@ def update_extension(archivedir, verbose, forums, ext_id):
             pass
 
     try:
-        msg_updatesqlite = update_sqlite(archivedir, tmptardir, ext_id, date,
+        sql_success, msg_updatesqlite = update_sqlite(archivedir, tmptardir, ext_id, date,
                                          verbose, 11 * " ")
         logtxt = logmsg(verbose, logtxt, msg_updatesqlite)
+
     except Exception as e:
         logtxt = logmsg(verbose, logtxt,
-                        "           * Eventually failed create sqlite files")
+                        "           * Exception during update of sqlite db ")
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
 
         sql_exception = e
@@ -477,7 +483,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
 
     log(verbose, logtxt)
     return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
-                        res_reviews, res_support, sql_exception)
+                        res_reviews, res_support, sql_exception, sql_success)
 
 
 def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
