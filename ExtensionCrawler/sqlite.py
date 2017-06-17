@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (C) 2017 The University of Sheffield, UK
 #
@@ -22,7 +21,6 @@ from ExtensionCrawler.crx import *
 
 from ExtensionCrawler import archive
 
-from pathlib import Path
 import sqlite3
 import re
 from bs4 import BeautifulSoup
@@ -31,79 +29,62 @@ import json
 import os
 import tempfile
 import tarfile
+import glob
 
 
-class IncrementalSqliteUpdateError(Exception):
+class SqliteUpdateError(Exception):
     def __init__(self, reason="unknown"):
         self.reason = reason
 
 
-def setup_tables(con):
-    # TODO: delete old db if schemas don't match
-    con.execute("""CREATE TABLE review ("""
-                """id INTEGER PRIMARY KEY,"""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """user TEXT,"""
-                """reviewdate TEXT,"""
-                """rating TEXT,"""
-                """comment TEXT"""
-                """)""")
-    con.execute("""CREATE TABLE category ("""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """category TEXT,"""
-                """PRIMARY KEY (extid, date, category)"""
-                """)""")
-    con.execute("""CREATE TABLE permission ("""
-                """crx_etag TEXT,"""
-                """permission TEXT,"""
-                """PRIMARY KEY (crx_etag, permission)"""
-                """)""")
-    con.execute("""CREATE TABLE crx ("""
-                """etag TEXT PRIMARY KEY,"""
-                """filename TEXT,"""
-                """publickey BLOB"""
-                """)""")
-    con.execute("""CREATE TABLE extension ("""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """name TEXT,"""
-                """version TEXT,"""
-                """description TEXT,"""
-                """downloads INTEGER,"""
-                """fulldescription TEXT,"""
-                """developer TEXT,"""
-                """crx_etag TEXT,"""
-                """crx_status INTEGER,"""
-                """overview_status INTEGER,"""
-                """lastupdated TEXT,"""
-                """PRIMARY KEY (extid, date),"""
-                """FOREIGN KEY (crx_etag) REFERENCES crx(etag)"""
-                """)""")
-
-
-def get_etag(datepath):
-    etagpath = next(datepath.glob("*.etag"), None)
-
+def get_etag(ext_id, datepath, con):
+    #Trying etag file
+    etagpath = next(iter(glob.glob(os.path.join(datepath, "*.etag"))), None)
     if etagpath:
-        with open(str(etagpath)) as f:
+        with open(etagpath) as f:
             return f.read()
+
+    #Trying to parse header file for etag
+    headerpath = next(
+        iter(glob.glob(os.path.join(datepath, "*.crx.headers"))), None)
+    if headerpath:
+        with open(headerpath) as f:
+            headers = eval(f.read())
+            if "ETag" in headers:
+                return headers["ETag"]
+
+    #Trying to look up previous etag in database
+    linkpath = next(
+        iter(glob.glob(os.path.join(datepath, "*.crx.link"))), None)
+    if linkpath:
+        with open(linkpath) as f:
+            link = f.read()
+            linked_date = link[3:].split("/")[0]
+
+            row = next(
+                con.execute(
+                    "SELECT crx_etag FROM extension WHERE extid=? AND date=?",
+                    (ext_id, linked_date)), None)
+            if row:
+                return row[0]
 
 
 def get_overview_status(datepath):
-    with open(str(datepath / "overview.html.status")) as f:
+    with open(os.path.join(datepath, "overview.html.status")) as f:
         return int(f.read())
 
 
 def get_crx_status(datepath):
-    with open(str(next(datepath.glob("*.crx.status")))) as f:
-        return int(f.read())
+    statuspath = next(
+        iter(glob.glob(os.path.join(datepath, "*.crx.status"))), None)
+    if statuspath:
+        with open(statuspath) as f:
+            return int(f.read())
 
 
 def parse_and_insert_overview(ext_id, date, datepath, con):
-    overview_path = datepath / "overview.html"
-    with open(str(overview_path)) as overview_file:
+    overview_path = os.path.join(datepath, "overview.html")
+    with open(overview_path) as overview_file:
         contents = overview_file.read()
 
         # Extract extension name
@@ -143,7 +124,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
         last_updated = str(
             last_updated_parent.contents[0]) if last_updated_parent else None
 
-        etag = get_etag(datepath)
+        etag = get_etag(ext_id, datepath, con)
 
         overview_status = get_overview_status(datepath)
 
@@ -160,35 +141,28 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
                             (ext_id, date, category))
 
 
-def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
-    txt = ""
+def parse_and_insert_crx(ext_id, date, datepath, con):
+    etag = get_etag(ext_id, datepath, con)
+    crx_path = next(iter(glob.glob(os.path.join(datepath, "*.crx"))), None)
+    filename = os.path.basename(crx_path)
 
-    etag = get_etag(datepath)
-    crx_path = next(datepath.glob("*.crx"), None)
-    filename = crx_path.name
+    with ZipFile(crx_path) as f:
+        with f.open("manifest.json") as m:
+            try:
+                # There are some manifests that seem to have weird encodings...
+                manifest = json.loads(m.read().decode("utf-8-sig"))
+                if "permissions" in manifest:
+                    for permission in manifest["permissions"]:
+                        con.execute(
+                            "INSERT OR REPLACE INTO permission VALUES (?,?)",
+                            (etag, str(permission)))
+            except json.decoder.JSONDecodeError:
+                pass
 
-    try:
-        with ZipFile(str(crx_path)) as f:
-            with f.open("manifest.json") as m:
-                try:
-                    # There are some manifests that seem to have weird encodings...
-                    manifest = json.loads(m.read().decode("utf-8-sig"))
-                    if "permissions" in manifest:
-                        for permission in manifest["permissions"]:
-                            con.execute(
-                                "INSERT OR REPLACE INTO permission VALUES (?,?)",
-                                (etag, str(permission)))
-                except json.decoder.JSONDecodeError:
-                    pass
+        public_key = read_crx(crx_path).pk
 
-            public_key = read_crx(str(crx_path)).pk
-
-            con.execute("INSERT INTO crx VALUES (?,?,?)",
-                        (etag, filename, public_key))
-    except zipfile.BadZipFile as e:
-        txt = logmsg(verbose, txt, indent + "- {} is not a zip file\n"
-                     .format(crx_path))
-    return txt
+        con.execute("INSERT INTO crx VALUES (?,?,?)", (etag, filename,
+                                                       public_key))
 
 
 def update_sqlite_incremental(db_path, datepath, ext_id, date, verbose,
@@ -198,81 +172,48 @@ def update_sqlite_incremental(db_path, datepath, ext_id, date, verbose,
     txt = logmsg(verbose, txt,
                  indent + "- updating using {}\n".format(datepath))
 
-    if not db_path.exists():
-        raise IncrementalSqliteUpdateError("db file not found")
+    if not os.path.exists(db_path):
+        raise SqliteUpdateError("db file not found")
 
-    with sqlite3.connect(str(db_path)) as con:
+    with sqlite3.connect(db_path) as con:
         parse_and_insert_overview(ext_id, date, datepath, con)
 
-        crx_path = next(datepath.glob("*.crx"), None)
+        crx_path = next(iter(glob.glob(os.path.join(datepath, "*.crx"))), None)
 
-        etag = get_etag(datepath)
+        etag = get_etag(ext_id, datepath, con)
         etag_already_in_db = next(
-            con.execute("SELECT COUNT(etag) FROM crx WHERE etag=?", (etag,
-                                                                     )))[0]
+            con.execute("SELECT COUNT(etag) FROM crx WHERE etag=?", (etag, )))[
+                0]
         if etag and not etag_already_in_db:
             if crx_path:
-                parse_and_insert_crx(ext_id, date, datepath, con, verbose,
-                                     indent)
+                parse_and_insert_crx(ext_id, date, datepath, con)
             else:
-                raise IncrementalSqliteUpdateError(
+                raise SqliteUpdateError(
                     "etag not in db and no crx file present")
-
-    return txt
-
-
-def update_sqlite_full(db_path, archivedir, ext_id, verbose, indent):
-    txt = ""
-
-    if db_path.exists():
-        os.remove(db_path)
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tar = archive_file(archivedir, ext_id)
-        with tarfile.open(tar) as t:
-            t.extractall(tmpdir)
-            iddir = Path(tmpdir) / ext_id
-
-            with sqlite3.connect(str(db_path)) as con:
-                setup_tables(con)
-            for datepath in sorted(iddir.iterdir()):
-                date = datepath.name
-                updatetxt = update_sqlite_incremental(
-                    db_path, datepath, ext_id, date, verbose, indent)
-                txt = logmsg(verbose, txt, updatetxt)
 
     return txt
 
 
 def update_sqlite(archivedir, tmptardir, ext_id, date, verbose, indent):
     txt = ""
-
-    datepath = Path(tmptardir) / date
-    archivedir = Path(archivedir)
     indent2 = indent + 4 * " "
+
+    datepath = os.path.join(tmptardir, date)
 
     txt = logmsg(verbose, txt,
                  indent + "* extracting information into SQLite db...\n")
 
-    db_path = Path(archivedir) / ext_id[:3] / (ext_id + ".sqlite")
+    db_path = os.path.join(archivedir, ext_id[:3], ext_id + ".sqlite")
 
+    txt = logmsg(verbose, txt,
+                 indent2 + "- attempting incremental update...\n")
     try:
-        txt = logmsg(verbose, txt,
-                     indent2 + "- attempting incremental update...\n")
         updatetxt = update_sqlite_incremental(db_path, datepath, ext_id, date,
                                               verbose, indent2)
         txt = logmsg(verbose, txt, updatetxt)
-    except IncrementalSqliteUpdateError as e:
-        txt = logmsg(verbose, txt, indent2 +
-                     "- incremental update failed: {}\n".format(e.reason))
-        txt = logmsg(verbose, txt, indent2 + "- regenerating full db...\n")
-        try:
-            fullmsg = update_sqlite_full(db_path, archivedir, ext_id, verbose,
-                                         indent2)
-            txt = logmsg(verbose, txt, fullmsg)
-        except IncrementalSqliteUpdateError as e:
-            txt = logmsg(verbose, txt, indent2 +
-                         "- full sqlite update failed: {}, giving up\n".format(
-                             e.reason))
+    except SqliteUpdateError as e:
+        txt = logmsg(
+            verbose, txt,
+            indent2 + "- incremental update failed: {}\n".format(e.reason))
 
     return txt
