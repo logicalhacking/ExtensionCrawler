@@ -165,7 +165,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                                                        public_key))
 
 
-def update_sqlite_incremental(db_path, datepath, ext_id, date, is_new,verbose,
+def update_sqlite_incremental(db_path, datepath, ext_id, date, verbose,
                               indent):
     txt = ""
 
@@ -194,7 +194,7 @@ def update_sqlite_incremental(db_path, datepath, ext_id, date, is_new,verbose,
     return txt
 
 
-def update_sqlite(archivedir, tmptardir, ext_id, date, verbose, indent):
+def update_sqlite(archivedir, tmptardir, ext_id, date, is_new, verbose, indent):
     update_successful = False
     txt = ""
     indent2 = indent + 4 * " "
