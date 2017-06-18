@@ -486,7 +486,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
                         res_reviews, res_support, sql_exception, sql_success)
 
 
-def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
+def update_extensions(archivedir, verbose, parallel, forums_ext_ids, ext_ids):
     ext_with_forums = []
     ext_without_forums = []
     ext_ids = list(set(ext_ids) - set(forums_ext_ids))
@@ -509,7 +509,7 @@ def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
     log(verbose,
         "  Updating {} extensions excluding forums (parallel))\n".format(
             len(parallel_ids)))
-    with Pool(12) as p:
+    with Pool(parallel) as p:
         ext_without_forums = list(
             p.map(
                 partial(update_extension, archivedir, verbose, False),

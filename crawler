@@ -154,10 +154,11 @@ def help():
 def main(argv):
     today = datetime.datetime.now(datetime.timezone.utc).isoformat()
     basedir = "archive"
+    parallel = 24
     verbose = True
     discover = False
     try:
-        opts, args = getopt.getopt(argv, "hsda:", ["archive="])
+        opts, args = getopt.getopt(argv, "hsdap:", ["archive=",'parallel='])
     except getopt.GetoptError:
         help()
         sys.exit(2)
@@ -167,6 +168,8 @@ def main(argv):
             sys.exit()
         elif opt in ("-a", "--archive"):
             basedir = arg
+        elif opt in ("-p", "--parallel"):
+            parallel = int(arg)
         elif opt == '-s':
             verbose = False
         elif opt == '-d':
@@ -183,10 +186,11 @@ def main(argv):
     start_time = time.time()
 
     log(verbose, "Configuration:\n")
-    log(verbose, "  Base dir:          {}\n".format(basedir))
-    log(verbose, "    Archive dir:     {}\n".format(archive_dir))
-    log(verbose, "    Conf. dir:       {}\n".format(conf_dir))
-    log(verbose, "  Discover new ext.: {}\n".format(discover))
+    log(verbose, "  Base dir:                         {}\n".format(basedir))
+    log(verbose, "    Archive directory:              {}\n".format(archive_dir))
+    log(verbose, "    Configuration directory:        {}\n".format(conf_dir))
+    log(verbose, "  Discover new extensions:          {}\n".format(discover))
+    log(verbose, "  Max num. of concurrent downloads: {}\n".format(parallel))
     log(verbose, "\n")
 
     forum_ext_ids = get_forum_ext_ids(conf_dir, verbose)
@@ -197,7 +201,7 @@ def main(argv):
         discovered_ids = get_new_ids(verbose, known_ids)
     ext_ids = list(set(discovered_ids) | set(known_ids))
 
-    res = update_extensions(archive_dir, verbose, forum_ext_ids, ext_ids)
+    res = update_extensions(archive_dir, verbose, parallel, forum_ext_ids, ext_ids)
 
     # We re-try (once) the extensions with unknown exceptions, as 
     # they are often temporary    
