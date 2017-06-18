@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) 2016,2017 The University of Sheffield, UK
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+import getopt
+import os
+import sys
+import glob
+import tarfile
+import tempfile
+
+from ExtensionCrawler.sqlite import *
+
+
+def setup_tables(con):
+    con.execute("""CREATE TABLE review ("""
+                """id INTEGER PRIMARY KEY,"""
+                """extid TEXT,"""
+                """date TEXT,"""
+                """user TEXT,"""
+                """reviewdate TEXT,"""
+                """rating TEXT,"""
+                """comment TEXT"""
+                """)""")
+    con.execute("""CREATE TABLE category ("""
+                """extid TEXT,"""
+                """date TEXT,"""
+                """category TEXT,"""
+                """PRIMARY KEY (extid, date, category)"""
+                """)""")
+    con.execute("""CREATE TABLE permission ("""
+                """crx_etag TEXT,"""
+                """permission TEXT,"""
+                """PRIMARY KEY (crx_etag, permission)"""
+                """)""")
+    con.execute("""CREATE TABLE crx ("""
+                """etag TEXT PRIMARY KEY,"""
+                """filename TEXT,"""
+                """publickey BLOB"""
+                """)""")
+    con.execute("""CREATE TABLE extension ("""
+                """extid TEXT,"""
+                """date TEXT,"""
+                """name TEXT,"""
+                """version TEXT,"""
+                """description TEXT,"""
+                """downloads INTEGER,"""
+                """fulldescription TEXT,"""
+                """developer TEXT,"""
+                """crx_etag TEXT,"""
+                """lastupdated TEXT,"""
+                """crx_status INTEGER,"""
+                """overview_status INTEGER,"""
+                """PRIMARY KEY (extid, date),"""
+                """FOREIGN KEY (crx_etag) REFERENCES crx(etag)"""
+                """)""")
+
+
+def help():
+    print("create_db [OPTION]")
+    print("    -h           print this help text")
+    print("    -a=<DIR>     archive directory")
+    print("    -p=<PREFIX>  three-letter-prefix")
+
+
+def main(argv):
+    basedir = "archive"
+    prefix = ""
+    try:
+        opts, args = getopt.getopt(argv, "ha:p:", ["archive=", "prefix="])
+    except getopt.GetoptError:
+        help()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            help()
+            sys.exit()
+        elif opt in ("-a", "--archive"):
+            basedir = arg
+        elif opt in ("-p", "--prefix"):
+            prefix = arg
+
+    archive_dir = os.path.join(basedir, "data")
+    threeletterdirs = glob.glob(os.path.join(archive_dir, prefix + "*"))
+    for threeletterdir in threeletterdirs:
+        for ext_id in set([d[:32] for d in os.listdir(threeletterdir)]):
+            tarpath = os.path.join(threeletterdir, ext_id + ".tar")
+            dbpath = os.path.join(threeletterdir, ext_id + ".sqlite")
+            if os.path.exists(dbpath):
+                os.remove(dbpath)
+            with tempfile.TemporaryDirectory() as tmpdir:
+                with tarfile.open(tarpath) as t:
+                    t.extractall(tmpdir)
+                    iddir = os.path.join(tmpdir, ext_id)
+
+                    with sqlite3.connect(dbpath) as con:
+                        setup_tables(con)
+                    for date in sorted(os.listdir(iddir)):
+                        datepath = os.path.join(iddir, date)
+                        print(
+                            update_sqlite_incremental(dbpath, datepath, ext_id,
+                                                      date, True, ""))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

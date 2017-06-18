@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # Copyright (C) 2016,2017 The University of Sheffield, UK
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -26,7 +26,7 @@ from random import randint
 import datetime
 from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
-from ExtensionCrawler.archive import *
+from ExtensionCrawler.archive import archive_file
 from ExtensionCrawler.sqlite import *
 import dateutil
 import dateutil.parser
@@ -76,7 +76,7 @@ class RequestResult:
 
 class UpdateResult:
     def __init__(self, id, is_new, exception, res_overview, res_crx,
-                 res_reviews, res_support):
+                 res_reviews, res_support,res_sql, sql_update):
         self.id = id
         self.new = is_new
         self.exception = exception
@@ -84,6 +84,8 @@ class UpdateResult:
         self.res_crx = res_crx
         self.res_reviews = res_reviews
         self.res_support = res_support
+        self.res_sql = res_sql
+        self.sql_update = sql_update
 
     def is_new(self):
         return self.new
@@ -128,9 +130,11 @@ class UpdateResult:
     def corrupt_tar(self):
         return self.exception is not None
 
-
-def get_local_archive_dir(id):
-    return "{}".format(id[:3])
+    def sql_exception(self):
+        return self.res_sql is not None
+    
+    def sql_success(self):
+        return self.sql_update
 
 
 def write_text(tardir, date, fname, text):
@@ -262,6 +266,7 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                 timeout=10,
                 allow_redirects=True)
             etag = res.headers.get('Etag')
+            write_text(tmptardir, date, extfilename + ".etag", etag)
             logtxt = logmsg(verbose, logtxt, (
                 "               - checking etag, last: {}\n" +
                 "                             current: {}\n").format(
@@ -287,6 +292,8 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                 for chunk in res.iter_content(chunk_size=512 * 1024):
                     if chunk:  # filter out keep-alive new chunks
                         f.write(chunk)
+            write_text(tmptardir, date, extfilename + ".etag",
+                       res.headers.get("ETag"))
     except Exception as e:
         logtxt = logmsg(verbose, logtxt,
                         "               - Exception: {}\n".format(str(e)))
@@ -354,6 +361,8 @@ def update_extension(archivedir, verbose, forums, ext_id):
     logtxt = logmsg(verbose, "", "    Updating {}".format(ext_id))
     is_new = False
     tar_exception = None
+    sql_exception = None
+    sql_success = False
     tmptardir = ""
     tmptar = ""
 
@@ -380,7 +389,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
         return UpdateResult(ext_id, is_new, tar_exception, res_overview,
-                            res_crx, res_reviews, res_support)
+                            res_crx, res_reviews, res_support, sql_exception, False)
 
     res_overview, msg_overview = update_overview(tmptardir, date, verbose,
                                                  ext_id)
@@ -443,10 +452,22 @@ def update_extension(archivedir, verbose, forums, ext_id):
         except Exception:
             pass
 
-    msg_updatesqlite = update_sqlite(archivedir, tmptardir, verbose, ext_id,
-                                     date)
-    log(verbose, logtxt + msg_updatesqlite)
+    try:
+        sql_success, msg_updatesqlite = update_sqlite(archivedir, tmptardir, ext_id, date, is_new,
+                                         verbose, 11 * " ")
+        logtxt = logmsg(verbose, logtxt, msg_updatesqlite)
 
+    except Exception as e:
+        logtxt = logmsg(verbose, logtxt,
+                        "           * Exception during update of sqlite db ")
+        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+
+        sql_exception = e
+
+        try:
+            write_text(tardir, date, ext_id + ".sql.exception", str(e))
+        except Exception as e:
+            pass
     try:
         shutil.rmtree(path=tmpdir)
     except Exception as e:
@@ -459,11 +480,12 @@ def update_extension(archivedir, verbose, forums, ext_id):
         except Exception:
             pass
 
+    log(verbose, logtxt)
     return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
-                        res_reviews, res_support)
+                        res_reviews, res_support, sql_exception, sql_success)
 
 
-def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
+def update_extensions(archivedir, verbose, parallel, forums_ext_ids, ext_ids):
     ext_with_forums = []
     ext_without_forums = []
     ext_ids = list(set(ext_ids) - set(forums_ext_ids))
@@ -471,7 +493,7 @@ def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
     log(verbose, "Updating {} extensions ({} including forums)\n".format(
         len(ext_ids), len(forums_ext_ids)))
     # First, update extensions with forums sequentially (and with delays) to
-    # avoid running into Googles DDOS detection. 
+    # avoid running into Googles DDOS detection.
     log(verbose,
         "  Updating {} extensions including forums (sequentially))\n".format(
             len(forums_ext_ids)))
@@ -486,7 +508,7 @@ def update_extensions(archivedir, verbose, forums_ext_ids, ext_ids):
     log(verbose,
         "  Updating {} extensions excluding forums (parallel))\n".format(
             len(parallel_ids)))
-    with Pool(12) as p:
+    with Pool(parallel) as p:
         ext_without_forums = list(
             p.map(
                 partial(update_extension, archivedir, verbose, False),
@@ -506,5 +528,6 @@ def get_existing_ids(archivedir, verbose):
 def get_forum_ext_ids(confdir, verbose):
     with open(os.path.join(confdir, "forums.conf")) as f:
         ids = f.readlines()
+    r = re.compile('^[a-p]+$')
     ids = [x.strip() for x in ids]
-    return ids
+    return list(filter(r.match, ids))
