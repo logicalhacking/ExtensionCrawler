@@ -22,52 +22,9 @@ import sys
 import glob
 import tarfile
 import tempfile
+import traceback
 
 from ExtensionCrawler.sqlite import *
-
-
-def setup_tables(con):
-    con.execute("""CREATE TABLE review ("""
-                """id INTEGER PRIMARY KEY,"""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """user TEXT,"""
-                """reviewdate TEXT,"""
-                """rating TEXT,"""
-                """comment TEXT"""
-                """)""")
-    con.execute("""CREATE TABLE category ("""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """category TEXT,"""
-                """PRIMARY KEY (extid, date, category)"""
-                """)""")
-    con.execute("""CREATE TABLE permission ("""
-                """crx_etag TEXT,"""
-                """permission TEXT,"""
-                """PRIMARY KEY (crx_etag, permission)"""
-                """)""")
-    con.execute("""CREATE TABLE crx ("""
-                """etag TEXT PRIMARY KEY,"""
-                """filename TEXT,"""
-                """publickey BLOB"""
-                """)""")
-    con.execute("""CREATE TABLE extension ("""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """name TEXT,"""
-                """version TEXT,"""
-                """description TEXT,"""
-                """downloads INTEGER,"""
-                """fulldescription TEXT,"""
-                """developer TEXT,"""
-                """crx_etag TEXT,"""
-                """lastupdated TEXT,"""
-                """crx_status INTEGER,"""
-                """overview_status INTEGER,"""
-                """PRIMARY KEY (extid, date),"""
-                """FOREIGN KEY (crx_etag) REFERENCES crx(etag)"""
-                """)""")
 
 
 def help():
@@ -94,10 +51,12 @@ def main(argv):
         elif opt in ("-p", "--prefix"):
             prefix = arg
 
-    archive_dir = os.path.join(basedir, "data")
-    threeletterdirs = glob.glob(os.path.join(archive_dir, prefix + "*"))
+    archivedir = os.path.join(basedir, "data")
+    threeletterdirs = glob.glob(os.path.join(archivedir, prefix + "*"))
     for threeletterdir in threeletterdirs:
         for ext_id in set([d[:32] for d in os.listdir(threeletterdir)]):
+            sys.stdout.write("Processing {}...\n".format(ext_id))
+            sys.stdout.flush()
             tarpath = os.path.join(threeletterdir, ext_id + ".tar")
             dbpath = os.path.join(threeletterdir, ext_id + ".sqlite")
             if os.path.exists(dbpath):
@@ -107,13 +66,21 @@ def main(argv):
                     t.extractall(tmpdir)
                     iddir = os.path.join(tmpdir, ext_id)
 
-                    with sqlite3.connect(dbpath) as con:
-                        setup_tables(con)
                     for date in sorted(os.listdir(iddir)):
-                        datepath = os.path.join(iddir, date)
-                        print(
-                            update_sqlite_incremental(dbpath, datepath, ext_id,
-                                                      date, True, ""))
+                        try:
+                            sys.stdout.write(
+                                update_sqlite_incremental(
+                                    archivedir, iddir, ext_id, date, True, ""))
+                            sys.stdout.flush()
+                        except Exception as e:
+                            sys.stdout.write(
+                                "Exception when handling {} on {}:\n".format(
+                                    ext_id, date))
+                            sys.stdout.write(traceback.format_exc())
+                            sys.stdout.flush()
+
+            sys.stdout.write("\n")
+            sys.stdout.flush()
 
 
 if __name__ == "__main__":
