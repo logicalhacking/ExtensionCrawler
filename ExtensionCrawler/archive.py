@@ -461,7 +461,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
     try:
         logtxt = logmsg(verbose, logtxt, "           * Updating db...\n")
         msg_updatesqlite = update_sqlite_incremental(
-            archivedir, tmptardir, ext_id, date, verbose, 11 * " ")
+            archivedir, tmptardir, ext_id, date, verbose, 15 * " ")
         logtxt = logmsg(verbose, logtxt, msg_updatesqlite)
         sql_success = True
     except Exception as e:

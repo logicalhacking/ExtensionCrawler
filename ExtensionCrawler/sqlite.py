@@ -120,6 +120,18 @@ def get_crx_status(datepath):
         with open(statuspath) as f:
             return int(f.read())
 
+    # If the extension is paid, we will find a main.headers file...
+    statuspath = os.path.join(datepath, "main.status")
+    if os.path.exists(statuspath):
+        with open(statuspath) as f:
+            return int(f.read())
+
+    # ... or an default.crx.headers file
+    statuspath = os.path.join(datepath, "default.crx.status")
+    if os.path.exists(statuspath):
+        with open(statuspath) as f:
+            return int(f.read())
+
 
 def parse_and_insert_overview(ext_id, date, datepath, con):
     overview_path = os.path.join(datepath, "overview.html")
@@ -180,7 +192,6 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
 
 def parse_and_insert_crx(ext_id, date, datepath, con):
     crx_path = next(iter(glob.glob(os.path.join(datepath, "*.crx"))), None)
-    print(crx_path)
     if crx_path:
         filename = os.path.basename(crx_path)
 
@@ -252,7 +263,7 @@ def update_sqlite_incremental(archivedir, tmptardir, ext_id, date, verbose,
     datepath = os.path.join(tmptardir, date)
 
     txt = logmsg(verbose, txt,
-                 indent + "- updating db with data from {}\n".format(date))
+                 indent + "- updating with data from {}\n".format(date))
 
     if not os.path.exists(db_path):
         txt = logmsg(verbose, txt,
@@ -284,8 +295,10 @@ def update_sqlite_incremental(archivedir, tmptardir, ext_id, date, verbose,
                     txt = logmsg(verbose, txt, str(e))
                     txt = logmsg(verbose, txt, "\n")
         else:
-            txt = logmsg(verbose, txt,
-                         indent2 + "* WARNING: could not find etag\n")
+            crx_status = get_crx_status(datepath)
+            if crx_status != 401 and crx_status != 204:
+                txt = logmsg(verbose, txt,
+                             indent2 + "* WARNING: could not find etag\n")
 
         reviewpaths = glob.glob(os.path.join(datepath, "reviews*.text"))
         for reviewpath in reviewpaths:

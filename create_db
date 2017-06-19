@@ -55,7 +55,7 @@ def main(argv):
     threeletterdirs = glob.glob(os.path.join(archivedir, prefix + "*"))
     for threeletterdir in threeletterdirs:
         for ext_id in set([d[:32] for d in os.listdir(threeletterdir)]):
-            sys.stdout.write("Processing {}...\n".format(ext_id))
+            sys.stdout.write("Processing {} ...\n".format(ext_id))
             sys.stdout.flush()
             tarpath = os.path.join(threeletterdir, ext_id + ".tar")
             dbpath = os.path.join(threeletterdir, ext_id + ".sqlite")
