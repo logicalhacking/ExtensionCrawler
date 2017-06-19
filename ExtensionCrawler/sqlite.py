@@ -109,8 +109,10 @@ def get_etag(ext_id, datepath, con):
 
 
 def get_overview_status(datepath):
-    with open(os.path.join(datepath, "overview.html.status")) as f:
-        return int(f.read())
+    overviewstatuspath = os.path.join(datepath, "overview.html.status")
+    if os.path.exists(overviewstatuspath):
+        with open(overviewstatuspath) as f:
+            return int(f.read())
 
 
 def get_crx_status(datepath):
