@@ -19,7 +19,7 @@ from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 from ExtensionCrawler.crx import *
 
-from ExtensionCrawler import archive
+from ExtensionCrawler.archive import *
 
 import sqlite3
 import re
