@@ -158,7 +158,7 @@ def main(argv):
     verbose = True
     discover = False
     try:
-        opts, args = getopt.getopt(argv, "hsdap:", ["archive=",'parallel='])
+        opts, args = getopt.getopt(argv, "hsda:p:", ["archive=",'parallel='])
     except getopt.GetoptError:
         help()
         sys.exit(2)
