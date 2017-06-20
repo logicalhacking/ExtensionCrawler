@@ -194,7 +194,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
                 0]) if last_updated_parent else None
 
             etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent)
-            txt = logmsg(verbose, txt, etag_mgs)
+            txt = logmsg(verbose, txt, etag_msg)
 
             con.execute("INSERT INTO extension VALUES (?,?,?,?,?,?,?,?,?,?)",
                         (ext_id, date, name, version, description, downloads,
@@ -208,13 +208,15 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
     return txt
 
 
-def parse_and_insert_crx(ext_id, date, datepath, con):
+def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
+    txt = ""
     crx_path = next(iter(glob.glob(os.path.join(datepath, "*.crx"))), None)
     if crx_path:
         filename = os.path.basename(crx_path)
 
         with ZipFile(crx_path) as f:
-            etag = get_etag(ext_id, datepath, con)
+            etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent)
+            txt = logmsg(verbose, txt, etag_msg)
             with f.open("manifest.json") as m:
                 raw_content = m.read()
                 # There are some manifests that seem to have weird encodings...
@@ -234,6 +236,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
 
             con.execute("INSERT INTO crx VALUES (?,?,?)", (etag, filename,
                                                            public_key))
+    return txt
 
 
 def get(d, k):
@@ -301,7 +304,8 @@ def update_sqlite_incremental(archivedir, tmptardir, ext_id, date, verbose,
         parse_and_insert_overview(ext_id, date, datepath, con, verbose,
                                   indent2)
 
-        etag = get_etag(ext_id, datepath, con)
+        etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
+        txt = logmsg(verbose, txt, etag_msg)
         etag_already_in_db = next(
             con.execute("SELECT COUNT(etag) FROM crx WHERE etag=?", (etag, )))[
                 0]
@@ -309,7 +313,9 @@ def update_sqlite_incremental(archivedir, tmptardir, ext_id, date, verbose,
         if etag:
             if not etag_already_in_db:
                 try:
-                    parse_and_insert_crx(ext_id, date, datepath, con)
+                    crx_msg = parse_and_insert_crx(ext_id, date, datepath, con,
+                                                   verbose, indent)
+                    txt = logmsg(verbose, txt, crx_msg)
                 except zipfile.BadZipfile as e:
                     txt = logmsg(
                         verbose, txt, indent2 +
