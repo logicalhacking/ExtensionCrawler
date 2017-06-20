@@ -227,18 +227,20 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
         content = f.read()
         stripped = content[content.find('{"'):]
         d = json.JSONDecoder().raw_decode(stripped)
-        for review in d[0]["annotations"]:
-            timestamp = get(review, "timestamp")
-            starRating = get(review, "starRating")
-            comment = get(review, "comment")
-            displayname = get(get(review, "entity"), "displayName")
-            author = get(get(review, "entity"), "author")
-            language = get(get(review, "entity"), "language")
-            shortauthor = get(get(review, "entity"), "shortAuthor")
+        annotations = get(next(iter(d), None), "annotations")
+        if annotations:
+            for review in d[0]["annotations"]:
+                timestamp = get(review, "timestamp")
+                starRating = get(review, "starRating")
+                comment = get(review, "comment")
+                displayname = get(get(review, "entity"), "displayName")
+                author = get(get(review, "entity"), "author")
+                language = get(get(review, "entity"), "language")
+                shortauthor = get(get(review, "entity"), "shortAuthor")
 
-            con.execute("INSERT INTO review VALUES(?,?,?,?,?,?,?,?,?,?)",
-                        (None, ext_id, date, author, displayname, timestamp,
-                         starRating, language, shortauthor, comment))
+                con.execute("INSERT INTO review VALUES(?,?,?,?,?,?,?,?,?,?)",
+                            (None, ext_id, date, author, displayname, timestamp,
+                            starRating, language, shortauthor, comment))
 
 
 def parse_and_insert_status(ext_id, date, datepath, con):
