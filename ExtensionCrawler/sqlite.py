@@ -335,7 +335,7 @@ def update_sqlite_incremental(archivedir, tmptardir, ext_id, date, verbose,
                     txt = logmsg(verbose, txt, "\n")
         else:
             crx_status = get_crx_status(datepath)
-            if crx_status != 401 and crx_status != 204:
+            if crx_status != 401 and crx_status != 204 and crx_status != 404:
                 txt = logmsg(verbose, txt,
                              indent2 + "* WARNING: could not find etag\n")
 
