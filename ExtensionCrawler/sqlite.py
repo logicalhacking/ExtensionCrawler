@@ -123,7 +123,7 @@ def get_overview_status(datepath):
     overviewstatuspath = os.path.join(datepath, "overview.html.status")
     if os.path.exists(overviewstatuspath):
         with open(overviewstatuspath) as f:
-            return int(f.read()), txt
+            return int(f.read())
 
 
 def get_crx_status(datepath):
@@ -131,7 +131,7 @@ def get_crx_status(datepath):
         iter(glob.glob(os.path.join(datepath, "*.crx.status"))), None)
     if statuspath:
         with open(statuspath) as f:
-            return int(f.read()), txt
+            return int(f.read())
 
     # If the extension is paid, we will find a main.headers file...
     statuspath = os.path.join(datepath, "main.status")
