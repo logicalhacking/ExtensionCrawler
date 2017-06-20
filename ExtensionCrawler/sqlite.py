@@ -229,9 +229,11 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
 
                 # Attempt to remove JavaScript-style comments from json
                 comment_regex = re.compile(r'\s*//.*')
+                multiline_comment_regex = re.compile(r'\s*/\\*.*\\*/')
                 lines = content.splitlines()
                 for index, line in enumerate(lines):
-                    if comment_regex.match(line):
+                    if comment_regex.match(
+                            line) or multiline_comment_regex.match(line):
                         lines[index] = ""
                 content = "\n".join(lines)
 
