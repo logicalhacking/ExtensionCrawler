@@ -239,8 +239,9 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
                 shortauthor = get(get(review, "entity"), "shortAuthor")
 
                 con.execute("INSERT INTO review VALUES(?,?,?,?,?,?,?,?,?,?)",
-                            (None, ext_id, date, author, displayname, timestamp,
-                            starRating, language, shortauthor, comment))
+                            (None, ext_id, date, author, displayname,
+                             timestamp, starRating, language, shortauthor,
+                             comment))
 
 
 def parse_and_insert_status(ext_id, date, datepath, con):
@@ -263,7 +264,7 @@ def update_sqlite_incremental(archivedir, tmptardir, ext_id, date, verbose,
     txt = ""
     indent2 = indent + 4 * " "
 
-    db_path = os.path.join(archivedir, ext_id[:3], ext_id + ".sqlite")
+    db_path = db_file(archivedir, ext_id)
     datepath = os.path.join(tmptardir, date)
 
     txt = logmsg(verbose, txt,

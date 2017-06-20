@@ -25,6 +25,7 @@ import tempfile
 import traceback
 
 from ExtensionCrawler.sqlite import *
+from ExtensionCrawler.config import *
 
 
 def help():
@@ -57,8 +58,8 @@ def main(argv):
         for ext_id in set([d[:32] for d in os.listdir(threeletterdir)]):
             sys.stdout.write("Processing {} ...\n".format(ext_id))
             sys.stdout.flush()
-            tarpath = os.path.join(threeletterdir, ext_id + ".tar")
-            dbpath = os.path.join(threeletterdir, ext_id + ".sqlite")
+            tarpath = archive_file(archivedir, ext_id)
+            dbpath = db_file(archivedir, ext_id)
             if os.path.exists(dbpath):
                 os.remove(dbpath)
             with tempfile.TemporaryDirectory() as tmpdir:
