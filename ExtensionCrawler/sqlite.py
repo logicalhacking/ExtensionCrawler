@@ -82,15 +82,24 @@ def setup_tables(con):
                 """)""")
 
 
-def get_etag(ext_id, datepath, con):
+def get_etag(ext_id, datepath, con, verbose, indent):
+    txt = ""
+
     #Trying to parse header file for etag
     headerpath = next(
         iter(glob.glob(os.path.join(datepath, "*.crx.headers"))), None)
     if headerpath:
         with open(headerpath) as f:
-            headers = eval(f.read())
-            if "ETag" in headers:
-                return headers["ETag"]
+            content = f.read()
+            try:
+                headers = eval(content)
+                if "ETag" in headers:
+                    return headers["ETag"], txt
+            except Exception:
+                txt = logmsg(
+                    verbose, txt,
+                    indent + "* WARNING: could not parse crx header file")
+                pass
 
     #Trying to look up previous etag in database
     linkpath = next(
@@ -105,14 +114,16 @@ def get_etag(ext_id, datepath, con):
                     "SELECT crx_etag FROM extension WHERE extid=? AND date=?",
                     (ext_id, linked_date)), None)
             if row:
-                return row[0]
+                return row[0], txt
+
+    return None, txt
 
 
 def get_overview_status(datepath):
     overviewstatuspath = os.path.join(datepath, "overview.html.status")
     if os.path.exists(overviewstatuspath):
         with open(overviewstatuspath) as f:
-            return int(f.read())
+            return int(f.read()), txt
 
 
 def get_crx_status(datepath):
@@ -120,7 +131,7 @@ def get_crx_status(datepath):
         iter(glob.glob(os.path.join(datepath, "*.crx.status"))), None)
     if statuspath:
         with open(statuspath) as f:
-            return int(f.read())
+            return int(f.read()), txt
 
     # If the extension is paid, we will find a main.headers file...
     statuspath = os.path.join(datepath, "main.status")
@@ -135,7 +146,9 @@ def get_crx_status(datepath):
             return int(f.read())
 
 
-def parse_and_insert_overview(ext_id, date, datepath, con):
+def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
+    txt = ""
+
     overview_path = os.path.join(datepath, "overview.html")
     if os.path.exists(overview_path):
         with open(overview_path) as overview_file:
@@ -180,7 +193,8 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
             last_updated = str(last_updated_parent.contents[
                 0]) if last_updated_parent else None
 
-            etag = get_etag(ext_id, datepath, con)
+            etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent)
+            txt = logmsg(verbose, txt, etag_mgs)
 
             con.execute("INSERT INTO extension VALUES (?,?,?,?,?,?,?,?,?,?)",
                         (ext_id, date, name, version, description, downloads,
@@ -190,6 +204,8 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
                 for category in categories:
                     con.execute("INSERT INTO category VALUES (?,?,?)",
                                 (ext_id, date, category))
+
+    return txt
 
 
 def parse_and_insert_crx(ext_id, date, datepath, con):
@@ -282,9 +298,8 @@ def update_sqlite_incremental(archivedir, tmptardir, ext_id, date, verbose,
     with sqlite3.connect(db_path) as con:
         parse_and_insert_status(ext_id, date, datepath, con)
 
-        parse_and_insert_overview(ext_id, date, datepath, con)
-
-        crx_path = next(iter(glob.glob(os.path.join(datepath, "*.crx"))), None)
+        parse_and_insert_overview(ext_id, date, datepath, con, verbose,
+                                  indent2)
 
         etag = get_etag(ext_id, datepath, con)
         etag_already_in_db = next(
