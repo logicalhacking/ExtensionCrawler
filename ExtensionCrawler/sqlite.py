@@ -200,16 +200,19 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
         with ZipFile(crx_path) as f:
             etag = get_etag(ext_id, datepath, con)
             with f.open("manifest.json") as m:
+                raw_content = m.read()
+                # There are some manifests that seem to have weird encodings...
                 try:
-                    # There are some manifests that seem to have weird encodings...
-                    manifest = json.loads(m.read().decode("utf-8-sig"))
-                    if "permissions" in manifest:
-                        for permission in manifest["permissions"]:
-                            con.execute(
-                                "INSERT OR REPLACE INTO permission VALUES (?,?)",
-                                (etag, str(permission)))
-                except json.decoder.JSONDecodeError:
-                    pass
+                    content = raw_content.decode("utf-8-sig")
+                except UnicodeDecodeError:
+                    #Trying a different encoding, manifests are weird...
+                    content = raw_content.decode("latin1")
+                manifest = json.loads(content)
+                if "permissions" in manifest:
+                    for permission in manifest["permissions"]:
+                        con.execute(
+                            "INSERT OR REPLACE INTO permission VALUES (?,?)",
+                            (etag, str(permission)))
 
             public_key = read_crx(crx_path).pk
 
