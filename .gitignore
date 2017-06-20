@@ -58,4 +58,7 @@ docs/_build/
 # PyBuilder
 target/
 
+# vi
+*.swp
+
 archive

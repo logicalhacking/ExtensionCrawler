@@ -76,7 +76,7 @@ class RequestResult:
 
 class UpdateResult:
     def __init__(self, id, is_new, exception, res_overview, res_crx,
-                 res_reviews, res_support,res_sql, sql_update):
+                 res_reviews, res_support, res_sql, sql_update):
         self.id = id
         self.new = is_new
         self.exception = exception
@@ -111,18 +111,18 @@ class UpdateResult:
             (self.res_support is not None and self.res_support.not_found()))
 
     def has_exception(self):
-        return (
-            self.res_overview.has_exception() or
-            self.res_crx.has_exception() or
-            (self.res_reviews is not None and self.res_reviews.has_exception())
-            or (self.res_support is not None and
-                self.res_support.has_exception()))
+        return (self.res_overview.has_exception() or
+                self.res_crx.has_exception() or
+                (self.res_reviews is not None and
+                 self.res_reviews.has_exception()) or (
+                     self.res_support is not None and
+                     self.res_support.has_exception()))
 
     def raised_google_ddos(self):
-        return (
-            (self.res_reviews is not None and self.res_reviews.not_available())
-            or (self.res_support is not None and
-                self.res_support.not_available()))
+        return ((self.res_reviews is not None and
+                 self.res_reviews.not_available()) or
+                (self.res_support is not None and
+                 self.res_support.not_available()))
 
     def not_modified(self):
         return self.res_crx.not_modified()
@@ -132,7 +132,7 @@ class UpdateResult:
 
     def sql_exception(self):
         return self.res_sql is not None
-    
+
     def sql_success(self):
         return self.sql_update
 
@@ -261,11 +261,10 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
             extfilename = "default.crx"
 
         if res.status_code == 304:
-            res = requests.head(
+            etag = requests.head(
                 const_download_url().format(ext_id),
                 timeout=10,
-                allow_redirects=True)
-            etag = res.headers.get('Etag')
+                allow_redirects=True).headers.get('ETag')
             write_text(tmptardir, date, extfilename + ".etag", etag)
             logtxt = logmsg(verbose, logtxt, (
                 "               - checking etag, last: {}\n" +
@@ -389,7 +388,8 @@ def update_extension(archivedir, verbose, forums, ext_id):
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
         return UpdateResult(ext_id, is_new, tar_exception, res_overview,
-                            res_crx, res_reviews, res_support, sql_exception, False)
+                            res_crx, res_reviews, res_support, sql_exception,
+                            False)
 
     res_overview, msg_overview = update_overview(tmptardir, date, verbose,
                                                  ext_id)
@@ -453,10 +453,11 @@ def update_extension(archivedir, verbose, forums, ext_id):
             pass
 
     try:
-        sql_success, msg_updatesqlite = update_sqlite(archivedir, tmptardir, ext_id, date, is_new,
-                                         verbose, 11 * " ")
+        logtxt = logmsg(verbose, logtxt, "           * Updating db...\n")
+        msg_updatesqlite = update_sqlite_incremental(
+            archivedir, tmptardir, ext_id, date, verbose, 15 * " ")
         logtxt = logmsg(verbose, logtxt, msg_updatesqlite)
-
+        sql_success = True
     except Exception as e:
         logtxt = logmsg(verbose, logtxt,
                         "           * Exception during update of sqlite db ")

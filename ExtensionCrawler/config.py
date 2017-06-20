@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # Copyright (C) 2016,2017 The University of Sheffield, UK
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -85,3 +85,8 @@ def get_local_archive_dir(id):
 def archive_file(archivedir, ext_id):
     return os.path.join(
         str(archivedir), get_local_archive_dir(ext_id), ext_id + ".tar")
+
+
+def db_file(archivedir, ext_id):
+    return os.path.join(archivedir,
+                        get_local_archive_dir(ext_id), ext_id + ".sqlite")
