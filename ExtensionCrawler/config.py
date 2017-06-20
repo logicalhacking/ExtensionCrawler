@@ -74,8 +74,8 @@ def const_review_payload(ext_id, start, end):
         '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",'
         + '"groups":"chrome_webstore",' + '"sortby":"cws_qscore",' +
         '"startindex":"{}",' + '"numresults":"{}",' + '"id":"428"}}],' +
-        '"internedKeys":[],' + '"internedValues":[]}}').format(
-            ext_id, start, end)
+        '"internedKeys":[],' + '"internedValues":[]}}').format(ext_id, start,
+                                                               end)
 
 
 def get_local_archive_dir(id):
