@@ -35,6 +35,7 @@ class SelfclosingSqliteDB:
         self.con = sqlite3.connect(self.filename)
         return self.con
     def __exit__(self, *args):
+        self.con.commit()
         self.con.close()
 
 
@@ -93,6 +94,12 @@ def setup_tables(con):
 
 def get_etag(ext_id, datepath, con, verbose, indent):
     txt = ""
+
+    # Trying to parse etag file
+    etagpath = next(iter(glob.glob(os.path.join(datepath, "*.crx.etag"))), None)
+    if etagpath:
+        with open(etagpath) as f:
+            return f.read(), txt
 
     # Trying to parse header file for etag
     headerpath = next(
