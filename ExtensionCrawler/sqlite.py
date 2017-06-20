@@ -237,7 +237,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                         lines[index] = ""
                 content = "\n".join(lines)
 
-                manifest = json.loads(content)
+                manifest = json.loads(content, strict=False)
                 if "permissions" in manifest:
                     for permission in manifest["permissions"]:
                         con.execute(
