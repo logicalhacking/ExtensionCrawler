@@ -28,6 +28,15 @@ import json
 import os
 import glob
 
+class SelfclosingSqliteDB:
+    def __init__(self, filename):
+        self.filename = filename
+    def __enter__(self):
+        self.con = sqlite3.connect(self.filename)
+        return self.con
+    def __exit__(self, *args):
+        self.con.close()
+
 
 def setup_tables(con):
     con.execute("""CREATE TABLE review ("""
@@ -307,10 +316,10 @@ def update_sqlite_incremental(archivedir, tmptardir, ext_id, date, verbose,
     if not os.path.exists(db_path):
         txt = logmsg(verbose, txt,
                      indent2 + "* db file does not exist, creating...\n")
-        with sqlite3.connect(db_path) as con:
+        with SelfclosingSqliteDB(db_path) as con:
             setup_tables(con)
 
-    with sqlite3.connect(db_path) as con:
+    with SelfclosingSqliteDB(db_path) as con:
         parse_and_insert_status(ext_id, date, datepath, con)
 
         parse_and_insert_overview(ext_id, date, datepath, con, verbose,
