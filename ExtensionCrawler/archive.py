@@ -93,16 +93,16 @@ class UpdateResult:
     def is_ok(self):
         return (self.res_overview.is_ok() and
                 (self.res_crx.is_ok() or self.res_crx.not_modified()) and
-                ((self.res_reviews is None) or self.res_reviews.is_ok()) and
-                ((self.res_support is None) or self.res_support.is_ok()))
+                ((self.res_reviews is None) or self.res_reviews.is_ok()) and (
+                    (self.res_support is None) or self.res_support.is_ok()))
 
     def not_authorized(self):
         return (self.res_overview.not_authorized() or
                 self.res_crx.not_authorized() or
                 (self.res_reviews is not None and
-                 self.res_reviews.not_authorized()) or
-                (self.res_support is not None and
-                 self.res_support.not_authorized()))
+                 self.res_reviews.not_authorized()) or (
+                     self.res_support is not None and
+                     self.res_support.not_authorized()))
 
     def not_in_store(self):
         return (
@@ -114,9 +114,9 @@ class UpdateResult:
         return (self.res_overview.has_exception() or
                 self.res_crx.has_exception() or
                 (self.res_reviews is not None and
-                 self.res_reviews.has_exception()) or
-                (self.res_support is not None and
-                 self.res_support.has_exception()))
+                 self.res_reviews.has_exception()) or (
+                     self.res_support is not None and
+                     self.res_support.has_exception()))
 
     def raised_google_ddos(self):
         return ((self.res_reviews is not None and
@@ -161,9 +161,8 @@ def httpdate(dt):
         "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
         "Nov", "Dec"
     ][dt.month - 1]
-    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (weekday, dt.day, month,
-                                                    dt.year, dt.hour,
-                                                    dt.minute, dt.second)
+    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (
+        weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
 
 
 def last_modified_utc_date(path):
@@ -252,11 +251,10 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
     if last_crx_file is not "":
         headers = {'If-Modified-Since': last_crx_http_date}
     try:
-        res = requests.get(
-            const_download_url().format(ext_id),
-            stream=True,
-            headers=headers,
-            timeout=10)
+        res = requests.get(const_download_url().format(ext_id),
+                           stream=True,
+                           headers=headers,
+                           timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}\n".format(str(res.status_code)))
         extfilename = os.path.basename(res.url)
         if re.search('&', extfilename):
@@ -268,21 +266,19 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                 timeout=10,
                 allow_redirects=True).headers.get('ETag')
             write_text(tmptardir, date, extfilename + ".etag", etag)
-            logtxt = logmsg(
-                verbose, logtxt,
-                ("               - checking etag, last: {}\n" +
-                 "                             current: {}\n").format(
-                     last_crx_etag, etag))
+            logtxt = logmsg(verbose, logtxt, (
+                "               - checking etag, last: {}\n" +
+                "                             current: {}\n").format(
+                    last_crx_etag, etag))
 
             if ((etag is not "") and (etag != last_crx_etag)):
                 logtxt = logmsg(
                     verbose, logtxt,
                     "               - downloading due to different etags\n")
 
-                res = requests.get(
-                    const_download_url().format(ext_id),
-                    stream=True,
-                    timeout=10)
+                res = requests.get(const_download_url().format(ext_id),
+                                   stream=True,
+                                   timeout=10)
             else:
                 write_text(tmptardir, date, extfilename + ".link",
                            os.path.join("..",
