@@ -263,11 +263,10 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
             extfilename = "default.crx"
 
         if res.status_code == 304:
-            res = requests.head(
+            etag = requests.head(
                 const_download_url().format(ext_id),
                 timeout=10,
-                allow_redirects=True)
-            etag = res.headers.get('Etag')
+                allow_redirects=True).headers.get('ETag')
             write_text(tmptardir, date, extfilename + ".etag", etag)
             logtxt = logmsg(
                 verbose, logtxt,
