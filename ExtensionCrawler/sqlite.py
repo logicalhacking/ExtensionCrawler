@@ -85,7 +85,7 @@ def setup_tables(con):
 def get_etag(ext_id, datepath, con, verbose, indent):
     txt = ""
 
-    #Trying to parse header file for etag
+    # Trying to parse header file for etag
     headerpath = next(
         iter(glob.glob(os.path.join(datepath, "*.crx.headers"))), None)
     if headerpath:
@@ -101,7 +101,7 @@ def get_etag(ext_id, datepath, con, verbose, indent):
                     indent + "* WARNING: could not parse crx header file")
                 pass
 
-    #Trying to look up previous etag in database
+    # Trying to look up previous etag in database
     linkpath = next(
         iter(glob.glob(os.path.join(datepath, "*.crx.link"))), None)
     if linkpath:
@@ -173,7 +173,8 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
             match = re.search("""user_count.*?(\d+)""", contents)
             downloads = int(match.group(1)) if match else None
 
-            # Extracts the full extension description as it appears on the overview page
+            # Extracts the full extension description as it appears on the
+            # overview page
             doc = BeautifulSoup(contents, 'html.parser')
 
             description_parent = doc.find('div', itemprop="description")
@@ -223,8 +224,17 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                 try:
                     content = raw_content.decode("utf-8-sig")
                 except UnicodeDecodeError:
-                    #Trying a different encoding, manifests are weird...
+                    # Trying a different encoding, manifests are weird...
                     content = raw_content.decode("latin1")
+
+                # Attempt to remove JavaScript-style comments from json
+                comment_regex = re.compile(r'\s*//.*')
+                lines = content.splitlines()
+                for index, line in enumerate(lines):
+                    if comment_regex.match(line):
+                        lines[index] = ""
+                content = "\n".join(lines)
+
                 manifest = json.loads(content)
                 if "permissions" in manifest:
                     for permission in manifest["permissions"]:
