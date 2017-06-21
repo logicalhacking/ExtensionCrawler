@@ -216,7 +216,7 @@ def main(argv):
             set(forum_ext_ids).intersection(set(has_exception_ids)))
         ext_ids_except = sorted(
             list(set(has_exception_ids) - set(forum_ext_ids_except)))
-        res_update = update_extensions(archive_dir, verbose,
+        res_update = update_extensions(archive_dir, verbose, parallel,
                                        forum_ext_ids_except, ext_ids_except)
         res = oldres + res_update
 
