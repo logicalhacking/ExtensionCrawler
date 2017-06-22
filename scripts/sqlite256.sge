@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+#$ -t 1-256
+#
+# Usage:
+# 1. Make sure conda environment "mypython35" exists.
+# 2. Make sure to checkout ExtensionCrawler somehwere.
+#
+# Example invocation:
+# qsub sqlite256.sge DBPATH [EXTENSIONCRAWLERPATH]
+#     DBPATH                  base dir for the generated db files
+#     [EXTENSIONCRAWLERPATH]  ExtensionCrawler git repo, defaults to ~/ExtensionCrawler
+
+module -s load apps/python/conda 2> /dev/null
+source activate mypython35
+
+set -u
+
+ABC=abcdefghijklmnopqrstuvwxyz
+let "I1 = ((SGE_TASK_ID-1) / 16) % 16"
+let "I2 = (SGE_TASK_ID-1) % 16"
+LETTER=${ABC:$I1:1}${ABC:$I2:1}
+
+SNAPSHOTDIR="$(find /shared/brucker_research1/Shared/BrowserExtensions/.snapshot -maxdepth 1 -mindepth 1 -name "Daily *" | sort -r | head -n 1)"
+DBPATH="$1"
+EXTENSIONCRAWLERDIR="${2:-~/ExtensionCrawler}"
+
+python "$EXTENSIONCRAWLERDIR/create_db" -a "$SNAPSHOTDIR" -p $LETTER "$DBPATH"
