@@ -30,19 +30,20 @@ from ExtensionCrawler.config import *
 
 
 def help():
-    print("create_db [OPTION]")
+    print("create_db [OPTION] DBBASEDIR")
+    print("    DBBASEDIR    directory for generated db files")
     print("    -h           print this help text")
     print("    -a=<DIR>     archive directory")
     print("    -p=<PREFIX>  three-letter-prefix")
     print("    -t=<THREADS> number of parallel threads")
 
 
-def process_id(archivedir, verbose, ext_id):
+def process_id(archivedir, dbbasedir, verbose, ext_id):
     txt = ""
     txt = logmsg(verbose, txt, "Processing {} ...\n".format(ext_id))
 
     tarpath = archive_file(archivedir, ext_id)
-    dbpath = db_file(archivedir, ext_id)
+    dbpath = os.path.join(dbbasedir, ext_id + ".sqlite")
     if os.path.exists(dbpath):
         os.remove(dbpath)
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -53,9 +54,9 @@ def process_id(archivedir, verbose, ext_id):
             for date in sorted(os.listdir(iddir)):
                 try:
                     update_txt = update_sqlite_incremental(
-                        archivedir, iddir, ext_id, date, True, "")
+                        dbpath, iddir, ext_id, date, True, "")
                     txt = logmsg(verbose, txt, update_txt)
-                except Exception as e:
+                except Exception:
                     txt = logmsg(verbose, txt,
                                  "Exception when handling {} on {}:\n".format(
                                      ext_id, date))
@@ -87,12 +88,18 @@ def main(argv):
         elif opt in ("-t", "--threads"):
             parallel = int(arg)
 
+    if len(args) < 1:
+        help()
+        sys.exit(2)
+
+    dbbasedir = args[0]
+
     archivedir = os.path.join(basedir, "data")
     threeletterdirs = glob.glob(os.path.join(archivedir, prefix + "*"))
     for threeletterdir in threeletterdirs:
         ext_ids = list(set([d[:32] for d in os.listdir(threeletterdir)]))
         with Pool(parallel) as p:
-            for txt in p.imap(partial(process_id, archivedir, True), ext_ids):
+            for txt in p.imap(partial(process_id, archivedir, dbbasedir, True), ext_ids):
                 sys.stdout.write(txt)
                 sys.stdout.flush()
 

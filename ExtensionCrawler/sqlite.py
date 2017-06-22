@@ -309,12 +309,11 @@ def parse_and_insert_status(ext_id, date, datepath, con):
                  overview_exception))
 
 
-def update_sqlite_incremental(archivedir, tmptardir, ext_id, date, verbose,
+def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
                               indent):
     txt = ""
     indent2 = indent + 4 * " "
 
-    db_path = db_file(archivedir, ext_id)
     datepath = os.path.join(tmptardir, date)
 
     txt = logmsg(verbose, txt,
