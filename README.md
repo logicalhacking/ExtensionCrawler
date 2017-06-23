@@ -6,6 +6,8 @@ extension from the Chrome Web store.
 * `crx-tool`: A tool for analyzing and extracting `*.crx` files
   (i.e., Chrome extensions). Calling `crx-tool.py <extension>.crx`
   will check the integrity of the extension.
+* `create_db`: A tool for creating/initialiZing the database files 
+  from already existing extension archives.
 
 All utilities are written in Python 3.x. The following non-standard 
 modules might be required:
