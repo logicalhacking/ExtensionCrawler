@@ -3,9 +3,7 @@ A collection of utilities for downloading and analyzing browser
 extension from the Chrome Web store.
 
 * `crawler`: A crawler for extensions from the Chrome Web Store. 
-* `permstats.py`: A tool for generating statistical data from the
-  crawled extensions. 
-* `crx-tool.py`: A tool for analyzing and extracting `*.crx` files
+* `crx-tool`: A tool for analyzing and extracting `*.crx` files
   (i.e., Chrome extensions). Calling `crx-tool.py <extension>.crx`
   will check the integrity of the extension.
 
