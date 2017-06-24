@@ -9,6 +9,25 @@ extension from the Chrome Web store.
 * `create_db`: A tool for creating/initialiZing the database files 
   from already existing extension archives.
 
+The utilities store the extensions in the following directory 
+hierarchy:
+```
+   archive
+   ├── conf
+   │   └── forums.conf
+   ├── data
+   │   └── ...
+   └── log
+       └── ...
+```
+The crawler downloads the most recent extension (i.e., the `*.crx`
+file as well as the overview page. In addition, the `conf` directory 
+may contain one file, called `forums.conf` that lists the ids of 
+extensions for which the forums and support pages should be downloaded
+as well.  The `data` directory will contain the downloaded extensions 
+as well as sqlite files containing the extracted meta data. The sqlite
+files can easily be re-generated using the `create_db` tool. 
+
 All utilities are written in Python 3.x. The following non-standard 
 modules might be required:
 * requests (`apt-get install python3-requests`) 
