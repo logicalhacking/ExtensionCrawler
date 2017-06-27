@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 # Usage:
 # ./generate_small_db.sh [BASEDIR] [DBPATH] [EXTENSIONCRAWLER]

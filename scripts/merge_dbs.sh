@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 FROM_DB=$1
 TO_DB=$2
 
