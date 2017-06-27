@@ -1,0 +1,3 @@
+# m h  dom mon dow   command
+07 02 * * * (cd ~/ExtensionCrawler ; ((git fetch ; git checkout production; git pull) &> /dev/null))
+13 02 * * * (cd ~/ExtensionCrawler ; (./crawler -d -a /srv/Shared/BrowserExtensions/ > /srv/Shared/BrowserExtensions/log/`date --iso-8601=ns`.log))
