@@ -28,6 +28,7 @@ fi
 date +'* Start Creating full.sqlite Data Base (%c)'
 # Update full database
 rm -f $ARCHIVE/db/full.sqlite
+rm -f $ARCHIVE/db/full.sqlite.bz2
 (FIRSTDB=$(find "$ARCHIVE"/data/aa* -name "*.sqlite" | head -n 1);
  sqlite3 "$FIRSTDB" .schema | sqlite3 "$ARCHIVE"/db/full.sqlite;
  echo "Used $FIRSTDB for schema";
@@ -55,7 +56,4 @@ for f in $ARCHIVE/log/*.log; do
 done 
 
 date +'* Update Finished (%c)'
-
-
-
 
