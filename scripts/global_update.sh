@@ -25,6 +25,16 @@ else
   echo "    Created aa-ac.sqlite successfully"
 fi
 
+if [ -f "$ARCHIVE"/db/aa-ac.sqlite ]; then 
+  date +'* Start Compressing aa-ac.sqlite Data Base (%c)'
+  bzip2 "$ARCHIVE"/db/aa-ac.sqlite 
+  if [ $? -ne "0" ]; then 
+    echo "    Creation of aa-ac.sqlite.bz2 failed"
+  else 
+    echo "    Created aa-ac.sqlite.bz2 successfully"
+  fi
+fi
+
 date +'* Start Creating full.sqlite Data Base (%c)'
 # Update full database
 rm -f $ARCHIVE/db/full.sqlite
