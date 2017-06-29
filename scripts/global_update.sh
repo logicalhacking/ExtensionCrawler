@@ -49,4 +49,13 @@ if [ -f "$ARCHIVE"/db/full.sqlite ]; then
   fi
 fi
 
+date +'* Start Compressing Log files (%c)'
+for f in $ARCHIVE/log/*.log; do 
+  bzip2 $f 
+done 
+
 date +'* Update Finished (%c)'
+
+
+
+
