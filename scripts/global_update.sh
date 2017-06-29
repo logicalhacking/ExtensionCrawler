@@ -4,7 +4,7 @@
 
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/}
 CRAWLERHOME=${2:-~/ExtensionCrawler}
-
+LOGPREFIX=$ARCHIVE/log/`date --iso-8601=ns`
 date +'* Start Updating Code Repository (%c)'
 
 # Update git repro
@@ -13,12 +13,12 @@ date +'* Start Updating Code Repository (%c)'
 date +'* Start Updating Extensions Archive (%c)'
 
 # Update extensions
-(cd $CRAWLERHOME; (./crawler -d -a $ARCHIVE > $ARCHIVE/log/`date --iso-8601=ns`.log))
+(cd $CRAWLERHOME; (./crawler -d -a $ARCHIVE > $LOGPREFIX.log))
 
 date +'* Start Creating aa-ac.sqlite Data Base (%c)'
 # Update small database
 rm -f $ARCHIVE/db/aa-ac.sqlite
-(cd $CRAWLERHOME; (./scripts/generate_small_db.sh $ARCHIVE/data $ARCHIVE/db/aa-ac.sqlite &> $ARCHIVE/log/`date --iso-8601=ns`-sqlite-aa-ac.log))
+(cd $CRAWLERHOME; (./scripts/generate_small_db.sh $ARCHIVE/data $ARCHIVE/db/aa-ac.sqlite &> $LOGPREFIX-sqlite-aa-ac.log))
 if [ $? -ne "0" ]; then 
   echo "    Creation of aa-ac.sqlite failed - see log file for details"
 else 
@@ -32,7 +32,7 @@ rm -f $ARCHIVE/db/full.sqlite
  sqlite3 "$FIRSTDB" .schema | sqlite3 "$ARCHIVE"/db/full.sqlite;
  echo "Used $FIRSTDB for schema";
  find "$ARCHIVE"/data/ -name "*.sqlite" -exec "$CRAWLERHOME/scripts/merge_dbs.sh" "{}" "$ARCHIVE"/db/full.sqlite \; ;
-) &> $ARCHIVE/log/`date --iso-8601=ns`-sqlite-full.log
+) &> $LOGPREFIX-sqlite-full.log
 if [ $? -ne "0" ]; then 
   echo "    Creation of full.sqlite failed - see log file for details"
 else 
