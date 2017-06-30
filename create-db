@@ -30,7 +30,7 @@ from ExtensionCrawler.config import *
 
 
 def help():
-    print("create_db [OPTION] DBBASEDIR")
+    print("create-db [OPTION] DBBASEDIR")
     print("    DBBASEDIR    directory for generated db files")
     print("    -h           print this help text")
     print("    -a=<DIR>     archive directory")

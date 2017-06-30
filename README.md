@@ -6,7 +6,7 @@ extension from the Chrome Web store.
 * `crx-tool`: A tool for analyzing and extracting `*.crx` files
   (i.e., Chrome extensions). Calling `crx-tool.py <extension>.crx`
   will check the integrity of the extension.
-* `create_db`: A tool for creating/initializing the database files 
+* `create-db`: A tool for creating/initializing the database files 
   from already existing extension archives.
 
 The utilities store the extensions in the following directory 
@@ -26,7 +26,7 @@ may contain one file, called `forums.conf` that lists the ids of
 extensions for which the forums and support pages should be downloaded
 as well.  The `data` directory will contain the downloaded extensions 
 as well as sqlite files containing the extracted meta data. The sqlite
-files can easily be re-generated using the `create_db` tool. 
+files can easily be re-generated using the `create-db` tool. 
 
 All utilities are written in Python 3.x. The following non-standard 
 modules might be required:
