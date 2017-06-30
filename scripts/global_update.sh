@@ -22,7 +22,8 @@ rm -f $ARCHIVE/db/aa-ac.sqlite
 if [ $? -ne "0" ]; then 
   echo "    Creation of aa-ac.sqlite failed - see log file for details"
 else 
-  echo "    Created aa-ac.sqlite successfully"
+  SIZE=`du -k $ARCHIVE/db/aa-ac.sqlite | cut -f1`
+  echo "    Created aa-ac.sqlite successfully ($SIZE kb)"
 fi
 
 if [ -f "$ARCHIVE"/db/aa-ac.sqlite ]; then 
@@ -31,7 +32,8 @@ if [ -f "$ARCHIVE"/db/aa-ac.sqlite ]; then
   if [ $? -ne "0" ]; then 
     echo "    Creation of aa-ac.sqlite.bz2 failed"
   else 
-    echo "    Created aa-ac.sqlite.bz2 successfully"
+    SIZE=`du -k $ARCHIVE/db/aa-ac.sqlite.bz2 | cut -f1`
+    echo "    Created aa-ac.sqlite.bz2 successfully ($SIZE kb)"
   fi
 fi
 
@@ -47,7 +49,8 @@ rm -f $ARCHIVE/db/full.sqlite.bz2
 if [ $? -ne "0" ]; then 
   echo "    Creation of full.sqlite failed - see log file for details"
 else 
-  echo "    Created full.sqlite successfully"
+  SIZE=`du -k $ARCHIVE/db/full.sqlite | cut -f1`
+  echo "    Created full.sqlite successfully ($SIZE kb)"
 fi
 
 if [ -f "$ARCHIVE"/db/full.sqlite ]; then 
@@ -56,7 +59,8 @@ if [ -f "$ARCHIVE"/db/full.sqlite ]; then
   if [ $? -ne "0" ]; then 
     echo "    Creation of full.sqlite.bz2 failed"
   else 
-    echo "    Created full.sqlite.bz2 successfully"
+    SIZE=`du -k $ARCHIVE/db/full.sqlite.bz2 | cut -f1`
+    echo "    Created full.sqlite.bz2 successfully ($SIZE kb)"
   fi
 fi
 
