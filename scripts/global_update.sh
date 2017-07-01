@@ -66,7 +66,7 @@ fi
 
 date +'* Start Compressing Log files (%c)'
 for f in $ARCHIVE/log/*.log; do 
-  pbzip2 -f $f 
+  pbzip2 -f $f &> /dev/null 
 done 
 
 date +'* Update Finished (%c)'
