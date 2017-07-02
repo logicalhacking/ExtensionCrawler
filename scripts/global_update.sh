@@ -28,6 +28,7 @@ fi
 
 if [ -f "$ARCHIVE"/db/aa-ac.sqlite ]; then 
   date +'* Start Compressing aa-ac.sqlite Data Base (%c)'
+  rm -f $ARCHIVE/db/aa-ac.sqlite.bz2
   pbzip2 -f "$ARCHIVE"/db/aa-ac.sqlite 
   if [ $? -ne "0" ]; then 
     echo "    Creation of aa-ac.sqlite.bz2 failed"
@@ -40,7 +41,6 @@ fi
 date +'* Start Creating full.sqlite Data Base (%c)'
 # Update full database
 rm -f $ARCHIVE/db/full.sqlite
-rm -f $ARCHIVE/db/full.sqlite.bz2
 (FIRSTDB=$(find "$ARCHIVE"/data/aa* -name "*.sqlite" | head -n 1);
  sqlite3 "$FIRSTDB" .schema | sqlite3 "$ARCHIVE"/db/full.sqlite;
  echo "Used $FIRSTDB for schema";
@@ -55,6 +55,7 @@ fi
 
 if [ -f "$ARCHIVE"/db/full.sqlite ]; then 
   date +'* Start Compressing full.sqlite Data Base (%c)'
+  rm -f $ARCHIVE/db/full.sqlite.bz2
   pbzip2 -f "$ARCHIVE"/db/full.sqlite 
   if [ $? -ne "0" ]; then 
     echo "    Creation of full.sqlite.bz2 failed"
