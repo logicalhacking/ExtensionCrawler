@@ -1,14 +1,12 @@
 #!/bin/bash
 # m h  dom mon dow   command
+# 01 02 * * * (cd ~/ExtensionCrawler; ((git fetch ; git checkout production; git pull) &> /dev/null))
 # 07 02 * * * ~/ExtensionCrawler/scripts/global_update.sh
 
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/}
 CRAWLERHOME=${2:-~/ExtensionCrawler}
 LOGPREFIX=$ARCHIVE/log/`date --iso-8601=ns`
 date +'* Start Updating Code Repository (%c)'
-
-# Update git repro
-(cd $CRAWLERHOME; ((git fetch ; git checkout production; git pull) &> /dev/null))
 
 date +'* Start Updating Extensions Archive (%c)'
 
