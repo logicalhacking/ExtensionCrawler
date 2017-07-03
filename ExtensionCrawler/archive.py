@@ -183,7 +183,7 @@ def last_crx(archivedir, extid):
                        extid + ".tar")
     if os.path.exists(tar):
         t = tarfile.open(tar, 'r')
-        old_crxs = sorted([x for x in t.getnames() if x.endswith(".crx")])
+        old_crxs = sorted([x.name for x in t.getmembers() if x.name.endswith(".crx")])
         t.close()
         if old_crxs != []:
             last_crx = old_crxs[-1]
