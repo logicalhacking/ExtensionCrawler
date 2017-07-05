@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) 2016,2017 The University of Sheffield, UK
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+import getopt
+import os
+import sys
+import glob
+import tarfile
+import tempfile
+import traceback
+from multiprocessing import Pool
+from zipfile import ZipFile
+
+from ExtensionCrawler.sqlite import *
+from ExtensionCrawler.config import *
+
+
+def help():
+    print("grepper [OPTION] BASEDIR GREP1 [GREP2...]")
+    print("    GREP1 [GREP2...] regex patterns")
+    print("    BASEDIR          directory for output")
+    print("    -h               print this help text")
+    print("    -a=<DIR>         archive directory")
+    print("    -p=<PREFIX>      three-letter-prefix")
+    print("    -t=<THREADS>     number of parallel threads")
+
+
+def process_id(archivedir, outdir, greps, verbose, ext_id):
+    txt = ""
+    txt = logmsg(verbose, txt, "Processing {} ...\n".format(ext_id))
+
+    tarpath = archive_file(archivedir, ext_id)
+    greppath = os.path.join(outdir, ext_id + ".grep")
+    if os.path.exists(greppath):
+        os.remove(greppath)
+    with open(greppath, "w") as out_f:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with tarfile.open(tarpath) as t:
+                t.extractall(tmpdir)
+                iddir = os.path.join(tmpdir, ext_id)
+
+                for date in sorted(os.listdir(iddir)):
+                    try:
+                        crxpath = next(
+                            iter(
+                                glob.glob(os.path.join(iddir, date, "*.crx"))),
+                            None)
+                        if crxpath and os.path.getsize(crxpath) > 0:
+                            with ZipFile(crxpath) as f:
+                                for in_zip_f in f.infolist():
+                                    if not in_zip_f.filename.endswith(".js"):
+                                        continue
+                                    with f.open(in_zip_f) as f2:
+                                        content = f2.read().decode()
+                                        for i, line in enumerate(
+                                                content.splitlines()):
+                                            for gr in greps:
+                                                if re.search(gr, line):
+                                                    print(
+                                                        "{}: {}: {} (line {}): {}".
+                                                        format(
+                                                            gr, date,
+                                                            in_zip_f.filename,
+                                                            i + 1, line),
+                                                        file=out_f)
+
+                    except Exception:
+                        txt = logmsg(
+                            verbose, txt,
+                            "Exception when handling {} on {}:\n".format(
+                                ext_id, date))
+                        txt = logmsg(verbose, txt, traceback.format_exc())
+
+    txt = logmsg(verbose, txt, "\n")
+
+    return txt
+
+
+def main(argv):
+    archive = "archive"
+    prefix = ""
+    parallel = 8
+    try:
+        opts, args = getopt.getopt(argv, "ha:p:t:",
+                                   ["archive=", "prefix=", "threads="])
+    except getopt.GetoptError:
+        help()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            help()
+            sys.exit()
+        elif opt in ("-a", "--archive"):
+            archive = arg
+        elif opt in ("-p", "--prefix"):
+            prefix = arg
+        elif opt in ("-t", "--threads"):
+            parallel = int(arg)
+
+    if len(args) < 2:
+        help()
+        sys.exit(2)
+
+    outdir = args[0]
+    greps = args[1:]
+
+    archivedir = os.path.join(archive, "data")
+    threeletterdirs = glob.glob(os.path.join(archivedir, prefix + "*"))
+    for threeletterdir in threeletterdirs:
+        ext_ids = list(set([d[:32] for d in os.listdir(threeletterdir)]))
+        with Pool(parallel) as p:
+            for txt in p.imap(
+                    partial(process_id, archivedir, outdir, greps, True),
+                    ext_ids):
+                sys.stdout.write(txt)
+                sys.stdout.flush()
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
