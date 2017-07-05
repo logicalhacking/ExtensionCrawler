@@ -38,6 +38,7 @@ import tempfile
 import time
 import dateutil.parser
 
+
 class Error(Exception):
     pass
 
@@ -177,15 +178,18 @@ def last_modified_http_date(path):
     return httpdate(dateutil.parser.parse(last_modified_utc_date(path)))
 
 
-def last_crx(archivedir, extid,date=None):
+def last_crx(archivedir, extid, date=None):
     last_crx = ""
     tar = os.path.join(archivedir, get_local_archive_dir(extid),
                        extid + ".tar")
     if os.path.exists(tar):
         t = tarfile.open(tar, 'r')
-        old_crxs = sorted([x.name for x in t.getmembers() if x.name.endswith(".crx")
-                           and x.size > 0
-                           and (date is None or (dateutil.parser.parse(os.path.split(os.path.split(x.name)[0])[1]) <= date))])
+        old_crxs = sorted([
+            x.name for x in t.getmembers()
+            if x.name.endswith(".crx") and x.size > 0 and (date is None or (
+                dateutil.parser.parse(
+                    os.path.split(os.path.split(x.name)[0])[1]) <= date))
+        ])
         t.close()
         if old_crxs != []:
             last_crx = old_crxs[-1]
