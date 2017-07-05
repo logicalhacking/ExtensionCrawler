@@ -203,7 +203,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
 
             # Extracts the number of downloads
             match = re.search(
-                """<meta itemprop="interactionCount" content="UserDownloads:((:?\d|,)+)"\s*/>""", contents)
+                """<meta itemprop="interactionCount" content="UserDownloads:((:?\d|,)+)""", contents)
             downloads = int(match.group(1).replace(",",'')) if match else None
 
             # Extracts the full extension description as it appears on the
