@@ -202,8 +202,9 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
             categories = match.group(1).split(",") if match else None
 
             # Extracts the number of downloads
-            match = re.search("""user_count.*?(\d+)""", contents)
-            downloads = int(match.group(1)) if match else None
+            match = re.search(
+                """<meta itemprop="interactionCount" content="UserDownloads:((:?\d|,)+)"\s*/>""", contents)
+            downloads = int(match.group(1).replace(",",'')) if match else None
 
             # Extracts the full extension description as it appears on the
             # overview page
