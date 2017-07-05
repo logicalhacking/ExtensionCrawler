@@ -25,4 +25,4 @@ SNAPSHOTDIR="$(find /shared/brucker_research1/Shared/BrowserExtensions/.snapshot
 DBPATH="$1"
 EXTENSIONCRAWLERDIR="${2:-~/ExtensionCrawler}"
 
-python "$EXTENSIONCRAWLERDIR/create_db" -a "$SNAPSHOTDIR" -p $LETTER "$DBPATH"
+python "$EXTENSIONCRAWLERDIR/create-db" -a "$SNAPSHOTDIR" -p $LETTER "$DBPATH"
