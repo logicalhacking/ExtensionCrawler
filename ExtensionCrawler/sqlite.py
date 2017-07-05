@@ -28,12 +28,15 @@ import json
 import os
 import glob
 
+
 class SelfclosingSqliteDB:
     def __init__(self, filename):
         self.filename = filename
+
     def __enter__(self):
         self.con = sqlite3.connect(self.filename)
         return self.con
+
     def __exit__(self, *args):
         self.con.commit()
         self.con.close()
@@ -83,6 +86,8 @@ def setup_tables(con):
                 """version TEXT,"""
                 """description TEXT,"""
                 """downloads INTEGER,"""
+                """rating REAL,"""
+                """ratingcount INTEGER,"""
                 """fulldescription TEXT,"""
                 """developer TEXT,"""
                 """crx_etag TEXT,"""
@@ -96,7 +101,8 @@ def get_etag(ext_id, datepath, con, verbose, indent):
     txt = ""
 
     # Trying to parse etag file
-    etagpath = next(iter(glob.glob(os.path.join(datepath, "*.crx.etag"))), None)
+    etagpath = next(
+        iter(glob.glob(os.path.join(datepath, "*.crx.etag"))), None)
     if etagpath:
         with open(etagpath) as f:
             return f.read(), txt
@@ -180,6 +186,16 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
                 """<meta itemprop="version" content="(.*?)"\s*/>""", contents)
             version = match.group(1) if match else None
 
+            match = re.search(
+                """<meta itemprop="ratingValue" content="(.*?)"\s*/>""",
+                contents)
+            rating = float(match.group(1)) if match else None
+
+            match = re.search(
+                """<meta itemprop="ratingCount" content="(.*?)"\s*/>""",
+                contents)
+            rating_count = int(match.group(1)) if match else None
+
             # Extracts extension categories
             match = re.search(
                 """Attribute name="category">(.+?)</Attribute>""", contents)
@@ -213,9 +229,11 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
             etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent)
             txt = logmsg(verbose, txt, etag_msg)
 
-            con.execute("INSERT INTO extension VALUES (?,?,?,?,?,?,?,?,?,?)",
-                        (ext_id, date, name, version, description, downloads,
-                         full_description, developer, etag, last_updated))
+            con.execute(
+                "INSERT INTO extension VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                (ext_id, date, name, version, description, downloads, rating,
+                 rating_count, full_description, developer, etag,
+                 last_updated))
 
             if categories:
                 for category in categories:
