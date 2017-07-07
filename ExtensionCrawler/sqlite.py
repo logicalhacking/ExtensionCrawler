@@ -62,6 +62,11 @@ def setup_tables(con):
                 """category TEXT,"""
                 """PRIMARY KEY (extid, date, category)"""
                 """)""")
+    con.execute("""CREATE TABLE content_script_url ("""
+                """crx_etag TEXT,"""
+                """url TEXT,"""
+                """PRIMARY KEY (crx_etag, url)"""
+                """)""")
     con.execute("""CREATE TABLE permission ("""
                 """crx_etag TEXT,"""
                 """permission TEXT,"""
@@ -288,6 +293,13 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                         con.execute(
                             "INSERT OR REPLACE INTO permission VALUES (?,?)",
                             (etag, str(permission)))
+                if "content_scripts" in manifest:
+                    for csd in manifest["content_scripts"]:
+                        if "matches" in csd:
+                            for urlpattern in csd["matches"]:
+                                con.execute(
+                                    "INSERT OR REPLACE INTO content_script_url VALUES (?,?)",
+                                    (etag, str(urlpattern)))
 
             size = os.path.getsize(crx_path)
             jsloc = 0
