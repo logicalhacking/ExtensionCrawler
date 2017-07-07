@@ -307,7 +307,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                              f.infolist())
             for jsfile in jsfiles:
                 with f.open(jsfile) as jsf:
-                    content = jsf.read().decode()
+                    content = jsf.read().decode(errors="surrogateescape")
                     beautified = jsbeautifier.beautify(content)
                     lines = beautified.splitlines()
                     jsloc += len(lines)
