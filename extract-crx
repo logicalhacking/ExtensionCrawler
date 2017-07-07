@@ -42,6 +42,7 @@ def help():
     print("    -h        print this help text")
     print("    -s        silent (no log messages)")
     print("    -d=<DATE> date")
+    print("    -o=<DIR>  output directory")
     print("    -a=<DIR>  archive directory")
 
 
@@ -51,9 +52,10 @@ def main(argv):
     verbose = True
     date = None
     extid = ""
+    outputds = ""
     discover = False
     try:
-        opts, args = getopt.getopt(argv, "hsd:a:", ["date="])
+        opts, args = getopt.getopt(argv, "hsd:a:o:", ["date=","archive=","output="])
     except getopt.GetoptError:
         help()
         sys.exit(2)
@@ -65,6 +67,8 @@ def main(argv):
             basedir = arg
         elif opt in ("-d", "--date"):
             date = arg
+        elif opt in ("-o", "--output"):
+            output = arg
         elif opt == '-s':
             verbose = False
         elif opt == '-d':
@@ -89,7 +93,9 @@ def main(argv):
                            get_local_archive_dir(extid), extid + ".tar")
         if os.path.exists(tar):
             t = tarfile.open(tar, 'r')
-
-
+            if verbose:
+                print("Extracting "+os.path.join(output,last))
+            t.extract(last,output)
+            
 if __name__ == "__main__":
     main(sys.argv[1:])
