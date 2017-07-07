@@ -23,6 +23,7 @@ from ExtensionCrawler.archive import *
 import sqlite3
 import re
 from bs4 import BeautifulSoup
+import jsbeautifier
 from zipfile import ZipFile
 import json
 import os
@@ -69,6 +70,8 @@ def setup_tables(con):
     con.execute("""CREATE TABLE crx ("""
                 """etag TEXT PRIMARY KEY,"""
                 """filename TEXT,"""
+                """size INTEGER,"""
+                """jsloc INTEGER,"""
                 """publickey BLOB"""
                 """)""")
     con.execute("""CREATE TABLE status ("""
@@ -286,10 +289,21 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                             "INSERT OR REPLACE INTO permission VALUES (?,?)",
                             (etag, str(permission)))
 
+            size = os.path.getsize(crx_path)
+            jsloc = 0
+            jsfiles = filter(lambda x: x.filename.endswith(".js"),
+                             f.infolist())
+            for jsfile in jsfiles:
+                with f.open(jsfile) as jsf:
+                    content = jsf.read().decode()
+                    beautified = jsbeautifier.beautify(content)
+                    lines = beautified.splitlines()
+                    jsloc += len(lines)
+
             public_key = read_crx(crx_path).pk
 
-            con.execute("INSERT INTO crx VALUES (?,?,?)", (etag, filename,
-                                                           public_key))
+            con.execute("INSERT INTO crx VALUES (?,?,?,?,?)",
+                        (etag, filename, size, jsloc, public_key))
     return txt
 
 
