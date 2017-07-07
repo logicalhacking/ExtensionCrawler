@@ -90,6 +90,7 @@ def setup_tables(con):
                 """ratingcount INTEGER,"""
                 """fulldescription TEXT,"""
                 """developer TEXT,"""
+                """itemcategory TEXT,"""
                 """crx_etag TEXT,"""
                 """lastupdated TEXT,"""
                 """PRIMARY KEY (extid, date),"""
@@ -203,8 +204,9 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
 
             # Extracts the number of downloads
             match = re.search(
-                """<meta itemprop="interactionCount" content="UserDownloads:((:?\d|,)+)""", contents)
-            downloads = int(match.group(1).replace(",",'')) if match else None
+                """<meta itemprop="interactionCount" content="UserDownloads:((:?\d|,)+)""",
+                contents)
+            downloads = int(match.group(1).replace(",", '')) if match else None
 
             # Extracts the full extension description as it appears on the
             # overview page
@@ -230,10 +232,15 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
             etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent)
             txt = logmsg(verbose, txt, etag_msg)
 
+            match = re.search(
+                """<Attribute name="item_category">(.*?)</Attribute>""",
+                contents)
+            itemcategory = match.group(1) if match else None
+
             con.execute(
-                "INSERT INTO extension VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO extension VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (ext_id, date, name, version, description, downloads, rating,
-                 rating_count, full_description, developer, etag,
+                 rating_count, full_description, developer, itemcategory, etag,
                  last_updated))
 
             if categories:
