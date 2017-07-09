@@ -23,17 +23,21 @@ from ExtensionCrawler.archive import *
 import sqlite3
 import re
 from bs4 import BeautifulSoup
+import jsbeautifier
 from zipfile import ZipFile
 import json
 import os
 import glob
 
+
 class SelfclosingSqliteDB:
     def __init__(self, filename):
         self.filename = filename
+
     def __enter__(self):
         self.con = sqlite3.connect(self.filename)
         return self.con
+
     def __exit__(self, *args):
         self.con.commit()
         self.con.close()
@@ -58,6 +62,11 @@ def setup_tables(con):
                 """category TEXT,"""
                 """PRIMARY KEY (extid, date, category)"""
                 """)""")
+    con.execute("""CREATE TABLE content_script_url ("""
+                """crx_etag TEXT,"""
+                """url TEXT,"""
+                """PRIMARY KEY (crx_etag, url)"""
+                """)""")
     con.execute("""CREATE TABLE permission ("""
                 """crx_etag TEXT,"""
                 """permission TEXT,"""
@@ -66,6 +75,8 @@ def setup_tables(con):
     con.execute("""CREATE TABLE crx ("""
                 """etag TEXT PRIMARY KEY,"""
                 """filename TEXT,"""
+                """size INTEGER,"""
+                """jsloc INTEGER,"""
                 """publickey BLOB"""
                 """)""")
     con.execute("""CREATE TABLE status ("""
@@ -83,8 +94,11 @@ def setup_tables(con):
                 """version TEXT,"""
                 """description TEXT,"""
                 """downloads INTEGER,"""
+                """rating REAL,"""
+                """ratingcount INTEGER,"""
                 """fulldescription TEXT,"""
                 """developer TEXT,"""
+                """itemcategory TEXT,"""
                 """crx_etag TEXT,"""
                 """lastupdated TEXT,"""
                 """PRIMARY KEY (extid, date),"""
@@ -96,7 +110,8 @@ def get_etag(ext_id, datepath, con, verbose, indent):
     txt = ""
 
     # Trying to parse etag file
-    etagpath = next(iter(glob.glob(os.path.join(datepath, "*.crx.etag"))), None)
+    etagpath = next(
+        iter(glob.glob(os.path.join(datepath, "*.crx.etag"))), None)
     if etagpath:
         with open(etagpath) as f:
             return f.read(), txt
@@ -180,14 +195,26 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
                 """<meta itemprop="version" content="(.*?)"\s*/>""", contents)
             version = match.group(1) if match else None
 
+            match = re.search(
+                """<meta itemprop="ratingValue" content="(.*?)"\s*/>""",
+                contents)
+            rating = float(match.group(1)) if match else None
+
+            match = re.search(
+                """<meta itemprop="ratingCount" content="(.*?)"\s*/>""",
+                contents)
+            rating_count = int(match.group(1)) if match else None
+
             # Extracts extension categories
             match = re.search(
                 """Attribute name="category">(.+?)</Attribute>""", contents)
             categories = match.group(1).split(",") if match else None
 
             # Extracts the number of downloads
-            match = re.search("""user_count.*?(\d+)""", contents)
-            downloads = int(match.group(1)) if match else None
+            match = re.search(
+                """<meta itemprop="interactionCount" content="UserDownloads:((:?\d|,)+)""",
+                contents)
+            downloads = int(match.group(1).replace(",", '')) if match else None
 
             # Extracts the full extension description as it appears on the
             # overview page
@@ -213,9 +240,16 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
             etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent)
             txt = logmsg(verbose, txt, etag_msg)
 
-            con.execute("INSERT INTO extension VALUES (?,?,?,?,?,?,?,?,?,?)",
-                        (ext_id, date, name, version, description, downloads,
-                         full_description, developer, etag, last_updated))
+            match = re.search(
+                """<Attribute name="item_category">(.*?)</Attribute>""",
+                contents)
+            itemcategory = match.group(1) if match else None
+
+            con.execute(
+                "INSERT INTO extension VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (ext_id, date, name, version, description, downloads, rating,
+                 rating_count, full_description, developer, itemcategory, etag,
+                 last_updated))
 
             if categories:
                 for category in categories:
@@ -259,11 +293,29 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                         con.execute(
                             "INSERT OR REPLACE INTO permission VALUES (?,?)",
                             (etag, str(permission)))
+                if "content_scripts" in manifest:
+                    for csd in manifest["content_scripts"]:
+                        if "matches" in csd:
+                            for urlpattern in csd["matches"]:
+                                con.execute(
+                                    "INSERT OR REPLACE INTO content_script_url VALUES (?,?)",
+                                    (etag, str(urlpattern)))
+
+            size = os.path.getsize(crx_path)
+            jsloc = 0
+            jsfiles = filter(lambda x: x.filename.endswith(".js"),
+                             f.infolist())
+            for jsfile in jsfiles:
+                with f.open(jsfile) as jsf:
+                    content = jsf.read().decode(errors="surrogateescape")
+                    beautified = jsbeautifier.beautify(content)
+                    lines = beautified.splitlines()
+                    jsloc += len(lines)
 
             public_key = read_crx(crx_path).pk
 
-            con.execute("INSERT INTO crx VALUES (?,?,?)", (etag, filename,
-                                                           public_key))
+            con.execute("INSERT INTO crx VALUES (?,?,?,?,?)",
+                        (etag, filename, size, jsloc, public_key))
     return txt
 
 
