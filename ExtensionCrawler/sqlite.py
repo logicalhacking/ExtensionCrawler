@@ -73,7 +73,7 @@ def setup_tables(con):
                 """PRIMARY KEY (crx_etag, permission)"""
                 """)""")
     con.execute("""CREATE TABLE crx ("""
-                """etag TEXT PRIMARY KEY,"""
+                """crx_etag TEXT PRIMARY KEY,"""
                 """filename TEXT,"""
                 """size INTEGER,"""
                 """jsloc INTEGER,"""
@@ -102,7 +102,7 @@ def setup_tables(con):
                 """crx_etag TEXT,"""
                 """lastupdated TEXT,"""
                 """PRIMARY KEY (extid, date),"""
-                """FOREIGN KEY (crx_etag) REFERENCES crx(etag)"""
+                """FOREIGN KEY (crx_etag) REFERENCES crx(crx_etag)"""
                 """)""")
 
 
@@ -386,7 +386,7 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
         etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
         txt = logmsg(verbose, txt, etag_msg)
         etag_already_in_db = next(
-            con.execute("SELECT COUNT(etag) FROM crx WHERE etag=?", (etag, )))[
+            con.execute("SELECT COUNT(crx_etag) FROM crx WHERE crx_etag=?", (etag, )))[
                 0]
 
         if etag:
