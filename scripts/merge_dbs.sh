@@ -14,4 +14,4 @@ fi
 
 echo "Merging $FROM_DB into $TO_DB..."
 
-sqlite3 $FROM_DB .dump | grep -v "^CREATE TABLE" | sed -r "s/^(INSERT INTO \"review\" VALUES\()[[:digit:]]+,/\1null,/" | sqlite3 $TO_DB
+sqlite3 $FROM_DB .dump | grep -v "^CREATE TABLE" | sed -r "s/^(INSERT INTO \"?review\"? VALUES\()[[:digit:]]+,/\1null,/" | sqlite3 $TO_DB
