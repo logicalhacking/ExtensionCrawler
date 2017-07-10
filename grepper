@@ -23,6 +23,7 @@ import glob
 import tarfile
 import tempfile
 import traceback
+import jsbeautifier
 from multiprocessing import Pool
 from zipfile import ZipFile
 
@@ -66,13 +67,14 @@ def process_id(archivedir, outdir, greps, verbose, ext_id):
                                     if not in_zip_f.filename.endswith(".js"):
                                         continue
                                     with f.open(in_zip_f) as f2:
-                                        content = f2.read().decode()
+                                        content = f2.read().decode(errors="surrogateescape")
+                                        content = jsbeautifier.beautify(content)
                                         for i, line in enumerate(
                                                 content.splitlines()):
                                             for gr in greps:
                                                 if re.search(gr, line):
                                                     print(
-                                                        "{}: {}: {} (line {}): {}".
+                                                        "{}|{}|{}|line {}|{}".
                                                         format(
                                                             gr, date,
                                                             in_zip_f.filename,
@@ -85,8 +87,6 @@ def process_id(archivedir, outdir, greps, verbose, ext_id):
                             "Exception when handling {} on {}:\n".format(
                                 ext_id, date))
                         txt = logmsg(verbose, txt, traceback.format_exc())
-
-    txt = logmsg(verbose, txt, "\n")
 
     return txt
 
