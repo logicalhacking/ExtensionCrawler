@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) 2017 The University of Sheffield, UK
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+import os
+import sys
+import glob
+import re
+import requests
+from time import sleep
+from random import randint
+import datetime
+from ExtensionCrawler.discover import *
+from ExtensionCrawler.archive import *
+from ExtensionCrawler.util import *
+from ExtensionCrawler.discover import *
+import dateutil
+import dateutil.parser
+import time
+import getopt
+
+# Script should run with python 3.4 or 3.5
+assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
+
+
+def help():
+    print("extract-crx [OPTION] extid")
+    print("    -h        print this help text")
+    print("    -s        silent (no log messages)")
+    print("    -d=<DATE> date")
+    print("    -o=<DIR>  output directory")
+    print("    -a=<DIR>  archive directory")
+
+
+def main(argv):
+    today = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    basedir = "archive"
+    verbose = True
+    date = None
+    extid = ""
+    outputds = ""
+    discover = False
+    try:
+        opts, args = getopt.getopt(argv, "hsd:a:o:", ["date=","archive=","output="])
+    except getopt.GetoptError:
+        help()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            help()
+            sys.exit()
+        elif opt in ("-a", "--archive"):
+            basedir = arg
+        elif opt in ("-d", "--date"):
+            date = arg
+        elif opt in ("-o", "--output"):
+            output = arg
+        elif opt == '-s':
+            verbose = False
+        elif opt == '-d':
+            discover = True
+
+    if len(args) > 0:
+        extid = args[0]
+    else:
+        help()
+        sys.exit()
+
+    if date is not None:
+        d = dateutil.parser.parse(date)
+        if d.tzinfo is None or d.tzinfo.utcoffset(d) is None:
+            d = d.replace(tzinfo=datetime.timezone.utc)
+        last = last_crx(os.path.join(basedir, "data"), extid, d)
+    else:
+        last = last_crx(os.path.join(basedir, "data"), extid)
+
+    if last != "":
+        tar = os.path.join(basedir, "data",
+                           get_local_archive_dir(extid), extid + ".tar")
+        if os.path.exists(tar):
+            t = tarfile.open(tar, 'r')
+            if verbose:
+                print("Extracting "+os.path.join(output,last))
+            t.extract(last,output)
+            
+if __name__ == "__main__":
+    main(sys.argv[1:])
