@@ -24,6 +24,7 @@ import tarfile
 import tempfile
 import traceback
 import jsbeautifier
+import sqlite3
 from multiprocessing import Pool
 from zipfile import ZipFile
 
@@ -32,16 +33,25 @@ from ExtensionCrawler.config import *
 
 
 def help():
-    print("grepper [OPTION] BASEDIR GREP1 [GREP2...]")
+    print("grepper [OPTION] BASEDIR DB GREP1 [GREP2...]")
     print("    GREP1 [GREP2...] regex patterns")
     print("    BASEDIR          directory for output")
+    print("    DB               db path for additional information")
     print("    -h               print this help text")
     print("    -a=<DIR>         archive directory")
     print("    -p=<PREFIX>      three-letter-prefix")
     print("    -t=<THREADS>     number of parallel threads")
 
+def get_names(con, extid, date):
+    return [row[0] for row in con.execute("select name from extension where extid=? and date=?", (extid,date)) if row[0]]
 
-def process_id(archivedir, outdir, greps, verbose, ext_id):
+def get_downloads(con, extid, date):
+    return con.execute("select downloads from extension where extid=? and date=?", (extid,date)).fetchone()[0]
+
+def get_jsloc(con, extid, date):
+    return con.execute("select jsloc from extension join crx on etag=crx_etag where extid=? and date=?", (extid,date)).fetchone()[0]
+
+def process_id(archivedir, outdir, dbpath, greps, verbose, ext_id):
     txt = ""
     txt = logmsg(verbose, txt, "Processing {} ...\n".format(ext_id))
 
@@ -49,44 +59,47 @@ def process_id(archivedir, outdir, greps, verbose, ext_id):
     greppath = os.path.join(outdir, ext_id + ".grep")
     if os.path.exists(greppath):
         os.remove(greppath)
-    with open(greppath, "w") as out_f:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            with tarfile.open(tarpath) as t:
-                t.extractall(tmpdir)
-                iddir = os.path.join(tmpdir, ext_id)
+    with sqlite3.connect(dbpath) as con:
+        with open(greppath, "w") as out_f:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                with tarfile.open(tarpath) as t:
+                    t.extractall(tmpdir)
+                    iddir = os.path.join(tmpdir, ext_id)
 
-                for date in sorted(os.listdir(iddir)):
-                    try:
-                        crxpath = next(
-                            iter(
-                                glob.glob(os.path.join(iddir, date, "*.crx"))),
-                            None)
-                        if crxpath and os.path.getsize(crxpath) > 0:
-                            with ZipFile(crxpath) as f:
-                                for in_zip_f in f.infolist():
-                                    if not in_zip_f.filename.endswith(".js"):
-                                        continue
-                                    with f.open(in_zip_f) as f2:
-                                        content = f2.read().decode(errors="surrogateescape")
-                                        content = jsbeautifier.beautify(content)
-                                        for i, line in enumerate(
-                                                content.splitlines()):
-                                            for gr in greps:
-                                                if re.search(gr, line):
-                                                    print(
-                                                        "{}|{}|{}|line {}|{}".
-                                                        format(
-                                                            gr, date,
-                                                            in_zip_f.filename,
-                                                            i + 1, line),
-                                                        file=out_f)
-
-                    except Exception:
-                        txt = logmsg(
-                            verbose, txt,
-                            "Exception when handling {} on {}:\n".format(
-                                ext_id, date))
-                        txt = logmsg(verbose, txt, traceback.format_exc())
+                    for date in sorted(os.listdir(iddir)):
+                        try:
+                            crxpath = next(
+                                iter(
+                                    glob.glob(os.path.join(iddir, date, "*.crx"))),
+                                None)
+                            if crxpath and os.path.getsize(crxpath) > 0:
+                                with ZipFile(crxpath) as f:
+                                    for in_zip_f in f.infolist():
+                                        if not in_zip_f.filename.endswith(".js"):
+                                            continue
+                                        with f.open(in_zip_f) as f2:
+                                            content = f2.read().decode(errors="surrogateescape")
+                                            content = jsbeautifier.beautify(content)
+                                            for i, line in enumerate(
+                                                    content.splitlines()):
+                                                for gr in greps:
+                                                    if re.search(gr, line):
+                                                        print("|".join(
+                                                                extid,
+                                                                date,
+                                                                [name.replace("|", "<PIPE>") for name in get_names(con, extid, date)],
+                                                                get_downloads(con, extid, date),
+                                                                get_jsloc(con, extid, date),
+                                                                gr,
+                                                                in_zip_f.filename,
+                                                                "line " + str(i + 1), line),
+                                                            file=out_f)
+                        except Exception:
+                            txt = logmsg(
+                                verbose, txt,
+                                "Exception when handling {} on {}:\n".format(
+                                    ext_id, date))
+                            txt = logmsg(verbose, txt, traceback.format_exc())
 
     return txt
 
@@ -112,12 +125,13 @@ def main(argv):
         elif opt in ("-t", "--threads"):
             parallel = int(arg)
 
-    if len(args) < 2:
+    if len(args) < 3:
         help()
         sys.exit(2)
 
     outdir = args[0]
-    greps = args[1:]
+    dbpath = args[1]
+    greps = args[2:]
 
     archivedir = os.path.join(archive, "data")
     threeletterdirs = glob.glob(os.path.join(archivedir, prefix + "*"))
@@ -125,7 +139,7 @@ def main(argv):
         ext_ids = list(set([d[:32] for d in os.listdir(threeletterdir)]))
         with Pool(parallel) as p:
             for txt in p.imap(
-                    partial(process_id, archivedir, outdir, greps, True),
+                    partial(process_id, archivedir, outdir, dbpath, greps, True),
                     ext_ids):
                 sys.stdout.write(txt)
                 sys.stdout.flush()
