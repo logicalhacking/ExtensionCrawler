@@ -1,17 +1,17 @@
 #!/bin/bash
 #
 # Example invocation:
-# qsub merge_dbs DBDIR OUTDBPATH [EXTENSIONCRAWLERPATH]
+# qsub merge_dbs DBDIR OUTDBPATH EXTENSIONCRAWLERPATH
 #     DBDIR                   base dir for the generated db files
 #     OUTDBPATH               the generated full db
-#     [EXTENSIONCRAWLERPATH]  ExtensionCrawler git repo, defaults to ~/ExtensionCrawler
+#     EXTENSIONCRAWLERPATH    ExtensionCrawler git repo
 
 set -u
 
 DBDIR="$1"
 OUTDBPATH="$2"
-EXTENSIONCRAWLERDIR="${3:-~/ExtensionCrawler}"
-SQLITE3=/shared/brucker_research1/Shared/BrowserExtensions/bin/sqlite3-3.19.3
+EXTENSIONCRAWLERDIR="$3"
 
+echo "PATH is $PATH"
 find $DBDIR -name "*.sqlite" -exec bash -c "$SQLITE3 {} .schema | $SQLITE3 $OUTDBPATH" \; -quit
-PATH=$SQLITE3:$PATH find $DBDIR -name "*.sqlite" -exec "$EXTENSIONCRAWLERDIR/scripts/merge_dbs.sh" "{}" "$OUTDBPATH" \;
+find $DBDIR -name "*.sqlite" -exec "$EXTENSIONCRAWLERDIR/scripts/merge_dbs.sh" "{}" "$OUTDBPATH" \;

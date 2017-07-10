@@ -7,9 +7,9 @@
 # 2. Make sure to checkout ExtensionCrawler somehwere.
 #
 # Example invocation:
-# qsub grepper256.sge DBPATH [EXTENSIONCRAWLERPATH]
+# qsub grepper256.sge DBPATH EXTENSIONCRAWLERPATH
 #     OUTPATH                 out path
-#     [EXTENSIONCRAWLERPATH]  ExtensionCrawler git repo, defaults to ~/ExtensionCrawler
+#     EXTENSIONCRAWLERPATH    ExtensionCrawler git repo
 
 module -s load apps/python/conda 2> /dev/null
 source activate mypython35
@@ -23,6 +23,6 @@ LETTER=${ABC:$I1:1}${ABC:$I2:1}
 
 SNAPSHOTDIR="$(find /shared/brucker_research1/Shared/BrowserExtensions/.snapshot -maxdepth 1 -mindepth 1 -name "Daily *" | sort -r | head -n 1)"
 OUTPATH="$1"
-EXTENSIONCRAWLERDIR="${2:-~/ExtensionCrawler}"
+EXTENSIONCRAWLERDIR="$2"
 
 python "$EXTENSIONCRAWLERDIR/grepper" -a "$SNAPSHOTDIR" -p $LETTER "$OUTPATH" "amazon" "&tag="
