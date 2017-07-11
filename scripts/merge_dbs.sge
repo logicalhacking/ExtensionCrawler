@@ -1,17 +1,20 @@
 #!/bin/bash
 #
+#$ -j yes
+#
 # Example invocation:
 # qsub merge_dbs DBDIR OUTDBPATH EXTENSIONCRAWLERPATH
 #     DBDIR                   base dir for the generated db files
 #     OUTDBPATH               the generated full db
 #     EXTENSIONCRAWLERPATH    ExtensionCrawler git repo
-
 set -u
 
 DBDIR="$1"
 OUTDBPATH="$2"
 EXTENSIONCRAWLERDIR="$3"
 
-echo "PATH is $PATH"
-find $DBDIR -name "*.sqlite" -exec bash -c "$SQLITE3 {} .schema | $SQLITE3 $OUTDBPATH" \; -quit
+source $EXTENSIONCRAWLERDIR/scripts/sge_common
+override_vars
+
+find $DBDIR -name "*.sqlite" -exec bash -c "sqlite3 {} .schema | sqlite3 $OUTDBPATH" \; -quit
 find $DBDIR -name "*.sqlite" -exec "$EXTENSIONCRAWLERDIR/scripts/merge_dbs.sh" "{}" "$OUTDBPATH" \;

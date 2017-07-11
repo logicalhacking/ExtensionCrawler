@@ -1,0 +1,22 @@
+#!/usr/bin/bash
+
+function load_python {
+	module -s load apps/python/conda 2> /dev/null
+	source activate mypython35
+}
+
+function task_id_to_letter_256 {
+	ABC=abcdefghijklmnopqrstuvwxyz
+	let "I1 = (($1-1) / 16) % 16"
+	let "I2 = ($1-1) % 16"
+	echo ${ABC:$I1:1}${ABC:$I2:1}
+}
+
+function get_last_snapshot_dir {
+	find /shared/brucker_research1/Shared/BrowserExtensions/.snapshot -maxdepth 1 -mindepth 1 -name "Daily *" | sort -r | head -n 1
+}
+
+function override_vars {
+	export PATH=~/bin:$PATH
+	export LD_LIBRARY_PATH=~/lib:$LD_LIBRARY_PATH
+}

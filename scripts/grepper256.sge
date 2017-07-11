@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 #$ -t 1-256
+#$ -j yes
 #
 # Usage:
 # 1. Make sure conda environment "mypython35" exists.
@@ -10,19 +11,14 @@
 # qsub grepper256.sge DBPATH EXTENSIONCRAWLERPATH
 #     OUTPATH                 out path
 #     EXTENSIONCRAWLERPATH    ExtensionCrawler git repo
-
-module -s load apps/python/conda 2> /dev/null
-source activate mypython35
-
 set -u
 
-ABC=abcdefghijklmnopqrstuvwxyz
-let "I1 = ((SGE_TASK_ID-1) / 16) % 16"
-let "I2 = (SGE_TASK_ID-1) % 16"
-LETTER=${ABC:$I1:1}${ABC:$I2:1}
-
-SNAPSHOTDIR="$(find /shared/brucker_research1/Shared/BrowserExtensions/.snapshot -maxdepth 1 -mindepth 1 -name "Daily *" | sort -r | head -n 1)"
 OUTPATH="$1"
 EXTENSIONCRAWLERDIR="$2"
 
-python "$EXTENSIONCRAWLERDIR/grepper" -a "$SNAPSHOTDIR" -p $LETTER "$OUTPATH" "amazon" "&tag="
+source $EXTENSIONCRAWLERDIR/scripts/sge_common
+
+load_python
+override_vars
+
+python "$EXTENSIONCRAWLERDIR/grepper" -a "$(get_last_snapshot_dir)" -p "$(task_id_to_letter_256 $SGE_TASK_ID)" "$OUTPATH" "amazon" "&tag="
