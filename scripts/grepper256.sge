@@ -11,8 +11,6 @@
 # qsub grepper256.sge DBPATH EXTENSIONCRAWLERPATH
 #     OUTPATH                 out path
 #     EXTENSIONCRAWLERPATH    ExtensionCrawler git repo
-set -u
-
 OUTPATH="$1"
 EXTENSIONCRAWLERDIR="$2"
 
@@ -20,5 +18,7 @@ source $EXTENSIONCRAWLERDIR/scripts/sge_common
 
 load_python
 override_vars
+
+set -u
 
 python "$EXTENSIONCRAWLERDIR/grepper" -a "$(get_last_snapshot_dir)" -p "$(task_id_to_letter_256 $SGE_TASK_ID)" "$OUTPATH" "amazon" "&tag="
