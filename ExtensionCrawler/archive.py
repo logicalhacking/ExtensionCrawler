@@ -94,16 +94,16 @@ class UpdateResult:
     def is_ok(self):
         return (self.res_overview.is_ok() and
                 (self.res_crx.is_ok() or self.res_crx.not_modified()) and
-                ((self.res_reviews is None) or self.res_reviews.is_ok()) and (
-                    (self.res_support is None) or self.res_support.is_ok()))
+                ((self.res_reviews is None) or self.res_reviews.is_ok()) and
+                ((self.res_support is None) or self.res_support.is_ok()))
 
     def not_authorized(self):
         return (self.res_overview.not_authorized() or
                 self.res_crx.not_authorized() or
                 (self.res_reviews is not None and
-                 self.res_reviews.not_authorized()) or (
-                     self.res_support is not None and
-                     self.res_support.not_authorized()))
+                 self.res_reviews.not_authorized()) or
+                (self.res_support is not None and
+                 self.res_support.not_authorized()))
 
     def not_in_store(self):
         return (
@@ -115,9 +115,9 @@ class UpdateResult:
         return (self.res_overview.has_exception() or
                 self.res_crx.has_exception() or
                 (self.res_reviews is not None and
-                 self.res_reviews.has_exception()) or (
-                     self.res_support is not None and
-                     self.res_support.has_exception()))
+                 self.res_reviews.has_exception()) or
+                (self.res_support is not None and
+                 self.res_support.has_exception()))
 
     def raised_google_ddos(self):
         return ((self.res_reviews is not None and
@@ -162,8 +162,9 @@ def httpdate(dt):
         "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
         "Nov", "Dec"
     ][dt.month - 1]
-    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (
-        weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
+    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (weekday, dt.day, month,
+                                                    dt.year, dt.hour,
+                                                    dt.minute, dt.second)
 
 
 def last_modified_utc_date(path):
@@ -186,9 +187,9 @@ def last_crx(archivedir, extid, date=None):
         t = tarfile.open(tar, 'r')
         old_crxs = sorted([
             x.name for x in t.getmembers()
-            if x.name.endswith(".crx") and x.size > 0 and (date is None or (
-                dateutil.parser.parse(
-                    os.path.split(os.path.split(x.name)[0])[1]) <= date))
+            if x.name.endswith(".crx") and x.size > 0 and
+            (date is None or (dateutil.parser.parse(
+                os.path.split(os.path.split(x.name)[0])[1]) <= date))
         ])
         t.close()
         if old_crxs != []:
@@ -257,10 +258,11 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
     if last_crx_file is not "":
         headers = {'If-Modified-Since': last_crx_http_date}
     try:
-        res = requests.get(const_download_url().format(ext_id),
-                           stream=True,
-                           headers=headers,
-                           timeout=10)
+        res = requests.get(
+            const_download_url().format(ext_id),
+            stream=True,
+            headers=headers,
+            timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}\n".format(str(res.status_code)))
         extfilename = os.path.basename(res.url)
         if re.search('&', extfilename):
@@ -272,19 +274,21 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                 timeout=10,
                 allow_redirects=True).headers.get('ETag')
             write_text(tmptardir, date, extfilename + ".etag", etag)
-            logtxt = logmsg(verbose, logtxt, (
-                "               - checking etag, last: {}\n" +
-                "                             current: {}\n").format(
-                    last_crx_etag, etag))
+            logtxt = logmsg(
+                verbose, logtxt,
+                ("               - checking etag, last: {}\n" +
+                 "                             current: {}\n").format(
+                     last_crx_etag, etag))
 
             if ((etag is not "") and (etag != last_crx_etag)):
                 logtxt = logmsg(
                     verbose, logtxt,
                     "               - downloading due to different etags\n")
 
-                res = requests.get(const_download_url().format(ext_id),
-                                   stream=True,
-                                   timeout=10)
+                res = requests.get(
+                    const_download_url().format(ext_id),
+                    stream=True,
+                    timeout=10)
             else:
                 write_text(tmptardir, date, extfilename + ".link",
                            os.path.join("..",
@@ -308,11 +312,22 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
     return RequestResult(res), logtxt
 
 
+def iterate_authors(pages):
+    for page in pages:
+        json_page = json.loads(
+            page[page.index("{\""):page.rindex("}}},") + 1])
+        for annotation in json_page["annotations"]:
+            if "replyExists" in annotation["attributes"] and annotation["attributes"]["replyExists"]:
+                yield annotation["entity"]["author"]
+
+
 def update_reviews(tar, date, verbose, ext_id):
     dir = os.path.join(os.path.splitext(tar)[0], date)
     logtxt = logmsg(verbose, "", "           * review page:   ")
     res = None
     try:
+        pages = []
+
         google_dos_protection()
         res = requests.post(
             const_review_url(),
@@ -320,13 +335,27 @@ def update_reviews(tar, date, verbose, ext_id):
             timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
         store_request_text(tar, date, 'reviews000-099.text', res)
+        pages += [res.text]
+
         google_dos_protection()
         res = requests.post(
             const_review_url(),
             data=const_review_payload(ext_id, "100", "100"),
             timeout=10)
-        logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
+        logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
         store_request_text(tar, date, 'reviews100-199.text', res)
+        pages += [res.text]
+
+        google_dos_protection()
+        # Always start with reply number 0 and request 10 replies
+        ext_id_author_tups = [(ext_id, author, 0, 10)
+                              for author in iterate_authors(pages)]
+        res = requests.post(
+            const_review_search_url(),
+            data=const_review_search_payload(ext_id_author_tups),
+            timeout=10)
+        logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
+        store_request_text(tar, date, 'reviewsreplies.text', res)
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         write_text(tar, date, 'reviews.html.exception', str(e))

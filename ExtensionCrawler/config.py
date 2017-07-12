@@ -39,6 +39,10 @@ def const_review_url():
     return 'https://chrome.google.com/reviews/components'
 
 
+def const_review_search_url():
+    return 'https://chrome.google.com/reviews/json/search'
+
+
 def const_support_url():
     return 'https://chrome.google.com/reviews/components'
 
@@ -74,8 +78,25 @@ def const_review_payload(ext_id, start, end):
         '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",'
         + '"groups":"chrome_webstore",' + '"sortby":"cws_qscore",' +
         '"startindex":"{}",' + '"numresults":"{}",' + '"id":"428"}}],' +
-        '"internedKeys":[],' + '"internedValues":[]}}').format(ext_id, start,
-                                                               end)
+        '"internedKeys":[],' + '"internedValues":[]}}').format(
+            ext_id, start, end)
+
+
+def const_review_search_payload(params):
+    pre = """req={"applicationId":94,"searchSpecs":["""
+    post = """]}&requestSource=widget"""
+    args = []
+    for extid, author, start, numresults in params:
+        args += [
+            """{{"requireComment":true,"entities":[{{"annotation":"""
+            """{{"groups":["chrome_webstore"],"author":"{}","""
+            """"url":"http://chrome.google.com/extensions/permalink?id={}"}}}}],"""
+            """"matchExtraGroups":true,"startIndex":{},"numResults":{},"""
+            """"includeNicknames":true,"locale": {{"language": "en","country": "us"}}}}"""
+            .format(author, extid, start, numresults)
+        ]
+
+    return pre + ",".join(args) + post
 
 
 def get_local_archive_dir(id):
