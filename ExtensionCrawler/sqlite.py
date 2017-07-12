@@ -229,8 +229,8 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
 
             developer_parent = doc.find(
                 class_=lambda cls: cls and "e-f-Me" in cls)
-            developer = str(
-                developer_parent.contents[0]) if developer_parent else None
+            developer = "".join([str(x) for x in developer_parent.contents
+                                 ]) if developer_parent else None
 
             last_updated_parent = doc.find(
                 class_=lambda cls: cls and "h-C-b-p-D-xh-hh" in cls)
@@ -386,8 +386,8 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
         etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
         txt = logmsg(verbose, txt, etag_msg)
         etag_already_in_db = next(
-            con.execute("SELECT COUNT(crx_etag) FROM crx WHERE crx_etag=?", (etag, )))[
-                0]
+            con.execute("SELECT COUNT(crx_etag) FROM crx WHERE crx_etag=?", (
+                etag, )))[0]
 
         if etag:
             if not etag_already_in_db:
