@@ -45,13 +45,23 @@ class SelfclosingSqliteDB:
 
 def setup_tables(con):
     con.execute("""CREATE VIRTUAL TABLE review using fts4("""
-                """id INTEGER PRIMARY KEY,"""
+                """author TEXT PRIMARY KEY,"""
                 """extid TEXT,"""
                 """date TEXT,"""
-                """author TEXT,"""
                 """displayname TEXT,"""
                 """reviewdate INTEGER,"""
                 """rating INTEGER,"""
+                """language TEXT,"""
+                """shortauthor TEXT,"""
+                """comment TEXT"""
+                """)""")
+    con.execute("""CREATE VIRTUAL TABLE reviewreplies using fts4("""
+                """author TEXT PRIMARY KEY,"""
+                """extid TEXT,"""
+                """date TEXT,"""
+                """displayname TEXT,"""
+                """reviewdate INTEGER,"""
+                """replyto TEXT,"""
                 """language TEXT,"""
                 """shortauthor TEXT,"""
                 """comment TEXT"""
@@ -337,13 +347,31 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
                 comment = get(review, "comment")
                 displayname = get(get(review, "entity"), "displayName")
                 author = get(get(review, "entity"), "author")
-                language = get(get(review, "entity"), "language")
+                language = get(review, "language")
                 shortauthor = get(get(review, "entity"), "shortAuthor")
 
-                con.execute("INSERT INTO review VALUES(?,?,?,?,?,?,?,?,?,?)",
-                            (None, ext_id, date, author, displayname,
-                             timestamp, starRating, language, shortauthor,
-                             comment))
+                con.execute("INSERT INTO review VALUES(?,?,?,?,?,?,?,?,?)",
+                            (author, ext_id, date, displayname, timestamp,
+                             starRating, language, shortauthor, comment))
+
+
+def parse_and_insert_review_replies(ext_id, date, reviewsrepliespaths, con):
+    with open(reviewsrepliespaths) as f:
+        d = json.load(f)
+        for result in d["searchResults"]:
+            for annotation in result["annotations"]:
+                timestamp = get(annotation, "timestamp")
+                replyto = get(
+                    get(get(annotation, "entity"), "annotation"), "author")
+                comment = get(annotation, "comment")
+                displayname = get(get(annotation, "entity"), "displayName")
+                author = get(get(annotation, "entity"), "author")
+                language = get(annotation, "language")
+                shortauthor = get(get(annotation, "entity"), "shortAuthor")
+                con.execute(
+                    "INSERT INTO reviewreplies VALUES(?,?,?,?,?,?,?,?,?)",
+                    (author, ext_id, date, displayname, timestamp, replyto,
+                     language, shortauthor, comment))
 
 
 def parse_and_insert_status(ext_id, date, datepath, con):
@@ -408,7 +436,7 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
                 txt = logmsg(verbose, txt,
                              indent2 + "* WARNING: could not find etag\n")
 
-        reviewpaths = glob.glob(os.path.join(datepath, "reviews*.text"))
+        reviewpaths = glob.glob(os.path.join(datepath, "reviews*-*.text"))
         for reviewpath in reviewpaths:
             try:
                 parse_and_insert_review(ext_id, date, reviewpath, con)
@@ -416,6 +444,18 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
                 txt = logmsg(
                     verbose, txt,
                     indent2 + "* Could not parse review file, exception: ")
+                txt = logmsg(verbose, txt, str(e))
+                txt = logmsg(verbose, txt, "\n")
+
+        reviewsrepliespaths = os.path.join(datepath, "reviewsreplies.text")
+        if os.path.exists(reviewsrepliespaths):
+            try:
+                parse_and_insert_review_replies(ext_id, date,
+                                                reviewsrepliespaths, con)
+            except json.decoder.JSONDecodeError as e:
+                txt = logmsg(
+                    verbose, txt, indent2 +
+                    "* Could not parse review reply file, exception: ")
                 txt = logmsg(verbose, txt, str(e))
                 txt = logmsg(verbose, txt, "\n")
     return txt
