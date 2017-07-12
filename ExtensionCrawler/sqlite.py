@@ -44,23 +44,34 @@ class SelfclosingSqliteDB:
 
 
 def setup_tables(con):
+    con.execute("""CREATE VIRTUAL TABLE support using fts4("""
+                """author TEXT PRIMARY KEY,"""
+                """extid TEXT,"""
+                """date TEXT,"""
+                """displayname TEXT,"""
+                """commentdate INTEGER,"""
+                """title TEXT,"""
+                """language TEXT,"""
+                """shortauthor TEXT,"""
+                """comment TEXT"""
+                """)""")
     con.execute("""CREATE VIRTUAL TABLE review using fts4("""
                 """author TEXT PRIMARY KEY,"""
                 """extid TEXT,"""
                 """date TEXT,"""
                 """displayname TEXT,"""
-                """reviewdate INTEGER,"""
+                """commentdate INTEGER,"""
                 """rating INTEGER,"""
                 """language TEXT,"""
                 """shortauthor TEXT,"""
                 """comment TEXT"""
                 """)""")
-    con.execute("""CREATE VIRTUAL TABLE reviewreplies using fts4("""
+    con.execute("""CREATE VIRTUAL TABLE reply using fts4("""
                 """author TEXT PRIMARY KEY,"""
                 """extid TEXT,"""
                 """date TEXT,"""
                 """displayname TEXT,"""
-                """reviewdate INTEGER,"""
+                """commentdate INTEGER,"""
                 """replyto TEXT,"""
                 """language TEXT,"""
                 """shortauthor TEXT,"""
@@ -355,8 +366,28 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
                              starRating, language, shortauthor, comment))
 
 
-def parse_and_insert_review_replies(ext_id, date, reviewsrepliespaths, con):
-    with open(reviewsrepliespaths) as f:
+def parse_and_insert_support(ext_id, date, supportpath, con):
+    with open(supportpath) as f:
+        content = f.read()
+        stripped = content[content.find('{"'):]
+        d = json.JSONDecoder().raw_decode(stripped)
+        annotations = get(next(iter(d), None), "annotations")
+        if annotations:
+            for review in d[0]["annotations"]:
+                timestamp = get(review, "timestamp")
+                title = get(review, "title")
+                comment = get(review, "comment")
+                displayname = get(get(review, "entity"), "displayName")
+                author = get(get(review, "entity"), "author")
+                language = get(review, "language")
+                shortauthor = get(get(review, "entity"), "shortAuthor")
+
+                con.execute("INSERT INTO support VALUES(?,?,?,?,?,?,?,?,?)",
+                            (author, ext_id, date, displayname, timestamp,
+                             title, language, shortauthor, comment))
+
+def parse_and_insert_replies(ext_id, date, repliespath, con):
+    with open(repliespath) as f:
         d = json.load(f)
         for result in d["searchResults"]:
             for annotation in result["annotations"]:
@@ -369,7 +400,7 @@ def parse_and_insert_review_replies(ext_id, date, reviewsrepliespaths, con):
                 language = get(annotation, "language")
                 shortauthor = get(get(annotation, "entity"), "shortAuthor")
                 con.execute(
-                    "INSERT INTO reviewreplies VALUES(?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO reply VALUES(?,?,?,?,?,?,?,?,?)",
                     (author, ext_id, date, displayname, timestamp, replyto,
                      language, shortauthor, comment))
 
@@ -447,15 +478,25 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
                 txt = logmsg(verbose, txt, str(e))
                 txt = logmsg(verbose, txt, "\n")
 
-        reviewsrepliespaths = os.path.join(datepath, "reviewsreplies.text")
-        if os.path.exists(reviewsrepliespaths):
+        supportpaths = glob.glob(os.path.join(datepath, "support*-*.text"))
+        for supportpath in supportpaths:
             try:
-                parse_and_insert_review_replies(ext_id, date,
-                                                reviewsrepliespaths, con)
+                parse_and_insert_support(ext_id, date, supportpath, con)
+            except json.decoder.JSONDecodeError as e:
+                txt = logmsg(
+                    verbose, txt,
+                    indent2 + "* Could not parse support file, exception: ")
+                txt = logmsg(verbose, txt, str(e))
+                txt = logmsg(verbose, txt, "\n")
+
+        repliespaths = glob.glob(os.path.join(datepath, "*replies.text"))
+        for repliespath in repliespaths:
+            try:
+                parse_and_insert_replies(ext_id, date, repliespath, con)
             except json.decoder.JSONDecodeError as e:
                 txt = logmsg(
                     verbose, txt, indent2 +
-                    "* Could not parse review reply file, exception: ")
+                    "* Could not parse reply file, exception: ")
                 txt = logmsg(verbose, txt, str(e))
                 txt = logmsg(verbose, txt, "\n")
     return txt
