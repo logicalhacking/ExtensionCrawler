@@ -10,10 +10,12 @@ date +'* Start Updating Code Repository (%c)'
 
 date +'* Start Updating Extensions Archive (%c)'
 
+SQLITE=`which sqlite3`
+
 # Update extensions
 (cd $CRAWLERHOME; (./crawler -d -a $ARCHIVE > $LOGPREFIX.log))
 
-date +'* Start Creating aa-ac.sqlite Data Base (%c)'
+date +"* Start Creating aa-ac.sqlite Data Base (%c) using $SQLITE"
 # Update small database
 rm -f $ARCHIVE/db/aa-ac.sqlite
 (cd $CRAWLERHOME; (./scripts/generate_small_db.sh $ARCHIVE/data $ARCHIVE/db/aa-ac.sqlite &> $LOGPREFIX-sqlite-aa-ac.log))
@@ -36,7 +38,7 @@ if [ -f "$ARCHIVE"/db/aa-ac.sqlite ]; then
   fi
 fi
 
-date +'* Start Creating full.sqlite Data Base (%c)'
+date +"* Start Creating full.sqlite Data Base (%c) using $SQLITE"
 # Update full database
 rm -f $ARCHIVE/db/full.sqlite
 (FIRSTDB=$(find "$ARCHIVE"/data/aa* -name "*.sqlite" | head -n 1);
