@@ -45,7 +45,7 @@ class SelfclosingSqliteDB:
 
 def setup_tables(con):
     con.execute("""CREATE VIRTUAL TABLE support using fts4("""
-                """author TEXT PRIMARY KEY,"""
+                """author TEXT,"""
                 """extid TEXT,"""
                 """date TEXT,"""
                 """displayname TEXT,"""
@@ -56,7 +56,7 @@ def setup_tables(con):
                 """comment TEXT"""
                 """)""")
     con.execute("""CREATE VIRTUAL TABLE review using fts4("""
-                """author TEXT PRIMARY KEY,"""
+                """author TEXT,"""
                 """extid TEXT,"""
                 """date TEXT,"""
                 """displayname TEXT,"""
@@ -67,7 +67,7 @@ def setup_tables(con):
                 """comment TEXT"""
                 """)""")
     con.execute("""CREATE VIRTUAL TABLE reply using fts4("""
-                """author TEXT PRIMARY KEY,"""
+                """author TEXT,"""
                 """extid TEXT,"""
                 """date TEXT,"""
                 """displayname TEXT,"""
