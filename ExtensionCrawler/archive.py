@@ -323,7 +323,7 @@ def update_reviews(tar, date, verbose, ext_id):
         google_dos_protection()
         res = requests.post(
             const_review_url(),
-            data=const_review_payload(ext_id, "0", "100"),
+            data=const_review_payload(ext_id, "100", "100"),
             timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
         store_request_text(tar, date, 'reviews100-199.text', res)
