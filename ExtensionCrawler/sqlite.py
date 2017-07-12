@@ -44,7 +44,7 @@ class SelfclosingSqliteDB:
 
 
 def setup_tables(con):
-    con.execute("""CREATE TABLE review ("""
+    con.execute("""CREATE VIRTUAL TABLE review using fts4("""
                 """id INTEGER PRIMARY KEY,"""
                 """extid TEXT,"""
                 """date TEXT,"""
