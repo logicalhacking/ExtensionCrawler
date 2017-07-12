@@ -318,7 +318,7 @@ def iterate_authors(pages):
             page[page.index("{\""):page.rindex("}}},") + 1])
         for annotation in json_page["annotations"]:
             if "replyExists" in annotation["attributes"] and annotation["attributes"]["replyExists"]:
-                yield annotation["entity"]["author"]
+                yield (annotation["entity"]["author"], annotation["entity"]["groups"])
 
 
 def update_reviews(tar, date, verbose, ext_id):
@@ -348,8 +348,8 @@ def update_reviews(tar, date, verbose, ext_id):
 
         google_dos_protection()
         # Always start with reply number 0 and request 10 replies
-        ext_id_author_tups = [(ext_id, author, 0, 10)
-                              for author in iterate_authors(pages)]
+        ext_id_author_tups = [(ext_id, author, 0, 10, groups)
+                              for author, groups in iterate_authors(pages)]
         res = requests.post(
             const_review_search_url(),
             data=const_review_search_payload(ext_id_author_tups),
@@ -369,6 +369,8 @@ def update_support(tar, date, verbose, ext_id):
     logtxt = logmsg(verbose, "", "           * support page:  ")
     res = None
     try:
+        pages = []
+
         google_dos_protection()
         res = requests.post(
             const_support_url(),
@@ -376,13 +378,27 @@ def update_support(tar, date, verbose, ext_id):
             timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
         store_request_text(tar, date, 'support000-099.text', res)
+        pages += [res.text]
+
         google_dos_protection()
         res = requests.post(
             const_support_url(),
             data=const_support_payload(ext_id, "100", "100"),
             timeout=10)
-        logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
+        logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
         store_request_text(tar, date, 'support100-199.text', res)
+        pages += [res.text]
+
+        google_dos_protection()
+        # Always start with reply number 0 and request 10 replies
+        ext_id_author_tups = [(ext_id, author, 0, 10, groups)
+                              for author, groups in iterate_authors(pages)]
+        res = requests.post(
+            const_review_search_url(),
+            data=const_review_search_payload(ext_id_author_tups),
+            timeout=10)
+        logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
+        store_request_text(tar, date, 'supportreplies.text', res)
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         write_text(tar, date, 'support.html.exception', str(e))

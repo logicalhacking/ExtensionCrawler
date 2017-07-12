@@ -17,6 +17,7 @@
 #
 
 import os
+import json
 
 
 def const_sitemap_url():
@@ -86,18 +87,17 @@ def const_review_search_payload(params):
     pre = """req={"applicationId":94,"searchSpecs":["""
     post = """]}&requestSource=widget"""
     args = []
-    for extid, author, start, numresults in params:
+    for extid, author, start, numresults, groups in params:
         args += [
             """{{"requireComment":true,"entities":[{{"annotation":"""
-            """{{"groups":["chrome_webstore"],"author":"{}","""
+            """{{"groups":{},"author":"{}","""
             """"url":"http://chrome.google.com/extensions/permalink?id={}"}}}}],"""
             """"matchExtraGroups":true,"startIndex":{},"numResults":{},"""
             """"includeNicknames":true,"locale": {{"language": "en","country": "us"}}}}"""
-            .format(author, extid, start, numresults)
+            .format(json.dumps(groups), author, extid, start, numresults)
         ]
 
     return pre + ",".join(args) + post
-
 
 def get_local_archive_dir(id):
     return "{}".format(id[:3])
