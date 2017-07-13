@@ -41,11 +41,7 @@ fi
 date +"* Start Creating full.sqlite Data Base (%c) using $SQLITE"
 # Update full database
 rm -f $ARCHIVE/db/full.sqlite
-(FIRSTDB=$(find "$ARCHIVE"/data/aa* -name "*.sqlite" | head -n 1);
- sqlite3 "$FIRSTDB" .schema | sqlite3 "$ARCHIVE"/db/full.sqlite;
- echo "Used $FIRSTDB for schema";
- find "$ARCHIVE"/data/ -name "*.sqlite" -exec "$CRAWLERHOME/scripts/merge_dbs.sh" "{}" "$ARCHIVE"/db/full.sqlite \; ;
-) &> $LOGPREFIX-sqlite-full.log
+find "$ARCHIVE"/data/ -name "*.sqlite" -exec "$CRAWLERHOME/scripts/merge_dbs.sh" "{}" "$ARCHIVE"/db/full.sqlite \; &> $LOGPREFIX-sqlite-full.log
 if [ $? -ne "0" ]; then 
   echo "    Creation of full.sqlite failed - see log file for details"
 else 
