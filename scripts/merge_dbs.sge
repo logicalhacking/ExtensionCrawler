@@ -16,5 +16,4 @@ override_vars
 
 set -u
 
-find $DBDIR -name "*.sqlite" -exec bash -c "sqlite3 {} .schema | sqlite3 $OUTDBPATH" \; -quit
 find $DBDIR -name "*.sqlite" -exec "$EXTENSIONCRAWLERDIR/scripts/merge_dbs.sh" "{}" "$OUTDBPATH" \;
