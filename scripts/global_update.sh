@@ -3,6 +3,10 @@
 # 01 02 * * * (cd ~/ExtensionCrawler; ((git fetch ; git checkout production; git pull) &> /dev/null))
 # 07 02 * * * ~/ExtensionCrawler/scripts/global_update.sh
 
+
+export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+export PATH=/usr/local/bin:$PATH
+
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/}
 CRAWLERHOME=${2:-~/ExtensionCrawler}
 LOGPREFIX=$ARCHIVE/log/`date --iso-8601=ns`
