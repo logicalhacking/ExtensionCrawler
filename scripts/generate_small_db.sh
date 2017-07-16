@@ -10,10 +10,6 @@ BASEDIR=${1:-/shared/brucker_research1/Shared/BrowserExtensions/data}
 DBPATH=${2:-~/aa-ac.sqlite}
 EXTENSIONCRAWLER=${3:-~/ExtensionCrawler}
 
-FIRSTDB=$(find "$BASEDIR"/aa* -name "*.sqlite" | head -n 1)
-sqlite3 "$FIRSTDB" .schema | sqlite3 "$DBPATH"
-echo "Used $FIRSTDB for schema"
-
 find "$BASEDIR"/aa* -name "*.sqlite" -exec "$EXTENSIONCRAWLER/scripts/merge_dbs.sh" "{}" "$DBPATH" \;
 find "$BASEDIR"/ab* -name "*.sqlite" -exec "$EXTENSIONCRAWLER/scripts/merge_dbs.sh" "{}" "$DBPATH" \;
 find "$BASEDIR"/ac* -name "*.sqlite" -exec "$EXTENSIONCRAWLER/scripts/merge_dbs.sh" "{}" "$DBPATH" \;
