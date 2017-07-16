@@ -99,6 +99,7 @@ def const_review_search_payload(params):
 
     return pre + ",".join(args) + post
 
+
 def get_local_archive_dir(id):
     return "{}".format(id[:3])
 

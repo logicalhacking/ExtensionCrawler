@@ -386,9 +386,16 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
                             (author, ext_id, date, displayname, timestamp,
                              title, language, shortauthor, comment))
 
-def parse_and_insert_replies(ext_id, date, repliespath, con):
+
+def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
     with open(repliespath) as f:
         d = json.load(f)
+        if not "searchResults" in d:
+            txt = logmsg(
+                verbose, "",
+                indent + "* WARNING: there are no search results in {}\n".
+                format(repliespath))
+            return txt
         for result in d["searchResults"]:
             for annotation in result["annotations"]:
                 timestamp = get(annotation, "timestamp")
@@ -399,10 +406,9 @@ def parse_and_insert_replies(ext_id, date, repliespath, con):
                 author = get(get(annotation, "entity"), "author")
                 language = get(annotation, "language")
                 shortauthor = get(get(annotation, "entity"), "shortAuthor")
-                con.execute(
-                    "INSERT INTO reply VALUES(?,?,?,?,?,?,?,?,?)",
-                    (author, ext_id, date, displayname, timestamp, replyto,
-                     language, shortauthor, comment))
+                con.execute("INSERT INTO reply VALUES(?,?,?,?,?,?,?,?,?)",
+                            (author, ext_id, date, displayname, timestamp,
+                             replyto, language, shortauthor, comment))
 
 
 def parse_and_insert_status(ext_id, date, datepath, con):
@@ -492,11 +498,13 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
         repliespaths = glob.glob(os.path.join(datepath, "*replies.text"))
         for repliespath in repliespaths:
             try:
-                parse_and_insert_replies(ext_id, date, repliespath, con)
+                reply_txt = parse_and_insert_replies(ext_id, date, repliespath,
+                                                     con, verbose, indent)
+                txt = logmsg(verbose, txt, reply_txt)
             except json.decoder.JSONDecodeError as e:
                 txt = logmsg(
-                    verbose, txt, indent2 +
-                    "* Could not parse reply file, exception: ")
+                    verbose, txt,
+                    indent2 + "* Could not parse reply file, exception: ")
                 txt = logmsg(verbose, txt, str(e))
                 txt = logmsg(verbose, txt, "\n")
     return txt

@@ -350,12 +350,15 @@ def update_reviews(tar, date, verbose, ext_id):
         # Always start with reply number 0 and request 10 replies
         ext_id_author_tups = [(ext_id, author, 0, 10, groups)
                               for author, groups in iterate_authors(pages)]
-        res = requests.post(
-            const_review_search_url(),
-            data=const_review_search_payload(ext_id_author_tups),
-            timeout=10)
-        logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
-        store_request_text(tar, date, 'reviewsreplies.text', res)
+        if ext_id_author_tups:
+            res = requests.post(
+                const_review_search_url(),
+                data=const_review_search_payload(ext_id_author_tups),
+                timeout=10)
+            logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
+            store_request_text(tar, date, 'reviewsreplies.text', res)
+        else:
+            logtxt = logmsg(verbose, logtxt, "-")
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         write_text(tar, date, 'reviews.html.exception', str(e))
@@ -393,12 +396,15 @@ def update_support(tar, date, verbose, ext_id):
         # Always start with reply number 0 and request 10 replies
         ext_id_author_tups = [(ext_id, author, 0, 10, groups)
                               for author, groups in iterate_authors(pages)]
-        res = requests.post(
-            const_review_search_url(),
-            data=const_review_search_payload(ext_id_author_tups),
-            timeout=10)
-        logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
-        store_request_text(tar, date, 'supportreplies.text', res)
+        if ext_id_author_tups:
+            res = requests.post(
+                const_review_search_url(),
+                data=const_review_search_payload(ext_id_author_tups),
+                timeout=10)
+            logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
+            store_request_text(tar, date, 'supportreplies.text', res)
+        else:
+            logtxt = logmsg(verbose, logtxt, "-")
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         write_text(tar, date, 'support.html.exception', str(e))
