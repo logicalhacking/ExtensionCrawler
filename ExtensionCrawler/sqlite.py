@@ -409,6 +409,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
                 con.execute("INSERT INTO reply VALUES(?,?,?,?,?,?,?,?,?)",
                             (author, ext_id, date, displayname, timestamp,
                              replyto, language, shortauthor, comment))
+    return ""
 
 
 def parse_and_insert_status(ext_id, date, datepath, con):
