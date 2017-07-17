@@ -37,6 +37,7 @@ import tarfile
 import tempfile
 import time
 import dateutil.parser
+import traceback
 
 
 class Error(Exception):
@@ -222,7 +223,8 @@ def update_overview(tar, date, verbose, ext_id):
         store_request_text(tar, date, 'overview.html', res)
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
-        write_text(tar, date, 'overview.html.exception', str(e))
+        write_text(tar, date, 'overview.html.exception',
+                   traceback.format_exc())
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
     return RequestResult(res), logtxt
@@ -306,7 +308,8 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
     except Exception as e:
         logtxt = logmsg(verbose, logtxt,
                         "               - Exception: {}\n".format(str(e)))
-        write_text(tmptardir, date, extfilename + ".exception", str(e))
+        write_text(tmptardir, date, extfilename + ".exception",
+                   traceback.format_exc())
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
     return RequestResult(res), logtxt
@@ -314,11 +317,11 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
 
 def iterate_authors(pages):
     for page in pages:
-        json_page = json.loads(
-            page[page.index("{\""):page.rindex("}}},") + 1])
+        json_page = json.loads(page[page.index("{\""):page.rindex("}}},") + 1])
         for annotation in json_page["annotations"]:
-            if "replyExists" in annotation["attributes"] and annotation["attributes"]["replyExists"]:
-                yield (annotation["entity"]["author"], annotation["entity"]["groups"])
+            if "attributes" in annotation and "replyExists" in annotation["attributes"] and annotation["attributes"]["replyExists"]:
+                yield (annotation["entity"]["author"],
+                       annotation["entity"]["groups"])
 
 
 def update_reviews(tar, date, verbose, ext_id):
@@ -361,7 +364,7 @@ def update_reviews(tar, date, verbose, ext_id):
             logtxt = logmsg(verbose, logtxt, "-")
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
-        write_text(tar, date, 'reviews.html.exception', str(e))
+        write_text(tar, date, 'reviews.html.exception', traceback.format_exc())
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
     return RequestResult(res), logtxt
@@ -407,7 +410,7 @@ def update_support(tar, date, verbose, ext_id):
             logtxt = logmsg(verbose, logtxt, "-")
     except Exception as e:
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
-        write_text(tar, date, 'support.html.exception', str(e))
+        write_text(tar, date, 'support.html.exception', traceback.format_exc())
         return RequestResult(res, e), logtxt
     logtxt = logmsg(verbose, logtxt, "\n")
     return RequestResult(res), logtxt
@@ -489,7 +492,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
             tar_exception = e
             try:
                 write_text(tardir, date, ext_id + ".tar.rename.exception",
-                           str(e))
+                           traceback.format_exc())
             except Exception:
                 pass
 
@@ -505,7 +508,8 @@ def update_extension(archivedir, verbose, forums, ext_id):
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
         try:
-            write_text(tardir, date, ext_id + ".tar.create.exception", str(e))
+            write_text(tardir, date, ext_id + ".tar.create.exception",
+                       traceback.format_exc())
         except Exception:
             pass
 
@@ -524,7 +528,8 @@ def update_extension(archivedir, verbose, forums, ext_id):
         sql_exception = e
 
         try:
-            write_text(tardir, date, ext_id + ".sql.exception", str(e))
+            write_text(tardir, date, ext_id + ".sql.exception",
+                       traceback.format_exc())
         except Exception as e:
             pass
     try:
@@ -535,7 +540,8 @@ def update_extension(archivedir, verbose, forums, ext_id):
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
         try:
-            write_text(tardir, date, ext_id + ".dir.remove.exception", str(e))
+            write_text(tardir, date, ext_id + ".dir.remove.exception",
+                       traceback.format_exc())
         except Exception:
             pass
 
