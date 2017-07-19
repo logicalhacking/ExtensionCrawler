@@ -28,6 +28,7 @@ from zipfile import ZipFile
 import json
 import os
 import glob
+import gc
 
 
 class SelfclosingSqliteDB:
@@ -328,10 +329,8 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                              f.infolist())
             for jsfile in jsfiles:
                 with f.open(jsfile) as jsf:
-                    content = jsf.read().decode(errors="surrogateescape")
-                    beautified = jsbeautifier.beautify(content)
-                    lines = beautified.splitlines()
-                    jsloc += len(lines)
+                    jsloc += len(jsbeautifier.beautify(jsf.read().decode(errors="surrogateescape")).splitlines())
+                    gc.collect()
 
             public_key = read_crx(crx_path).pk
 
@@ -508,4 +507,7 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
                     indent2 + "* Could not parse reply file, exception: ")
                 txt = logmsg(verbose, txt, str(e))
                 txt = logmsg(verbose, txt, "\n")
+
+
+    gc.collect()
     return txt
