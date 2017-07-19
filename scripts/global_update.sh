@@ -10,7 +10,6 @@ export PATH=/usr/local/bin:$PATH
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/}
 CRAWLERHOME=${2:-~/ExtensionCrawler}
 LOGPREFIX=$ARCHIVE/log/`date --iso-8601=ns`
-date +'* Start Updating Code Repository (%c)'
 
 date +'* Start Updating Extensions Archive (%c)'
 
