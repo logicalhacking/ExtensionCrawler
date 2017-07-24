@@ -32,6 +32,8 @@ import dateutil
 import dateutil.parser
 import time
 import getopt
+import sqlite3
+
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
@@ -191,6 +193,7 @@ def main(argv):
     log(verbose, "    Configuration directory:        {}\n".format(conf_dir))
     log(verbose, "  Discover new extensions:          {}\n".format(discover))
     log(verbose, "  Max num. of concurrent downloads: {}\n".format(parallel))
+    log(verbose, "  SQLite 3 version:                 {}\n".format(sqlite3.sqlite_version))
     log(verbose, "\n")
 
     forum_ext_ids = get_forum_ext_ids(conf_dir, verbose)
