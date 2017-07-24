@@ -4,8 +4,8 @@
 # 07 02 * * * ~/ExtensionCrawler/scripts/global_update.sh
 
 
-export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-export PATH=/usr/local/bin:$PATH
+export LD_LIBRARY_PATH=$HOME/local/lib:/usr/local/lib:$LD_LIBRARY_PATH
+export PATH=$HOME/local/bin:/usr/local/bin:$PATH
 
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/}
 CRAWLERHOME=${2:-~/ExtensionCrawler}
