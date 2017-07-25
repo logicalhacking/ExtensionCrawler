@@ -29,6 +29,7 @@ import json
 import os
 import glob
 import gc
+import stopit
 
 
 class SelfclosingSqliteDB:
@@ -327,10 +328,18 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
             jsloc = 0
             jsfiles = filter(lambda x: x.filename.endswith(".js"),
                              f.infolist())
-            for jsfile in jsfiles:
-                with f.open(jsfile) as jsf:
-                    jsloc += len(jsbeautifier.beautify(jsf.read().decode(errors="surrogateescape")).splitlines())
-                    gc.collect()
+            with stopit.ThreadingTimeout(jsloc_timeout()) as to_ctx_mgr:
+                for jsfile in jsfiles:
+                    with f.open(jsfile) as jsf:
+                        content = jsf.read().decode(errors="surrogateescape")
+                        jsloc += len(
+                            jsbeautifier.beautify(content).splitlines())
+            if not to_ctx_mgr:
+                txt = logmsg(
+                    verbose, txt,
+                    indent + "* WARNING: counting jsloc timed out after {}s\n".
+                    format(jsloc_timeout()))
+                jsloc = None
 
             public_key = read_crx(crx_path).pk
 
@@ -458,7 +467,8 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
             if not etag_already_in_db:
                 try:
                     crx_msg = parse_and_insert_crx(ext_id, date, datepath, con,
-                                                   verbose, indent)
+                                                   verbose, indent2)
+                    gc.collect()
                     txt = logmsg(verbose, txt, crx_msg)
                 except zipfile.BadZipfile as e:
                     txt = logmsg(
@@ -508,6 +518,4 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
                 txt = logmsg(verbose, txt, str(e))
                 txt = logmsg(verbose, txt, "\n")
 
-
-    gc.collect()
     return txt

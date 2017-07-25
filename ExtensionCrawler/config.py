@@ -112,3 +112,7 @@ def archive_file(archivedir, ext_id):
 def db_file(archivedir, ext_id):
     return os.path.join(archivedir,
                         get_local_archive_dir(ext_id), ext_id + ".sqlite")
+
+def jsloc_timeout():
+    # Maximum number of seconds for counting jsloc per extension
+    return 600
