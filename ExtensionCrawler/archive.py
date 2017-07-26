@@ -417,13 +417,14 @@ def update_support(tar, date, verbose, ext_id):
 
 
 def update_extension(archivedir, verbose, forums, ext_id):
-    logtxt = logmsg(verbose, "", "    Updating {}".format(ext_id))
+    logtxt = logmsg(verbose, "", "    Updating extension {}".format(ext_id))
     is_new = False
     tar_exception = None
     sql_exception = None
     sql_success = False
     tmptardir = ""
     tmptar = ""
+    start = time.time()
 
     if forums:
         logtxt = logmsg(verbose, logtxt, " (including forums)")
@@ -447,6 +448,9 @@ def update_extension(archivedir, verbose, forums, ext_id):
                         "           * FATAL: cannot create tmpdir")
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
+        logtxt = logmsg(verbose, logtxt,
+                        "           * Duration: {}\n".format(datetime.timedelta(seconds=int(time.time()-start))))
+        log(verbose, logtxt)
         return UpdateResult(ext_id, is_new, tar_exception, res_overview,
                             res_crx, res_reviews, res_support, sql_exception,
                             False)
@@ -545,6 +549,8 @@ def update_extension(archivedir, verbose, forums, ext_id):
         except Exception:
             pass
 
+    logtxt = logmsg(verbose, logtxt,
+                        "           * Duration: {}\n".format(datetime.timedelta(seconds=int(time.time()-start))))
     log(verbose, logtxt)
     return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
                         res_reviews, res_support, sql_exception, sql_success)
