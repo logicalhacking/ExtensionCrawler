@@ -23,13 +23,10 @@ from ExtensionCrawler.archive import *
 import sqlite3
 import re
 from bs4 import BeautifulSoup
-import jsbeautifier
 from zipfile import ZipFile
 import json
 import os
 import glob
-import gc
-import stopit
 
 
 class SelfclosingSqliteDB:
@@ -99,8 +96,13 @@ def setup_tables(con):
                 """crx_etag TEXT PRIMARY KEY,"""
                 """filename TEXT,"""
                 """size INTEGER,"""
-                """jsloc INTEGER,"""
                 """publickey BLOB"""
+                """)""")
+    con.execute("""CREATE TABLE jsfile ("""
+                """crx_etag TEXT,"""
+                """path TEXT,"""
+                """size INTEGER,"""
+                """PRIMARY KEY (crx_etag, path)"""
                 """)""")
     con.execute("""CREATE TABLE status ("""
                 """extid TEXT,"""
@@ -325,26 +327,17 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                                     (etag, str(urlpattern)))
 
             size = os.path.getsize(crx_path)
-            jsloc = 0
+
             jsfiles = filter(lambda x: x.filename.endswith(".js"),
                              f.infolist())
-            with stopit.ThreadingTimeout(jsloc_timeout()) as to_ctx_mgr:
-                for jsfile in jsfiles:
-                    with f.open(jsfile) as jsf:
-                        content = jsf.read().decode(errors="surrogateescape")
-                        jsloc += len(
-                            jsbeautifier.beautify(content).splitlines())
-            if not to_ctx_mgr:
-                txt = logmsg(
-                    verbose, txt,
-                    indent + "* WARNING: counting jsloc timed out after {}s\n".
-                    format(jsloc_timeout()))
-                jsloc = None
+            for jsfile in jsfiles:
+                con.execute("INSERT INTO jsfile VALUES (?,?,?)",
+                            (etag, jsfile.filename, int(jsfile.file_size)))
 
             public_key = read_crx(crx_path).pk
 
-            con.execute("INSERT INTO crx VALUES (?,?,?,?,?)",
-                        (etag, filename, size, jsloc, public_key))
+            con.execute("INSERT INTO crx VALUES (?,?,?,?)", (etag, filename,
+                                                             size, public_key))
     return txt
 
 
@@ -468,7 +461,6 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
                 try:
                     crx_msg = parse_and_insert_crx(ext_id, date, datepath, con,
                                                    verbose, indent2)
-                    gc.collect()
                     txt = logmsg(verbose, txt, crx_msg)
                 except zipfile.BadZipfile as e:
                     txt = logmsg(
