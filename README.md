@@ -28,11 +28,8 @@ as well.  The `data` directory will contain the downloaded extensions
 as well as sqlite files containing the extracted meta data. The sqlite
 files can easily be re-generated using the `create-db` tool. 
 
-All utilities are written in Python 3.x. The following non-standard 
-modules might be required:
-* requests (`apt-get install python3-requests`) 
-* dateutil (`apt-get install python3-dateutil`)
-* jsmin (`apt-get  install python3-jsmin`)
+All utilities are written in Python 3.x. The required modules are listed
+in the file `requirements.txt`.
 
 ## Team
 * [Achim D. Brucker](http://www.brucker.ch/)
