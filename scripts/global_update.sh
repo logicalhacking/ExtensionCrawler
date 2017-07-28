@@ -45,7 +45,7 @@ fi
 date +"* Start Creating full.sqlite Data Base (%c) using $SQLITE" | tee -a $LOG
 # Update full database
 rm -f $ARCHIVE/db/full.sqlite
-find "$ARCHIVE"/data/ -name "*.sqlite" -exec "$CRAWLERHOME/scripts/merge_dbs.sh" "{}" "$ARCHIVE"/db/full.sqlite \; &> $LOGPREFIX-sqlite-full.log
+"$CRAWLERHOME/scripts/merge_dbs" "$ARCHIVE/data" "$ARCHIVE/db/full.sqlite" &> $LOGPREFIX-sqlite-full.log
 if [ $? -ne "0" ]; then 
   echo "    Creation of full.sqlite failed - see log file for details" | tee -a $LOG
 else 
