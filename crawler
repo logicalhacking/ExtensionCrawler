@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+"""
+A crawler for extensions from the Chrome Web Store.
+"""
 
 import os
 import sys
@@ -32,12 +35,14 @@ assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
 
 def write_log(dirname, fname, text):
+    """Write text into the file with name fname in directory dirname."""
     os.makedirs(dirname, exist_ok=True)
     with open(os.path.join(dirname, fname), 'w') as logfile:
         logfile.write(text)
 
 
 def log_failures_to_file(dirname, today, res):
+    """Log failures during download/update in the log directory dirname."""
     not_authorized = reduce(
         lambda x, y: x + "\n" + y,
         sorted(map(lambda x: x.id, filter(lambda x: x.not_authorized(), res))),
@@ -91,13 +96,15 @@ def log_failures_to_file(dirname, today, res):
 
 
 def log_summary(verbose, res, stderr=False, runtime=0):
+    """Log brief result summary to log stream of stderr."""
+
     def printlog(msg):
+        """Print log message."""
         if stderr:
             sys.stderr.write(msg)
         else:
             log(verbose, msg)
 
-    total = len(res)
     success = len(list(filter(lambda x: x.is_ok(), res)))
     not_authorized = len(list(filter(lambda x: x.not_authorized(), res)))
     has_exception = len(list(filter(lambda x: x.has_exception(), res)))
@@ -115,7 +122,7 @@ def log_summary(verbose, res, stderr=False, runtime=0):
     printlog("\n")
     printlog("Summary:\n")
     printlog("    Updated {} out of {} extensions successfully\n".format(
-        str(success), str(total)))
+        str(success), str(len(res))))
     printlog("    Updated extensions:      {:8d}\n".format(updated))
     printlog("    Updated SQL databases:   {:8d}\n".format(sql_success))
     printlog("    New extensions:          {:8d}\n".format(new))
@@ -140,6 +147,7 @@ def log_summary(verbose, res, stderr=False, runtime=0):
 
 
 def helpmsg():
+    """Print help message."""
     print("crawler [OPTION]")
     print("    -h        print this help text")
     print("    -s        silent (no log messages)")
@@ -148,6 +156,7 @@ def helpmsg():
 
 
 def main(argv):
+    """Main function of the extension crawler."""
     today = datetime.datetime.now(datetime.timezone.utc).isoformat()
     basedir = "archive"
     parallel = 24
