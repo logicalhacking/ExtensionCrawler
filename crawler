@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # Copyright (C) 2016,2017 The University of Sheffield, UK
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -136,7 +136,7 @@ def log_summary(verbose, res, stderr=False, runtime=0):
     p("    Total runtime:            {}\n".format(
         str(datetime.timedelta(seconds=int(runtime)))))
 
-    if not (corrupt_tar_archives == []):
+    if (corrupt_tar_archives != []):
         p("\n\n")
         p("List of extensions with corrupted files/archives:\n")
         list(
@@ -204,12 +204,16 @@ def main(argv):
         discovered_ids = get_new_ids(verbose, known_ids)
     ext_ids = list(set(discovered_ids) | set(known_ids))
 
+    discovered_ids = None
+    known_ids = None
+    existing_ids = None
+
     res = update_extensions(archive_dir, verbose, parallel, forum_ext_ids, ext_ids)
 
-    # We re-try (once) the extensions with unknown exceptions, as 
-    # they are often temporary    
+    # We re-try (once) the extensions with unknown exceptions, as
+    # they are often temporary
     has_exception = list(filter(lambda x: x.has_exception(), res))
-    if not (has_exception == []):
+    if (has_exception != []):
         log(verbose,
             "  {} extensions with unknown exceptions, start another try ...\n".
             format(str(len(has_exception))))
