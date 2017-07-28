@@ -18,16 +18,14 @@
 
 import os
 import sys
-import sqlite3
 import datetime
 import time
 import getopt
+import sqlite3
 from functools import reduce
-import dateutil
-import dateutil.parser
 from ExtensionCrawler.discover import get_new_ids
-from ExtensionCrawler.archive import *
-from ExtensionCrawler.util import *
+from ExtensionCrawler.archive import get_forum_ext_ids, get_existing_ids, update_extensions
+from ExtensionCrawler.util import log
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
@@ -35,8 +33,8 @@ assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
 def write_log(dirname, fname, text):
     os.makedirs(dirname, exist_ok=True)
-    with open(os.path.join(dirname, fname), 'w') as f:
-        f.write(text)
+    with open(os.path.join(dirname, fname), 'w') as logfile:
+        logfile.write(text)
 
 
 def log_failures_to_file(dirname, today, res):
@@ -93,11 +91,11 @@ def log_failures_to_file(dirname, today, res):
 
 
 def log_summary(verbose, res, stderr=False, runtime=0):
-    def p(s):
+    def printlog(msg):
         if stderr:
-            sys.stderr.write(s)
+            sys.stderr.write(msg)
         else:
-            log(verbose, s)
+            log(verbose, msg)
 
     total = len(res)
     success = len(list(filter(lambda x: x.is_ok(), res)))
@@ -114,30 +112,31 @@ def log_summary(verbose, res, stderr=False, runtime=0):
     updated = len(
         list(filter(lambda x: x.is_ok() and not x.not_modified(), res)))
 
-    p("\n")
-    p("Summary:\n")
-    p("    Updated {} out of {} extensions successfully\n".format(
+    printlog("\n")
+    printlog("Summary:\n")
+    printlog("    Updated {} out of {} extensions successfully\n".format(
         str(success), str(total)))
-    p("    Updated extensions:      {:8d}\n".format(updated))
-    p("    Updated SQL databases:   {:8d}\n".format(sql_success))
-    p("    New extensions:          {:8d}\n".format(new))
-    p("    Not authorized:          {:8d}\n".format(not_authorized))
-    p("    Raised Google DDOS:      {:8d}\n".format(raised_ddos))
-    p("    Not modified archives:   {:8d}\n".format(not_modified))
-    p("    Extensions not in store: {:8d}\n".format(not_in_store))
-    p("    Unknown exception:       {:8d}\n".format(has_exception))
-    p("    Corrupt tar archives:    {:8d}\n".format(len(corrupt_tar_archives)))
-    p("    SQL exception:           {:8d}\n".format(sql_exception))
-    p("    Total runtime:            {}\n".format(
+    printlog("    Updated extensions:      {:8d}\n".format(updated))
+    printlog("    Updated SQL databases:   {:8d}\n".format(sql_success))
+    printlog("    New extensions:          {:8d}\n".format(new))
+    printlog("    Not authorized:          {:8d}\n".format(not_authorized))
+    printlog("    Raised Google DDOS:      {:8d}\n".format(raised_ddos))
+    printlog("    Not modified archives:   {:8d}\n".format(not_modified))
+    printlog("    Extensions not in store: {:8d}\n".format(not_in_store))
+    printlog("    Unknown exception:       {:8d}\n".format(has_exception))
+    printlog("    Corrupt tar archives:    {:8d}\n".format(
+        len(corrupt_tar_archives)))
+    printlog("    SQL exception:           {:8d}\n".format(sql_exception))
+    printlog("    Total runtime:            {}\n".format(
         str(datetime.timedelta(seconds=int(runtime)))))
 
-    if (corrupt_tar_archives != []):
-        p("\n\n")
-        p("List of extensions with corrupted files/archives:\n")
+    if corrupt_tar_archives != []:
+        printlog("\n\n")
+        printlog("List of extensions with corrupted files/archives:\n")
         list(
-            map(lambda x: p("    " + x.id + ": " + str(x.exception) + "\n"),
+            map(lambda x: printlog("    " + x.id + ": " + str(x.exception) + "\n"),
                 corrupt_tar_archives))
-        p("\n")
+        printlog("\n")
 
 
 def helpmsg():
@@ -155,7 +154,7 @@ def main(argv):
     verbose = True
     discover = False
     try:
-        opts, args = getopt.getopt(argv, "hsda:p:", ["archive=", 'parallel='])
+        opts, _ = getopt.getopt(argv, "hsda:p:", ["archive=", 'parallel='])
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -211,7 +210,7 @@ def main(argv):
     # We re-try (once) the extensions with unknown exceptions, as
     # they are often temporary
     has_exception = list(filter(lambda x: x.has_exception(), res))
-    if (has_exception != []):
+    if has_exception != []:
         log(verbose,
             "  {} extensions with unknown exceptions, start another try ...\n".
             format(str(len(has_exception))))
