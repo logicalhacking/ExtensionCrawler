@@ -16,4 +16,4 @@ override_vars
 
 set -u
 
-find $DBDIR -name "*.sqlite" -exec "$EXTENSIONCRAWLERDIR/scripts/merge_dbs.sh" "{}" "$OUTDBPATH" \;
+"$EXTENSIONCRAWLERDIR/scripts/merge_dbs" "$DBDIR" "$OUTDBPATH"

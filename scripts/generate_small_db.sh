@@ -10,6 +10,4 @@ BASEDIR=${1:-/shared/brucker_research1/Shared/BrowserExtensions/data}
 DBPATH=${2:-~/aa-ac.sqlite}
 EXTENSIONCRAWLER=${3:-~/ExtensionCrawler}
 
-find "$BASEDIR"/aa* -name "*.sqlite" -exec "$EXTENSIONCRAWLER/scripts/merge_dbs.sh" "{}" "$DBPATH" \;
-find "$BASEDIR"/ab* -name "*.sqlite" -exec "$EXTENSIONCRAWLER/scripts/merge_dbs.sh" "{}" "$DBPATH" \;
-find "$BASEDIR"/ac* -name "*.sqlite" -exec "$EXTENSIONCRAWLER/scripts/merge_dbs.sh" "{}" "$DBPATH" \;
+find "$BASEDIR" -mindepth 1 -maxdepth 1 -name "a[a-c]*" -exec "$EXTENSIONCRAWLER/scripts/merge_dbs" "{}" "$DBPATH" \;

@@ -19,5 +19,5 @@ override_vars
 
 find "$DBDIR" -name "$(task_id_to_letter_256 $SGE_TASK_ID)*.sqlite" -print0 | while IFS= read -r -d '' file; do
   DBNAME=$(basename "$file")
-  "$EXTENSIONCRAWLERDIR/scripts/merge_dbs.sh" "$file" "$OUTDBPATH/${DBNAME:0:3}/$DBNAME"
+  "$EXTENSIONCRAWLERDIR/scripts/merge_dbs" "$file" "$OUTDBPATH/${DBNAME:0:3}/$DBNAME"
 done
