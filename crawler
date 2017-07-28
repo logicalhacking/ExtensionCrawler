@@ -18,83 +18,78 @@
 
 import os
 import sys
-import glob
-import re
-import requests
-from time import sleep
-from random import randint
+import sqlite3
 import datetime
-from ExtensionCrawler.discover import *
-from ExtensionCrawler.archive import *
-from ExtensionCrawler.util import *
-from ExtensionCrawler.discover import *
-import dateutil
-import dateutil.parser
 import time
 import getopt
-import sqlite3
-
+from functools import reduce
+import dateutil
+import dateutil.parser
+from ExtensionCrawler.discover import get_new_ids
+from ExtensionCrawler.archive import *
+from ExtensionCrawler.util import *
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
 
-def write_log(dir, fname, text):
-    os.makedirs(dir, exist_ok=True)
-    with open(os.path.join(dir, fname), 'w') as f:
+def write_log(dirname, fname, text):
+    os.makedirs(dirname, exist_ok=True)
+    with open(os.path.join(dirname, fname), 'w') as f:
         f.write(text)
 
 
-def log_failures_to_file(dir, today, res):
+def log_failures_to_file(dirname, today, res):
     not_authorized = reduce(
         lambda x, y: x + "\n" + y,
         sorted(map(lambda x: x.id, filter(lambda x: x.not_authorized(), res))),
         "")
-    write_log(dir, today + "-not-authorized.log", not_authorized)
+    write_log(dirname, today + "-not-authorized.log", not_authorized)
     updated = reduce(
         lambda x, y: x + "\n" + y,
         sorted(
             map(lambda x: x.id,
                 filter(lambda x: x.is_ok() and not x.not_modified(), res))),
         "")
-    write_log(dir, today + "-updated.log", updated)
+    write_log(dirname, today + "-updated.log", updated)
     has_exception = reduce(
         lambda x, y: x + "\n" + y,
         sorted(map(lambda x: x.id, filter(lambda x: x.has_exception(), res))),
         "")
-    write_log(dir, today + "-raised-exception.log", has_exception)
+    write_log(dirname, today + "-raised-exception.log", has_exception)
     raised_ddos = reduce(
         lambda x, y: x + "\n" + y,
         sorted(
             map(lambda x: x.id, filter(lambda x: x.raised_google_ddos(),
                                        res))), "")
-    write_log(dir, today + "-raised-ddos.log", raised_ddos)
+    write_log(dirname, today + "-raised-ddos.log", raised_ddos)
     not_in_store = reduce(
         lambda x, y: x + "\n" + y,
         sorted(map(lambda x: x.id, filter(lambda x: x.not_in_store(), res))),
         "")
-    write_log(dir, today + "-not-in-store.log", not_in_store)
+    write_log(dirname, today + "-not-in-store.log", not_in_store)
     new = reduce(
         lambda x, y: x + "\n" + y,
         sorted(map(lambda x: x.id, filter(lambda x: x.is_new(), res))), "")
-    write_log(dir, today + "-new-in-store.log", new)
+    write_log(dirname, today + "-new-in-store.log", new)
     file_corruption = reduce(
         lambda x, y: x + "\n" + y,
         sorted(map(lambda x: x.id, filter(lambda x: x.corrupt_tar(), res))),
         "")
-    write_log(dir, today + "-file-corruption.log", file_corruption)
-    
+    write_log(dirname, today + "-file-corruption.log", file_corruption)
+
     sql_exception = reduce(
         lambda x, y: x + "\n" + y,
         sorted(map(lambda x: x.id, filter(lambda x: x.sql_exception(), res))),
         "")
-    write_log(dir, today + "-sql-exception.log", sql_exception)
-    
+    write_log(dirname, today + "-sql-exception.log", sql_exception)
+
     sql_success = reduce(
         lambda x, y: x + "\n" + y,
-        sorted(map(lambda x: x.id, filter(lambda x: not x.sql_success(), res))),
+        sorted(
+            map(lambda x: x.id, filter(lambda x: not x.sql_success(), res))),
         "")
-    write_log(dir, today + "-sql-not-updated.log", sql_success)
+    write_log(dirname, today + "-sql-not-updated.log", sql_success)
 
 
 def log_summary(verbose, res, stderr=False, runtime=0):
@@ -145,7 +140,7 @@ def log_summary(verbose, res, stderr=False, runtime=0):
         p("\n")
 
 
-def help():
+def helpmsg():
     print("crawler [OPTION]")
     print("    -h        print this help text")
     print("    -s        silent (no log messages)")
@@ -160,13 +155,13 @@ def main(argv):
     verbose = True
     discover = False
     try:
-        opts, args = getopt.getopt(argv, "hsda:p:", ["archive=",'parallel='])
+        opts, args = getopt.getopt(argv, "hsda:p:", ["archive=", 'parallel='])
     except getopt.GetoptError:
-        help()
+        helpmsg()
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            help()
+            helpmsg()
             sys.exit()
         elif opt in ("-a", "--archive"):
             basedir = arg
@@ -189,11 +184,13 @@ def main(argv):
 
     log(verbose, "Configuration:\n")
     log(verbose, "  Base dir:                         {}\n".format(basedir))
-    log(verbose, "    Archive directory:              {}\n".format(archive_dir))
+    log(verbose,
+        "    Archive directory:              {}\n".format(archive_dir))
     log(verbose, "    Configuration directory:        {}\n".format(conf_dir))
     log(verbose, "  Discover new extensions:          {}\n".format(discover))
     log(verbose, "  Max num. of concurrent downloads: {}\n".format(parallel))
-    log(verbose, "  SQLite 3 version:                 {}\n".format(sqlite3.sqlite_version))
+    log(verbose, "  SQLite 3 version:                 {}\n".format(
+        sqlite3.sqlite_version))
     log(verbose, "\n")
 
     forum_ext_ids = get_forum_ext_ids(conf_dir, verbose)
@@ -208,7 +205,8 @@ def main(argv):
     known_ids = None
     existing_ids = None
 
-    res = update_extensions(archive_dir, verbose, parallel, forum_ext_ids, ext_ids)
+    res = update_extensions(archive_dir, verbose, parallel, forum_ext_ids,
+                            ext_ids)
 
     # We re-try (once) the extensions with unknown exceptions, as
     # they are often temporary
