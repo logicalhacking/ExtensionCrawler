@@ -255,7 +255,7 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
     last_crx_http_date = last_modified_http_date(last_crx_file)
     logtxt = logmsg(verbose, "",
                     "           * crx archive (Last: {}): ".format(
-                        valueOf(last_crx_http_date, "n/a")))
+                        value_of(last_crx_http_date, "n/a")))
     headers = ""
     if last_crx_file is not "":
         headers = {'If-Modified-Since': last_crx_http_date}

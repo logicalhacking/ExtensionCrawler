@@ -14,33 +14,33 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 """ Various utility methods."""
 
 import sys
 from time import sleep
-from random import randrange
+from random import random
 
-
-def google_dos_protection(maxrange=2):
+def google_dos_protection(maxrange=2.2):
     """Wait a random number of seconds (between 0.5 to maxrange*0.5)
        to avoid Google's bot detection"""
-    sleep(randrange(1, maxrange) * .5)
-
+    sleep((1+random())*(maxrange/2.0)*.5)
 
 def log(verbose, msg):
+    """Print log message."""
     if verbose:
         sys.stdout.write(msg)
         sys.stdout.flush()
 
-
 def logmsg(verbose, msg1, msg2):
+    """Append msg2 to log stream msg1."""
     if verbose:
         return msg1 + msg2
     else:
         return msg1
 
-
-def valueOf(value, default):
+def value_of(value, default):
+    """Get value or default value if None."""
     if value is not None and value is not "":
         return value
     else:
