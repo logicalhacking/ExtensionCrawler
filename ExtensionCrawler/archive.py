@@ -13,43 +13,47 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+"""
+Module for handling archives of the Browser Extension Crawler.
+"""
+
 import os
-import sys
 import glob
 import re
-import requests
-from time import sleep
-from random import randint
-import datetime
-from ExtensionCrawler.config import *
-from ExtensionCrawler.util import *
-from ExtensionCrawler.archive import archive_file
-from ExtensionCrawler.sqlite import *
-import dateutil
-import dateutil.parser
+import json
 from multiprocessing import Pool
 from functools import partial
 import shutil
-import tarfile
 import tempfile
 import time
-import dateutil.parser
 import traceback
+import tarfile
+import datetime
+import dateutil
+import dateutil.parser
+import requests
+
+from ExtensionCrawler.config import (const_review_payload, const_review_search_url,
+                                     const_download_url, get_local_archive_dir,
+                                     const_overview_url, const_support_url,
+                                     const_support_payload, const_review_search_payload,
+                                     const_review_url)
+from ExtensionCrawler.util import logmsg, google_dos_protection, log, value_of
+from ExtensionCrawler.sqlite import db_file, update_sqlite_incremental
 
 
 class Error(Exception):
     pass
-
 
 class CrawlError(Error):
     def __init__(self, extid, message, pagecontent=""):
         self.extid = extid
         self.message = message
         self.pagecontent = pagecontent
-
+        super(CrawlError, self).__init__()
 
 class RequestResult:
     def __init__(self, response=None, exception=None):
@@ -73,7 +77,7 @@ class RequestResult:
         return (self.exception is None) and (self.http_status == 503)
 
     def not_modified(self):
-        return ((self.exception is None) and (self.http_status == 304))
+        return (self.exception is None) and (self.http_status == 304)
 
 
 class UpdateResult:
@@ -95,16 +99,16 @@ class UpdateResult:
     def is_ok(self):
         return (self.res_overview.is_ok() and
                 (self.res_crx.is_ok() or self.res_crx.not_modified()) and
-                ((self.res_reviews is None) or self.res_reviews.is_ok()) and
-                ((self.res_support is None) or self.res_support.is_ok()))
+                ((self.res_reviews is None) or self.res_reviews.is_ok()) and (
+                    (self.res_support is None) or self.res_support.is_ok()))
 
     def not_authorized(self):
         return (self.res_overview.not_authorized() or
                 self.res_crx.not_authorized() or
                 (self.res_reviews is not None and
-                 self.res_reviews.not_authorized()) or
-                (self.res_support is not None and
-                 self.res_support.not_authorized()))
+                 self.res_reviews.not_authorized()) or (
+                     self.res_support is not None and
+                     self.res_support.not_authorized()))
 
     def not_in_store(self):
         return (
@@ -116,9 +120,9 @@ class UpdateResult:
         return (self.res_overview.has_exception() or
                 self.res_crx.has_exception() or
                 (self.res_reviews is not None and
-                 self.res_reviews.has_exception()) or
-                (self.res_support is not None and
-                 self.res_support.has_exception()))
+                 self.res_reviews.has_exception()) or (
+                     self.res_support is not None and
+                     self.res_support.has_exception()))
 
     def raised_google_ddos(self):
         return ((self.res_reviews is not None and
@@ -140,9 +144,9 @@ class UpdateResult:
 
 
 def write_text(tardir, date, fname, text):
-    dir = os.path.join(tardir, date)
-    os.makedirs(dir, exist_ok=True)
-    with open(os.path.join(dir, fname), 'w') as f:
+    directory = os.path.join(tardir, date)
+    os.makedirs(directory, exist_ok=True)
+    with open(os.path.join(directory, fname), 'w') as f:
         f.write(text)
 
 
@@ -163,9 +167,8 @@ def httpdate(dt):
         "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
         "Nov", "Dec"
     ][dt.month - 1]
-    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (weekday, dt.day, month,
-                                                    dt.year, dt.hour,
-                                                    dt.minute, dt.second)
+    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (
+        weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
 
 
 def last_modified_utc_date(path):
@@ -188,9 +191,9 @@ def last_crx(archivedir, extid, date=None):
         t = tarfile.open(tar, 'r')
         old_crxs = sorted([
             x.name for x in t.getmembers()
-            if x.name.endswith(".crx") and x.size > 0 and
-            (date is None or (dateutil.parser.parse(
-                os.path.split(os.path.split(x.name)[0])[1]) <= date))
+            if x.name.endswith(".crx") and x.size > 0 and (date is None or (
+                dateutil.parser.parse(
+                    os.path.split(os.path.split(x.name)[0])[1]) <= date))
         ])
         t.close()
         if old_crxs != []:
@@ -209,7 +212,7 @@ def last_etag(archivedir, extid, crxfile):
             headers = eval((t.extractfile(crxfile + ".headers")).read())
             etag = headers['ETag']
             t.close()
-    except Exception as e:
+    except Exception:
         return ""
     return etag
 
@@ -260,11 +263,10 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
     if last_crx_file is not "":
         headers = {'If-Modified-Since': last_crx_http_date}
     try:
-        res = requests.get(
-            const_download_url().format(ext_id),
-            stream=True,
-            headers=headers,
-            timeout=10)
+        res = requests.get(const_download_url().format(ext_id),
+                           stream=True,
+                           headers=headers,
+                           timeout=10)
         logtxt = logmsg(verbose, logtxt, "{}\n".format(str(res.status_code)))
         extfilename = os.path.basename(res.url)
         if re.search('&', extfilename):
@@ -276,21 +278,19 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                 timeout=10,
                 allow_redirects=True).headers.get('ETag')
             write_text(tmptardir, date, extfilename + ".etag", etag)
-            logtxt = logmsg(
-                verbose, logtxt,
-                ("               - checking etag, last: {}\n" +
-                 "                             current: {}\n").format(
-                     last_crx_etag, etag))
+            logtxt = logmsg(verbose, logtxt, (
+                "               - checking etag, last: {}\n" +
+                "                             current: {}\n").format(
+                    last_crx_etag, etag))
 
-            if ((etag is not "") and (etag != last_crx_etag)):
+            if (etag is not "") and (etag != last_crx_etag):
                 logtxt = logmsg(
                     verbose, logtxt,
                     "               - downloading due to different etags\n")
 
-                res = requests.get(
-                    const_download_url().format(ext_id),
-                    stream=True,
-                    timeout=10)
+                res = requests.get(const_download_url().format(ext_id),
+                                   stream=True,
+                                   timeout=10)
             else:
                 write_text(tmptardir, date, extfilename + ".link",
                            os.path.join("..",
@@ -319,7 +319,8 @@ def iterate_authors(pages):
     for page in pages:
         json_page = json.loads(page[page.index("{\""):page.rindex("}}},") + 1])
         for annotation in json_page["annotations"]:
-            if "attributes" in annotation and "replyExists" in annotation["attributes"] and annotation["attributes"]["replyExists"]:
+            if "attributes" in annotation and "replyExists" in annotation[
+                    "attributes"] and annotation["attributes"]["replyExists"]:
                 yield (annotation["entity"]["author"],
                        annotation["entity"]["groups"])
 
@@ -423,7 +424,6 @@ def update_extension(archivedir, verbose, forums, ext_id):
     sql_exception = None
     sql_success = False
     tmptardir = ""
-    tmptar = ""
     start = time.time()
 
     if forums:
@@ -437,7 +437,6 @@ def update_extension(archivedir, verbose, forums, ext_id):
     try:
         tmpdir = tempfile.mkdtemp()
         tmptardir = os.path.join(tmpdir, ext_id)
-        tmptar = tmptardir + ".tar"
         logtxt = logmsg(verbose, logtxt,
                         "           * tmptardir =  {}\n".format(tmptardir))
         os.makedirs(
@@ -448,11 +447,14 @@ def update_extension(archivedir, verbose, forums, ext_id):
                         "           * FATAL: cannot create tmpdir")
         logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
         tar_exception = e
-        logtxt = logmsg(verbose, logtxt,
-                        "           * Duration: {}\n".format(datetime.timedelta(seconds=int(time.time()-start))))
+        logtxt = logmsg(
+            verbose,
+            logtxt,
+            "           * Duration: {}\n".format(
+                datetime.timedelta(seconds=int(time.time() - start))))
         log(verbose, logtxt)
-        return UpdateResult(ext_id, is_new, tar_exception, res_overview,
-                            res_crx, res_reviews, res_support, sql_exception,
+        return UpdateResult(ext_id, is_new, tar_exception, None,
+                            None, None, None, sql_exception,
                             False)
 
     res_overview, msg_overview = update_overview(tmptardir, date, verbose,
@@ -549,8 +551,11 @@ def update_extension(archivedir, verbose, forums, ext_id):
         except Exception:
             pass
 
-    logtxt = logmsg(verbose, logtxt,
-                        "           * Duration: {}\n".format(datetime.timedelta(seconds=int(time.time()-start))))
+    logtxt = logmsg(
+        verbose,
+        logtxt,
+        "           * Duration: {}\n".format(
+            datetime.timedelta(seconds=int(time.time() - start))))
     log(verbose, logtxt)
     return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
                         res_reviews, res_support, sql_exception, sql_success)
@@ -592,7 +597,7 @@ def get_existing_ids(archivedir, verbose):
     byte = '[0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z]'
     word = byte + byte + byte + byte
     return list(
-        map(lambda d: re.sub(".tar$", "", re.sub("^.*\/", "", d)),
+        map(lambda d: re.sub(".tar$", "", re.sub(r"^.*\/", "", d)),
             glob.glob(os.path.join(archivedir, "*", word + ".tar"))))
 
 
