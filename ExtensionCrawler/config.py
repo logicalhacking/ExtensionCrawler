@@ -130,7 +130,21 @@ def db_file(archivedir, ext_id):
     return os.path.join(archivedir,
                         get_local_archive_dir(ext_id), ext_id + ".sqlite")
 
-
 def jsloc_timeout():
     """Maximum number of seconds for counting jsloc per extension."""
     return 600
+
+def const_basedir():
+    """Top-level directory for the extension crawler archive."""
+    return "archive"
+def const_parallel_downloads():
+    """Number of parallel downloads."""
+    return 36
+
+def const_verbose():
+    """Default verbosity."""
+    return True
+
+def const_discover():
+    """Default configuration of discovery mode"""
+    return False
