@@ -19,14 +19,17 @@
    i.e., *.crx files."""
 
 import io
+import os
 import zipfile
 import binascii
 from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA
 from Crypto.Signature import PKCS1_v1_5
 
+
 class CrxFile:
     """Record class for storing crx files."""
+
     def __init__(self, filename, magic, version, pk_len, sig_len, pk, sig,
                  header_len, data):
         self.file = filename
@@ -127,7 +130,8 @@ def extract_crxfile(verbose, force, filename, destdir):
         if (destdir == "") | (destdir is None):
             destdir = "."
         if filename.endswith(".crx"):
-            dirname = filename[0:len(filename) - 4]
+            extname = os.path.basename(filename)
+            dirname = extname[0:len(os.path.basename(extname)) - 4]
         else:
             dirname = filename
         out = io.BytesIO(crx.data)
