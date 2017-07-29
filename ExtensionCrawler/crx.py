@@ -30,14 +30,14 @@ from Crypto.Signature import PKCS1_v1_5
 class CrxFile:
     """Record class for storing crx files."""
 
-    def __init__(self, filename, magic, version, pk_len, sig_len, pk, sig,
-                 header_len, data):
+    def __init__(self, filename, magic, version, public_key_len, sig_len,
+                 public_key, sig, header_len, data):
         self.file = filename
         self.magic = magic
         self.version = version
-        self.pk_len = pk_len
+        self.public_key_len = public_key_len
         self.sig_len = sig_len
-        self.pk = pk
+        self.public_key = public_key
         self.sig = sig
         self.header_len = header_len
         self.data = data
@@ -56,9 +56,9 @@ def is_crxfile(filename):
     return is_valid_magic(magic)
 
 
-def check_signature(pk, sig, data):
+def check_signature(public_key, sig, data):
     """Check validity of signature contained in the crx file."""
-    key = RSA.importKey(pk)
+    key = RSA.importKey(public_key)
     crxhash = SHA.new(data)
     return PKCS1_v1_5.new(key).verify(crxhash, sig)
 
@@ -68,15 +68,15 @@ def read_crx(filename):
     file = open(filename, 'rb')
     magic = file.read(4)
     version = int.from_bytes(file.read(4), byteorder='little')
-    pk_len = int.from_bytes(file.read(4), byteorder='little')
+    public_key_len = int.from_bytes(file.read(4), byteorder='little')
     sig_len = int.from_bytes(file.read(4), byteorder='little')
-    pk = file.read(pk_len)
+    public_key = file.read(public_key_len)
     sig = file.read(sig_len)
-    header_len = 16 + pk_len + sig_len
+    header_len = 16 + public_key_len + sig_len
     data = file.read()
     file.close()
-    return CrxFile(filename, magic, version, pk_len, sig_len, pk, sig,
-                   header_len, data)
+    return CrxFile(filename, magic, version, public_key_len, sig_len,
+                   public_key, sig, header_len, data)
 
 
 def print_crx_info(verbose, crx):
@@ -85,7 +85,7 @@ def print_crx_info(verbose, crx):
         magic = "valid"
     else:
         magic = "invalid"
-    if check_signature(crx.pk, crx.sig, crx.data):
+    if check_signature(crx.public_key, crx.sig, crx.data):
         sig = "valid"
     else:
         sig = "invalid"
@@ -96,8 +96,8 @@ def print_crx_info(verbose, crx):
           ")")
     print("Version:     " + str(crx.version))
     print("Signature:   " + sig)
-    print("Public Key [" + str(crx.pk_len) + "]:")
-    key = RSA.importKey(crx.pk)
+    print("Public Key [" + str(crx.public_key_len) + "]:")
+    key = RSA.importKey(crx.public_key)
     print(key.exportKey().decode("utf-8"))
     if verbose:
         print("Signature [" + str(crx.sig_len) + "]: " + str(

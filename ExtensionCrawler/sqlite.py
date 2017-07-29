@@ -334,7 +334,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                 con.execute("INSERT INTO jsfile VALUES (?,?,?)",
                             (etag, jsfile.filename, int(jsfile.file_size)))
 
-            public_key = read_crx(crx_path).pk
+            public_key = read_crx(crx_path).public_key
 
             con.execute("INSERT INTO crx VALUES (?,?,?,?)", (etag, filename,
                                                              size, public_key))
