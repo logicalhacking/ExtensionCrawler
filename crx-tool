@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # Copyright (C) 2016 The University of Sheffield, UK
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -15,11 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+""" A tool for analyzing and extracting `*.crx` files
+    (i.e., Chrome extensions)."""
 
 import argparse
-from ExtensionCrawler.crx import *
+from ExtensionCrawler.crx import extract_crxfile, verify_crxfile
+
 
 def main():
+    """Main function of the extension crawler."""
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="chrome extension archive (*.crx)")
     parser.add_argument('targetdir', nargs='?', default="")
