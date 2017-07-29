@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # Copyright (C) 2016,2017 The University of Sheffield, UK
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -14,24 +14,28 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
-import sys
+"""Python mnodule providing methods for discovering extensions in the
+   Chrome extension store."""
+
 import xml.etree.ElementTree as ET
-import requests
 import re
 from functools import reduce
+import requests
 import ExtensionCrawler.config
-from ExtensionCrawler.util import *
+from ExtensionCrawler.util import log
 
 
 def crawl_nearly_all_of_ext_ids():
+    """Crawl extension ids available in Chrome store."""
     def get_inner_elems(doc):
-        return ET.fromstring(doc).findall(".//{{{}}}loc".format(
+        """Get inner element."""
+        return ET.fromstring(doc).findall(r".//{{{}}}loc".format(
             ExtensionCrawler.config.const_sitemap_scheme()))
 
     def is_generic_url(url):
-        return re.match("^{}\?shard=\d+&numshards=\d+$".format(
+        """Check if URL is a generic extensiosn URL."""
+        return re.match(r"^{}\?shard=\d+&numshards=\d+$".format(
             ExtensionCrawler.config.const_sitemap_url()), url)
 
     shard_elems = get_inner_elems(
@@ -51,13 +55,14 @@ def crawl_nearly_all_of_ext_ids():
 
 
 def get_new_ids(verbose, known_ids):
+    """Discover new extension ids."""
     log(verbose, "Discovering new ids ... \n")
     discovered_ids = []
     try:
         discovered_ids = ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
-    except Exception as e:
+    except Exception as ex:
         log(verbose,
-            "  EXCEPTION during discovering of new ids: {}\n".format(str(e)))
+            "  EXCEPTION during discovering of new ids: {}\n".format(str(ex)))
     new_ids = list(set(discovered_ids) - set(known_ids))
     log(verbose, "  Discovered {} new extensions (out of {})\n".format(
         len(new_ids), len(discovered_ids)))
