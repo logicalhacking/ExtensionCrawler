@@ -14,6 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
 
 """ Various utility methods."""
 
@@ -21,7 +22,7 @@ import sys
 from time import sleep
 from random import random
 
-def google_dos_protection(maxrange=2.2):
+def google_dos_protection(maxrange=1.8):
     """Wait a random number of seconds (between 0.5 to maxrange*0.5)
        to avoid Google's bot detection"""
     sleep((1+random())*(maxrange/2.0)*.5)
