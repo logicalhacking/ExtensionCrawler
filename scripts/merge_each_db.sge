@@ -8,14 +8,15 @@
 #     DBDIR                   base dir for the generated db files
 #     OUTDBPATH               path containing the three-letter-dirs
 #     EXTENSIONCRAWLERPATH    ExtensionCrawler git repo
-set -u
-
 DBDIR="$1"
 OUTDBPATH="$2"
 EXTENSIONCRAWLERDIR="$3"
 
 source "$EXTENSIONCRAWLERDIR/scripts/sge_common"
+load_python
 override_vars
+
+set -u
 
 find "$DBDIR" -name "$(task_id_to_letter_256 $SGE_TASK_ID)*.sqlite" -print0 | while IFS= read -r -d '' file; do
   DBNAME=$(basename "$file")
