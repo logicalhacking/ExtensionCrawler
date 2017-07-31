@@ -26,9 +26,11 @@ import traceback
 import jsbeautifier
 from multiprocessing import Pool
 from zipfile import ZipFile
+from functools import partial
+import re
 
-from ExtensionCrawler.sqlite import *
 from ExtensionCrawler.config import *
+from ExtensionCrawler.util import *
 
 
 def get_name(overview_path):
@@ -55,18 +57,6 @@ def get_downloads(overview_path):
                 return int(match.group(1).replace(",", ''))
 
 
-def get_jsloc(f):
-    jsloc = 0
-    jsfiles = filter(lambda x: x.filename.endswith(".js"), f.infolist())
-    for jsfile in jsfiles:
-        with f.open(jsfile) as jsf:
-            content = jsf.read().decode(errors="surrogateescape")
-            beautified = jsbeautifier.beautify(content)
-            lines = beautified.splitlines()
-            jsloc += len(lines)
-    return jsloc
-
-
 def help():
     print("grepper [OPTION] BASEDIR GREP1 [GREP2...]")
     print("    GREP1 [GREP2...] regex patterns")
@@ -75,6 +65,38 @@ def help():
     print("    -a=<DIR>         archive directory")
     print("    -p=<PREFIX>      three-letter-prefix")
     print("    -t=<THREADS>     number of parallel threads")
+
+
+def process_date(extdir, ext_id, date, greps, out_f):
+    overview_path = os.path.join(extdir, "overview.html")
+    crxpath = next(iter(glob.glob(os.path.join(extdir, "*.crx"))), None)
+    if crxpath and os.path.getsize(crxpath) > 0:
+        contents = {}
+        with ZipFile(crxpath) as f:
+            for in_zip_f in f.infolist():
+                if not in_zip_f.filename.endswith(".js"):
+                    continue
+                with f.open(in_zip_f) as f2:
+                    content = f2.read().decode(errors="surrogateescape")
+                    contents[in_zip_f.filename] = jsbeautifier.beautify(
+                        content)
+        jslocs = sum(
+            [len(content.splitlines()) for content in contents.values()])
+        name = get_name(overview_path)
+        downloads = get_downloads(overview_path)
+        for filename, content in contents.items():
+            for i, line in enumerate(content.splitlines()):
+                for gr in greps:
+                    if re.search(gr, line):
+                        args = [
+                            ext_id, date,
+                            name.replace("|", "<PIPE>") if name else None,
+                            str(downloads) if downloads else None,
+                            str(jslocs), gr,
+                            in_zip_f.filename + " (line " + str(i + 1) + ")",
+                            line
+                        ]
+                        print("|".join(args), file=out_f)
 
 
 def process_id(archivedir, outdir, greps, verbose, ext_id):
@@ -92,42 +114,10 @@ def process_id(archivedir, outdir, greps, verbose, ext_id):
                 iddir = os.path.join(tmpdir, ext_id)
 
                 for date in sorted(os.listdir(iddir)):
-                    overview_path = os.path.join(iddir, date, "overview.html")
-                    name = get_name(overview_path)
-                    downloads = get_downloads(overview_path)
                     try:
-                        crxpath = next(
-                            iter(
-                                glob.glob(os.path.join(iddir, date, "*.crx"))),
-                            None)
-                        if crxpath and os.path.getsize(crxpath) > 0:
-                            with ZipFile(crxpath) as f:
-                                jsloc = get_jsloc(f)
-                                for in_zip_f in f.infolist():
-                                    if not in_zip_f.filename.endswith(".js"):
-                                        continue
-                                    with f.open(in_zip_f) as f2:
-                                        content = f2.read().decode(
-                                            errors="surrogateescape")
-                                        content = jsbeautifier.beautify(
-                                            content)
-                                        for i, line in enumerate(
-                                                content.splitlines()):
-                                            for gr in greps:
-                                                if re.search(gr, line):
-                                                    print(
-                                                        "|".join([
-                                                            ext_id, date,
-                                                            name.replace(
-                                                                "|", "<PIPE>"),
-                                                            str(downloads),
-                                                            str(jsloc), gr,
-                                                            in_zip_f.filename +
-                                                            " (line " +
-                                                            str(i + 1) + ")",
-                                                            line
-                                                        ]),
-                                                        file=out_f)
+                        process_date(
+                            os.path.join(iddir, date), ext_id, date, greps,
+                            out_f)
                     except Exception:
                         txt = logmsg(
                             verbose, txt,
