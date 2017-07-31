@@ -22,6 +22,7 @@ from ExtensionCrawler.archive import *
 
 import sqlite3
 import re
+import hashlib
 from bs4 import BeautifulSoup
 from zipfile import ZipFile
 import json
@@ -102,6 +103,7 @@ def setup_tables(con):
                 """crx_etag TEXT,"""
                 """path TEXT,"""
                 """size INTEGER,"""
+                """md5 TEXT,"""
                 """PRIMARY KEY (crx_etag, path)"""
                 """)""")
     con.execute("""CREATE TABLE status ("""
@@ -331,8 +333,10 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
             jsfiles = filter(lambda x: x.filename.endswith(".js"),
                              f.infolist())
             for jsfile in jsfiles:
-                con.execute("INSERT INTO jsfile VALUES (?,?,?)",
-                            (etag, jsfile.filename, int(jsfile.file_size)))
+                with f.open(jsfile) as f2:
+                    md5 = hashlib.md5(f2.read()).hexdigest()
+                con.execute("INSERT INTO jsfile VALUES (?,?,?,?)",
+                            (etag, jsfile.filename, int(jsfile.file_size),md5))
 
             public_key = read_crx(crx_path).public_key
 
