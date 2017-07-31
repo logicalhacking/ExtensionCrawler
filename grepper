@@ -93,7 +93,7 @@ def process_date(extdir, ext_id, date, greps, out_f):
                             name.replace("|", "<PIPE>") if name is not None else "",
                             str(downloads) if downloads is not None else "",
                             str(jslocs), gr,
-                            in_zip_f.filename + " (line " + str(i + 1) + ")",
+                            filename + " (line " + str(i + 1) + ")",
                             line
                         ]
                         print("|".join(args), file=out_f)
