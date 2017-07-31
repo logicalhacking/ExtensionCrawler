@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+
+import sge_common
+import sys
+import getopt
+import os
+
+
+def get_sge_content(jobname, stdoutpath, execpath, archivepath, outpath):
+    return \
+"""#!/bin/bash
+#
+#$ -t 1-256
+#$ -j yes
+#$ -o "{stdoutpath}"
+#$ -N "{jobname}"
+#
+module -s load apps/python/conda 2> /dev/null
+source activate mypython35
+
+function task_id_to_letter_256 {{
+	ABC=abcdefghijklmnopqrstuvwxyz
+	let "I1 = (($1-1) / 16) % 16"
+	let "I2 = ($1-1) % 16"
+	echo ${{ABC:$I1:1}}${{ABC:$I2:1}}
+}}
+
+export PATH=~/bin:$PATH
+export LD_LIBRARY_PATH=~/lib:$LD_LIBRARY_PATH
+
+"{execpath}" -a "{archivepath}" -p "$(task_id_to_letter_256 $SGE_TASK_ID)" "{outpath}"
+""".format(
+        jobname=jobname,
+        stdoutpath=stdoutpath,
+        execpath=execpath,
+        archivepath=archivepath,
+        outpath=outpath)
+
+
+def helpmsg():
+    print(__file__ + " ARCHIVE OUTPUT")
+    print("    -h        print this help text")
+
+
+def main(argv):
+    try:
+        opts, args = getopt.getopt(argv, "h")
+    except getopt.GetoptError:
+        helpmsg()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            helpmsg()
+            sys.exit()
+
+    if len(args) is not 2:
+        helpmsg()
+        sys.exit(2)
+
+    basedir = os.path.expanduser(args[0])
+    outdir = os.path.expanduser(args[1])
+
+    stdoutpath = sge_common.get_stdout_path("create-db")
+    jobname = os.path.basename(stdoutpath)
+    execpath = os.path.join(sge_common.get_project_root(), "create-db")
+
+    sge_common.ensure_sharc()
+
+    sge_common.validate_archivepath(basedir)
+    sge_common.validate_execpath(execpath)
+    sge_common.validate_outdir(outdir)
+
+    os.makedirs(stdoutpath)
+    os.makedirs(outdir)
+
+    print("Using data from {}".format(basedir))
+    print("Writing logs to {}".format(stdoutpath))
+    print("Writing results to {}".format(outdir))
+    sge_content = get_sge_content(jobname, stdoutpath, execpath, basedir,
+                                  outdir)
+    print("Executing the following job:")
+    print("=" * 80)
+    print(sge_content)
+    print("=" * 80)
+    sge_common.execute_sge(sge_content)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
