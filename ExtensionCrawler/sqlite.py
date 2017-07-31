@@ -328,14 +328,14 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                 if "permissions" in manifest:
                     for permission in manifest["permissions"]:
                         con.execute(
-                            "INSERT OR REPLACE INTO permission VALUES (?,?)",
+                            "INSERT OR IGNORE INTO permission VALUES (?,?)",
                             (etag, str(permission)))
                 if "content_scripts" in manifest:
                     for csd in manifest["content_scripts"]:
                         if "matches" in csd:
                             for urlpattern in csd["matches"]:
                                 con.execute(
-                                    "INSERT OR REPLACE INTO content_script_url VALUES (?,?)",
+                                    "INSERT OR IGNORE INTO content_script_url VALUES (?,?)",
                                     (etag, str(urlpattern)))
 
             size = os.path.getsize(crx_path)
@@ -377,7 +377,7 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
                 language = get(review, "language")
                 shortauthor = get(get(review, "entity"), "shortAuthor")
 
-                con.execute("INSERT INTO review VALUES(?,?,?,?,?,?,?,?,?)",
+                con.execute("INSERT OR IGNORE INTO review VALUES(?,?,?,?,?,?,?,?,?)",
                             (author, timestamp, ext_id, date, displayname,
                              starRating, language, shortauthor, comment))
 
@@ -398,7 +398,7 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
                 language = get(review, "language")
                 shortauthor = get(get(review, "entity"), "shortAuthor")
 
-                con.execute("INSERT INTO support VALUES(?,?,?,?,?,?,?,?,?)",
+                con.execute("INSERT OR IGNORE INTO support VALUES(?,?,?,?,?,?,?,?,?)",
                             (author, timestamp, ext_id, date, displayname,
                              title, language, shortauthor, comment))
 
@@ -422,7 +422,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
                 author = get(get(annotation, "entity"), "author")
                 language = get(annotation, "language")
                 shortauthor = get(get(annotation, "entity"), "shortAuthor")
-                con.execute("INSERT INTO reply VALUES(?,?,?,?,?,?,?,?,?)",
+                con.execute("INSERT OR IGNORE INTO reply VALUES(?,?,?,?,?,?,?,?,?)",
                             (author, timestamp, ext_id, date, displayname,
                              replyto, language, shortauthor, comment))
     return ""
