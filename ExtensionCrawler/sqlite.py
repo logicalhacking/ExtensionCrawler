@@ -43,40 +43,50 @@ class SelfclosingSqliteDB:
         self.con.close()
 
 
+def setup_fts_tables(con, name, columns, primary_columns):
+    sqls = [
+        s.format(
+            name=name,
+            columns=", ".join(columns),
+            new_columns=", ".join(["new." + x for x in columns]),
+            primary_columns=", ".join(primary_columns))
+        for s in [
+            """CREATE TABLE {name}({columns}, PRIMARY KEY ({primary_columns}));""",
+            """CREATE VIRTUAL TABLE {name}_fts using fts4(content="{name}", {columns});""",
+            """CREATE TRIGGER {name}_bu BEFORE UPDATE ON {name} BEGIN """
+            """DELETE FROM {name}_fts WHERE docid=old.rowid;"""
+            """END;""",
+            """CREATE TRIGGER {name}_bd BEFORE DELETE ON {name} BEGIN """
+            """DELETE FROM {name}_fts WHERE docid=old.rowid;"""
+            """END;""",
+            """CREATE TRIGGER {name}_au AFTER UPDATE ON {name} BEGIN """
+            """INSERT INTO {name}_fts(docid, {columns}) VALUES(new.rowid, {new_columns});"""
+            """END;""",
+            """CREATE TRIGGER {name}_ai AFTER INSERT ON {name} BEGIN """
+            """INSERT INTO {name}_fts(docid, {columns}) VALUES(new.rowid, {new_columns});"""
+            """END;"""
+        ]
+    ]
+    for sql in sqls:
+        con.execute(sql)
+
+
 def setup_tables(con):
-    con.execute("""CREATE VIRTUAL TABLE support using fts4("""
-                """author TEXT,"""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """displayname TEXT,"""
-                """commentdate INTEGER,"""
-                """title TEXT,"""
-                """language TEXT,"""
-                """shortauthor TEXT,"""
-                """comment TEXT"""
-                """)""")
-    con.execute("""CREATE VIRTUAL TABLE review using fts4("""
-                """author TEXT,"""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """displayname TEXT,"""
-                """commentdate INTEGER,"""
-                """rating INTEGER,"""
-                """language TEXT,"""
-                """shortauthor TEXT,"""
-                """comment TEXT"""
-                """)""")
-    con.execute("""CREATE VIRTUAL TABLE reply using fts4("""
-                """author TEXT,"""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """displayname TEXT,"""
-                """commentdate INTEGER,"""
-                """replyto TEXT,"""
-                """language TEXT,"""
-                """shortauthor TEXT,"""
-                """comment TEXT"""
-                """)""")
+    setup_fts_tables(con, "support", [
+        "author", "commentdate", "extid", "date", "displayname", "title",
+        "language", "shortauthor", "comment"
+    ], ["author", "commentdate", "extid", "date"])
+
+    setup_fts_tables(con, "review", [
+        "author", "commentdate", "extid", "date", "displayname", "rating",
+        "language", "shortauthor", "comment"
+    ], ["author", "commentdate", "extid", "date"])
+
+    setup_fts_tables(con, "reply", [
+        "author", "commentdate", "extid", "date", "displayname", "replyto",
+        "language", "shortauthor", "comment"
+    ], ["author", "commentdate", "extid", "date"])
+
     con.execute("""CREATE TABLE category ("""
                 """extid TEXT,"""
                 """date TEXT,"""
@@ -336,7 +346,8 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                 with f.open(jsfile) as f2:
                     md5 = hashlib.md5(f2.read()).hexdigest()
                 con.execute("INSERT INTO jsfile VALUES (?,?,?,?)",
-                            (etag, jsfile.filename, int(jsfile.file_size),md5))
+                            (etag, jsfile.filename, int(jsfile.file_size),
+                             md5))
 
             public_key = read_crx(crx_path).public_key
 
@@ -367,7 +378,7 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
                 shortauthor = get(get(review, "entity"), "shortAuthor")
 
                 con.execute("INSERT INTO review VALUES(?,?,?,?,?,?,?,?,?)",
-                            (author, ext_id, date, displayname, timestamp,
+                            (author, timestamp, ext_id, date, displayname,
                              starRating, language, shortauthor, comment))
 
 
@@ -388,7 +399,7 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
                 shortauthor = get(get(review, "entity"), "shortAuthor")
 
                 con.execute("INSERT INTO support VALUES(?,?,?,?,?,?,?,?,?)",
-                            (author, ext_id, date, displayname, timestamp,
+                            (author, timestamp, ext_id, date, displayname,
                              title, language, shortauthor, comment))
 
 
@@ -412,7 +423,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
                 language = get(annotation, "language")
                 shortauthor = get(get(annotation, "entity"), "shortAuthor")
                 con.execute("INSERT INTO reply VALUES(?,?,?,?,?,?,?,?,?)",
-                            (author, ext_id, date, displayname, timestamp,
+                            (author, timestamp, ext_id, date, displayname,
                              replyto, language, shortauthor, comment))
     return ""
 
