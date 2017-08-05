@@ -22,10 +22,10 @@ import sys
 from time import sleep
 from random import random
 
-def google_dos_protection(maxrange=1.8):
-    """Wait a random number of seconds (between 0.5 to maxrange*0.5)
+def google_dos_protection(maxrange=0.3):
+    """Wait a random number of seconds (between 0.5 to 0.5+maxrange)
        to avoid Google's bot detection"""
-    sleep((1+random())*(maxrange/2.0)*.5)
+    sleep(0.5+(random()*maxrange))
 
 def log(verbose, msg):
     """Print log message."""
