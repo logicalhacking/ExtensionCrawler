@@ -413,6 +413,8 @@ def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
                 format(repliespath))
             return txt
         for result in d["searchResults"]:
+            if "annotations" not in result:
+                continue
             for annotation in result["annotations"]:
                 timestamp = get(annotation, "timestamp")
                 replyto = get(
