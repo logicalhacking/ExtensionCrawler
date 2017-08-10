@@ -1,6 +1,7 @@
 #!/bin/bash
 # m h  dom mon dow   command
-# 01 02 * * * (cd ~/ExtensionCrawler; ((git fetch ; git checkout production; git pull) &> /dev/null))
+# 15 01 * * * (cd ~/ExtensionCrawler; ((git fetch ; git checkout production; git pull) &> /dev/null))
+# 33 01 * * * ~/ExtensionCrawler/scripts/global_update_db.sh
 # 07 02 * * * ~/ExtensionCrawler/scripts/global_update.sh
 
 
