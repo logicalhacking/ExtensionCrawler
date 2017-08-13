@@ -37,7 +37,7 @@ if [ -f "$ARCHIVE"/db/aa-ac.build.sqlite ]; then
   else      
       rm -f $ARCHIVE/db/aa-ac.sqlite.bz2
       mv $ARCHIVE/db/aa-ac.build.sqlite.bz2 $ARCHIVE/db/aa-ac.sqlite.bz2
-      SIZE=`du -k $ARCHIVE/db/aa-ac.bz2 | cut -f1`
+      SIZE=`du -k $ARCHIVE/db/aa-ac.sqlite.bz2 | cut -f1`
       echo "    Created aa-ac.sqlite.bz2 successfully ($SIZE kb)" | tee -a $LOG
   fi
 fi
