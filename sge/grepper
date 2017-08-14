@@ -33,7 +33,7 @@ function task_id_to_letter_256 {{
         execpath=execpath,
         archivepath=archivepath,
         outpath=outpath,
-        greps=" ".join(greps))
+        greps=" ".join(['"{}"'.format(gr) for gr in greps]))
 
 
 def helpmsg():
