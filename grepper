@@ -21,7 +21,6 @@ import os
 import sys
 import glob
 import tarfile
-import tempfile
 import traceback
 import jsbeautifier
 from multiprocessing import Pool
@@ -33,73 +32,38 @@ from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 
 
-def get_name(overview_path):
-    if os.path.exists(overview_path):
-        with open(overview_path) as overview_file:
-            contents = overview_file.read()
-
-            # Extract extension name
-            match = re.search("""<meta itemprop="name" content="(.*?)"\s*/>""",
-                              contents)
-            if match:
-                return match.group(1)
-
-
-def get_downloads(overview_path):
-    if os.path.exists(overview_path):
-        with open(overview_path) as overview_file:
-            contents = overview_file.read()
-
-            match = re.search(
-                """<meta itemprop="interactionCount" content="UserDownloads:((:?\d|,)+)""",
-                contents)
-            if match:
-                return int(match.group(1).replace(",", ''))
-
-
 def help():
     print("grepper [OPTION] BASEDIR GREP1 [GREP2...]")
     print("    GREP1 [GREP2...] regex patterns")
     print("    BASEDIR          directory for output")
     print("    -h               print this help text")
-    print("    -a=<DIR>         archive directory")
-    print("    -p=<PREFIX>      three-letter-prefix")
-    print("    -t=<THREADS>     number of parallel threads")
+    print("    -b               beautify JavaScript before matching")
+    print("    -a <DIR>         archive directory")
+    print("    -p <PREFIX>      three-letter-prefix")
+    print("    -t <THREADS>     number of threads to use")
 
 
-def process_date(extdir, ext_id, date, greps, out_f):
-    overview_path = os.path.join(extdir, "overview.html")
-    crxpath = next(iter(glob.glob(os.path.join(extdir, "*.crx"))), None)
-    if crxpath and os.path.getsize(crxpath) > 0:
-        contents = {}
-        with ZipFile(crxpath) as f:
-            for in_zip_f in f.infolist():
-                if not in_zip_f.filename.endswith(".js"):
-                    continue
-                with f.open(in_zip_f) as f2:
-                    content = f2.read().decode(errors="surrogateescape")
-                    contents[in_zip_f.filename] = jsbeautifier.beautify(
-                        content)
-        jslocs = sum(
-            [len(content.splitlines()) for content in contents.values()])
-        name = get_name(overview_path)
-        downloads = get_downloads(overview_path)
-        for filename, content in contents.items():
-            for i, line in enumerate(content.splitlines()):
-                for gr in greps:
-                    if re.search(gr, line):
+def process_crx(ext_id, date, crx, greps, beautify, out_f):
+    with ZipFile(crx) as z:
+        for zip_file_info in z.infolist():
+            if not zip_file_info.filename.endswith(".js"):
+                continue
+            with z.open(zip_file_info) as f:
+                content = f.read().decode(errors="surrogateescape")
+                if beautify:
+                    content = jsbeautifier.beautify(content)
+                for i, line in enumerate(content.splitlines()):
+                    for gr in greps:
+                        if not re.search(gr, line):
+                            continue
                         args = [
-                            ext_id, date,
-                            name.replace("|", "<PIPE>") if name is not None else "",
-                            str(downloads) if downloads is not None else "",
-                            str(jslocs), gr,
-                            filename + " (line " + str(i + 1) + ")",
-                            line
+                            ext_id, date, gr, zip_file_info.filename +
+                            " (line " + str(i + 1) + ")", line
                         ]
                         print("|".join(args), file=out_f)
 
 
-def process_id(archivedir, outdir, greps, verbose, ext_id):
+def process_id(archivedir, outdir, greps, beautify, verbose, ext_id):
     txt = ""
     txt = logmsg(verbose, txt, "Processing {} ...\n".format(ext_id))
 
@@ -108,22 +72,19 @@ def process_id(archivedir, outdir, greps, verbose, ext_id):
     if os.path.exists(greppath):
         os.remove(greppath)
     with open(greppath, "w") as out_f:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            with tarfile.open(tarpath) as t:
-                t.extractall(tmpdir)
-                iddir = os.path.join(tmpdir, ext_id)
-
-                for date in sorted(os.listdir(iddir)):
-                    try:
-                        process_date(
-                            os.path.join(iddir, date), ext_id, date, greps,
-                            out_f)
-                    except Exception:
-                        txt = logmsg(
-                            verbose, txt,
-                            "Exception when handling {} on {}:\n".format(
-                                ext_id, date))
-                        txt = logmsg(verbose, txt, traceback.format_exc())
+        with tarfile.open(tarpath, 'r') as t:
+            for tar_info in t.getmembers():
+                if not tar_info.name.endswith(".crx") or tar_info.size is 0:
+                    continue
+                date = tar_info.name.split("/")[1]
+                try:
+                    with t.extractfile(tar_info) as crx:
+                        process_crx(ext_id, date, crx, greps, beautify, out_f)
+                except Exception:
+                    txt = logmsg(
+                        verbose, txt,
+                        "Exception when handling {}:\n".format(tar_info.name))
+                    txt = logmsg(verbose, txt, traceback.format_exc())
 
     return txt
 
@@ -131,10 +92,11 @@ def process_id(archivedir, outdir, greps, verbose, ext_id):
 def main(argv):
     archive = "archive"
     prefix = ""
+    beautify = False
     parallel = 8
     try:
-        opts, args = getopt.getopt(argv, "ha:p:t:",
-                                   ["archive=", "prefix=", "threads="])
+        opts, args = getopt.getopt(
+            argv, "ha:p:bt:", ["archive=", "prefix=", "beautify", "threads="])
     except getopt.GetoptError:
         help()
         sys.exit(2)
@@ -146,6 +108,8 @@ def main(argv):
             archive = arg
         elif opt in ("-p", "--prefix"):
             prefix = arg
+        elif opt in ("-b", "--beautify"):
+            beautify = True
         elif opt in ("-t", "--threads"):
             parallel = int(arg)
 
@@ -158,14 +122,23 @@ def main(argv):
 
     archivedir = os.path.join(archive, "data")
     threeletterdirs = glob.glob(os.path.join(archivedir, prefix + "*"))
+
+    print("Using archive '{}'".format(archive))
+    print("Using prefix '{}'".format(prefix))
+    print("Using beautifier? '{}'".format(beautify))
+    print("Using {} threads".format(parallel))
+    print("Found {} three-letter-dirs".format(len(threeletterdirs)))
+
     for threeletterdir in threeletterdirs:
         ext_ids = list(set([d[:32] for d in os.listdir(threeletterdir)]))
         with Pool(parallel) as p:
             for txt in p.imap(
-                    partial(process_id, archivedir, outdir, greps, True),
-                    ext_ids):
+                    partial(process_id, archivedir, outdir, greps, beautify,
+                            True), ext_ids):
                 sys.stdout.write(txt)
                 sys.stdout.flush()
+
+    print("Sucessfully finished grepping")
 
 
 if __name__ == "__main__":
