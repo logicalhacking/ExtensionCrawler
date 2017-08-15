@@ -12,7 +12,7 @@ CRAWLERHOME=${2:-~/ExtensionCrawler}
 LOGPREFIX=$ARCHIVE/log/`date --iso-8601=ns`
 LOG=$LOGPREFIX-global-db.log 
 
-DBARCHIVE=`find $ARCHIVE/.snapshot -maxdepth 1 -mindepth 1 -name "D*" | sort -r | head -n 1`
+DBARCHIVE=`find $ARCHIVE/.snapshot -maxdepth 1 -mindepth 1 -name "D*" | head -n 1`
 
 SQLITE=`which sqlite3`
 
