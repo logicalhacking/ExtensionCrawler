@@ -41,6 +41,13 @@ def helpmsg():
     print("    -a=<DIR>  archive directory")
 
 
+def get_tarinfo(members, last):
+    for tarinfo in members:
+        if tarinfo.name == last:
+            yield tarinfo
+
+
+
 def main(argv):
     """Main function of the extension crawler."""
     basedir = "archive"
@@ -87,7 +94,7 @@ def main(argv):
             if verbose:
                 print("Extracting "+os.path.join(output, last))
             with tarfile.open(tar, 'r') as archive:
-                archive.extract(last, output)
+                archive.extractall(path=output, members=get_tarinfo(archive, last))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
