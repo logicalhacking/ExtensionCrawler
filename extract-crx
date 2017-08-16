@@ -41,9 +41,10 @@ def helpmsg():
     print("    -a=<DIR>  archive directory")
 
 
-def get_tarinfo(members, last):
+def get_tarinfo(members, name):
+    """Select tarinfo object with a specified path/name."""
     for tarinfo in members:
-        if tarinfo.name == last:
+        if tarinfo.name == name:
             yield tarinfo
 
 
