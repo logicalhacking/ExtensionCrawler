@@ -41,10 +41,12 @@ def helpmsg():
     print("    -a=<DIR>  archive directory")
 
 
-def get_tarinfo(members, name):
+def get_tarinfo(members, name, winfs = False):
     """Select tarinfo object with a specified path/name."""
     for tarinfo in members:
         if tarinfo.name == name:
+            if winfs:
+                tarinfo.name = name.replace(":","-")
             yield tarinfo
 
 
@@ -56,8 +58,9 @@ def main(argv):
     date = None
     extid = ""
     output = ""
+    winfs = False
     try:
-        opts, args = getopt.getopt(argv, "hsd:a:o:", ["date=", "archive=", "output="])
+        opts, args = getopt.getopt(argv, "hsd:a:o:w", ["date=", "archive=", "output="])
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -71,6 +74,8 @@ def main(argv):
             date = arg
         elif opt in ("-o", "--output"):
             output = arg
+        elif opt in ("-w", "--winfs"):
+            winfs = True
         elif opt == '-s':
             verbose = False
 
@@ -95,7 +100,7 @@ def main(argv):
             if verbose:
                 print("Extracting "+os.path.join(output, last))
             with tarfile.open(tar, 'r') as archive:
-                archive.extractall(path=output, members=get_tarinfo(archive, last))
+                archive.extractall(path=output, members=get_tarinfo(archive, last, winfs))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
