@@ -82,7 +82,7 @@ def main(argv):
     if len(args) > 0:
         extid = args[0]
     else:
-        help()
+        helpmsg()
         sys.exit()
 
     if date is not None:
