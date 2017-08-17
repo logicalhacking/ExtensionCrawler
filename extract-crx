@@ -25,7 +25,7 @@ import tarfile
 import datetime
 import dateutil
 import dateutil.parser
-from ExtensionCrawler.archive import last_crx, get_local_archive_dir
+from ExtensionCrawler.archive import last_crx, get_local_archive_dir, last_etag
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
@@ -41,12 +41,16 @@ def helpmsg():
     print("    -a=<DIR>  archive directory")
 
 
-def get_tarinfo(members, name, winfs = False):
+def get_tarinfo(members, name, winfs = False, etag = None):
     """Select tarinfo object with a specified path/name."""
     for tarinfo in members:
         if tarinfo.name == name:
             if winfs:
                 tarinfo.name = name.replace(":","-")
+            if etag is not None:
+                (path, crx) = os.path.split(tarinfo.name)
+                (path, _) = os.path.split(path)
+                tarinfo.name = os.path.join(path,etag,crx)
             yield tarinfo
 
 
@@ -57,10 +61,11 @@ def main(argv):
     verbose = True
     date = None
     extid = ""
+    useetag = False
     output = ""
     winfs = False
     try:
-        opts, args = getopt.getopt(argv, "hsd:a:o:w", ["date=", "archive=", "output="])
+        opts, args = getopt.getopt(argv, "hsed:a:o:w", ["date=", "archive=", "output="])
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -76,6 +81,8 @@ def main(argv):
             output = arg
         elif opt in ("-w", "--winfs"):
             winfs = True
+        elif opt in ("-e", "--etag"):
+            useetag = True
         elif opt == '-s':
             verbose = False
 
@@ -93,6 +100,10 @@ def main(argv):
     else:
         last = last_crx(os.path.join(basedir, "data"), extid)
 
+    if useetag:
+        etag = last_etag(os.path.join(basedir, "data"), extid, last)
+    else:
+        etag = None   
     if last != "":
         tar = os.path.join(basedir, "data",
                            get_local_archive_dir(extid), extid + ".tar")
@@ -100,7 +111,7 @@ def main(argv):
             if verbose:
                 print("Extracting "+os.path.join(output, last))
             with tarfile.open(tar, 'r') as archive:
-                archive.extractall(path=output, members=get_tarinfo(archive, last, winfs))
+                archive.extractall(path=output, members=get_tarinfo(archive, last, winfs, etag))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
