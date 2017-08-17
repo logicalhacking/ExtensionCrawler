@@ -4,6 +4,7 @@
 # 33 01 * * * ~/ExtensionCrawler/scripts/global_update_db.sh
 # 07 02 * * * ~/ExtensionCrawler/scripts/global_update.sh
 
+
 export LD_LIBRARY_PATH=$HOME/local/lib:/usr/local/lib:$LD_LIBRARY_PATH
 export PATH=$HOME/local/bin:/usr/local/bin:$PATH
 
@@ -54,6 +55,15 @@ else
 fi
 
 if [ -f "$ARCHIVE"/db/full.build.sqlite ]; then 
+  rm -f "$ARCHIVE"/db/full.sqlite
+  cp  "$ARCHIVE"/db/full.build.sqlite "$ARCHIVE"/db/full.sqlite
+  date +'* Start analysis (%c)' | tee -a $LOG
+  queries=`dirname $0`
+  result=`sqlite3 "$ARCHIVE"/db/full.sqlite < $queries/../queries/get_added_permissions.sql`
+  echo $result > $LOGPREFIX-analysis.log
+  echo $result | mail root -s "Extension Analysis" 
+  date +'*       Analysis finished (%c)' | tee -a $LOG
+  
   date +'* Start Compressing full.build.sqlite Data Base (%c)' | tee -a $LOG
   pbzip2 -f "$ARCHIVE"/db/full.build.sqlite 
   if [ $? -ne "0" ]; then 
