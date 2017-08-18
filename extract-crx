@@ -36,6 +36,8 @@ def helpmsg():
     print("extract-crx [OPTION] extid")
     print("    -h        print this help text")
     print("    -s        silent (no log messages)")
+    print("    -e        use etag instead of date in outoput")
+    print("    -w        avoid ':' in filenames (useful on Windows)")
     print("    -d=<DATE> date")
     print("    -o=<DIR>  output directory")
     print("    -a=<DIR>  archive directory")
