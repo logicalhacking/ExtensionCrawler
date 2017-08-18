@@ -33,6 +33,14 @@ files can easily be re-generated using the `create-db` tool.
 All utilities are written in Python 3.x. The required modules are listed
 in the file `requirements.txt`.
 
+## Installation
+Clone and use pip to install as a package.
+
+```
+git clone git@logicalhacking.com:BrowserSecurity/ExtensionCrawler.git
+pip install -e ExtensionCrawler
+```
+
 ## Team
 * [Achim D. Brucker](http://www.brucker.ch/)
 * [Michael Herzberg](http://www.dcs.shef.ac.uk/cgi-bin/makeperson?M.Herzberg)
