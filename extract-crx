@@ -106,14 +106,21 @@ def main(argv):
         etag = last_etag(os.path.join(basedir, "data"), extid, last)
     else:
         etag = None   
+    tar = os.path.join(basedir, "data",
+                      get_local_archive_dir(extid), extid + ".tar")
     if last != "":
-        tar = os.path.join(basedir, "data",
-                           get_local_archive_dir(extid), extid + ".tar")
         if os.path.exists(tar):
             if verbose:
                 print("Extracting "+os.path.join(output, last))
             with tarfile.open(tar, 'r') as archive:
                 archive.extractall(path=output, members=get_tarinfo(archive, last, winfs, etag))
+        elif verbose:
+            print("Cannot find archive " + tar)
+    elif verbose:
+        if os.path.exists(tar):
+            print("CRX not in archive" + tar)
+        else:
+            print("CRX does not exist: cannot find archive " + tar)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
