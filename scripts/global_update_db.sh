@@ -70,7 +70,6 @@ if [ -f "$ARCHIVE"/db/full.build.sqlite ]; then
       rm -f $ARCHIVE/db/full.build.*
       echo "    Creation of full.sqlite.bz2 failed" | tee -a $LOG
   else 
-      rm -f $ARCHIVE/db/full.sqlite.bz2
       mv $ARCHIVE/db/full.build.sqlite.bz2 $ARCHIVE/db/full.sqlite.bz2
       SIZE=`du -k $ARCHIVE/db/full.sqlite.bz2 | cut -f1`
       echo "    Created full.sqlite.bz2 successfully ($SIZE kb)" | tee -a $LOG
