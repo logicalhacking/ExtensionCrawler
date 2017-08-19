@@ -61,7 +61,7 @@ if [ -f "$ARCHIVE"/db/full.build.sqlite ]; then
   queries=`dirname $0`
   result=`sqlite3 "$ARCHIVE"/db/full.sqlite < $queries/../queries/get_added_permissions.sql`
   echo $result > $LOGPREFIX-analysis.log
-  echo $result | mail root -s "Extension Analysis" 
+  echo $result | /usr/bin/mail -s "Extension Analysis" root
   date +'*       Analysis finished (%c)' | tee -a $LOG
   
   date +'* Start Compressing full.build.sqlite Data Base (%c)' | tee -a $LOG
