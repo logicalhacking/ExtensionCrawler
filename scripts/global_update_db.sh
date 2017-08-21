@@ -54,9 +54,16 @@ else
   echo "    Created full.build.sqlite successfully ($SIZE kb)" | tee -a $LOG
 fi
 
+sync -f "$ARCHIVE"
+sync -f "$ARCHIVE"
+sync -f "$ARCHIVE"
+
 if [ -f "$ARCHIVE"/db/full.build.sqlite ]; then 
   rm -f "$ARCHIVE"/db/full.sqlite
   cp  "$ARCHIVE"/db/full.build.sqlite "$ARCHIVE"/db/full.sqlite
+  sync -f "$ARCHIVE"
+  sync -f "$ARCHIVE"
+  sync -f "$ARCHIVE"
   date +'* Start analysis (%c)' | tee -a $LOG
   queries=`dirname $0`
   sqlite3 "$ARCHIVE"/db/full.sqlite < $queries/../queries/get_added_permissions.sql | tee -a $LOGPREFIX-analysis.log | /usr/bin/mail -s "Extension Analysis" root
