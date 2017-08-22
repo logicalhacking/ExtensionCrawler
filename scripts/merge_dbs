@@ -78,6 +78,10 @@ def main(argv):
                 0] == 0:
             print("Merging schema from {}".format(firstdb))
             merge_schema(con, firstdb)
+        
+        con.execute("PRAGMA default_temp_store=2;")
+        con.execute("PRAGMA cache_size=20000;")
+        con.execute("PRAGMA temp_store=2;")
 
         currently_attached = []
         for i, dbpath in enumerate(sqlitepaths):
