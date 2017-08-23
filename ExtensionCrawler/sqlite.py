@@ -19,7 +19,7 @@ from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
-from ExtensionCrawler.jsdecompose import JsDecompose
+from ExtensionCrawler.jsdecompose import detectLibraries
 
 import sqlite3
 import re
@@ -345,8 +345,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
 
             size = os.path.getsize(crx_path)
 
-            jsd = JsDecompose()
-            jsfiles=jsd.detectLibraries(f)
+            jsfiles=detectLibraries(f)
             for jsfile in jsfiles:
                  con.execute("INSERT INTO jsfile VALUES (?,?,?,?,?,?,?,?,?)",
                              (etag,
