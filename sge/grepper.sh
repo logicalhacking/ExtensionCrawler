@@ -8,8 +8,10 @@ TARGETDIR='/data/$USER/grepper-'$(date +%Y%m%d-%H%M%S)
 
 SGEFILE="$BASEDIR/sge/grepper.sge"
 
-echo "Creating $HOST:$TARGETDIR/ExtensionCrawler ..."
+echo "Creating dirs ..."
 ssh "$HOST" mkdir -p $TARGETDIR/ExtensionCrawler
+ssh "$HOST" mkdir -p $TARGETDIR/logs
+ssh "$HOST" mkdir -p $TARGETDIR/out
 
 echo "Pushing $BASEDIR to $HOST:$TARGETDIR/ExtensionCrawler ..."
 rsync -zr "$BASEDIR" $HOST:"$TARGETDIR/ExtensionCrawler"
@@ -22,5 +24,5 @@ ssh "$HOST" qsub \
   -v BASEDIR="$TARGETDIR",PATTERN="$PATTERN" \
   -t 1-256 \
   -j yes \
-  -o "$TARGETDIR" \
+  -o "$TARGETDIR/logs" \
   "$TARGETDIR/grepper.sge"
