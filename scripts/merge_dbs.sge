@@ -11,8 +11,8 @@ DBDIR="$1"
 OUTDBPATH="$2"
 EXTENSIONCRAWLERDIR="$3"
 
-source $EXTENSIONCRAWLERDIR/scripts/sge_common
-override_vars
+export PATH=~/bin:$PATH
+export LD_LIBRARY_PATH=~/lib:${LD_LIBRARY_PATH:-}
 
 set -u
 

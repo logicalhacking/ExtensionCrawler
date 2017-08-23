@@ -12,9 +12,18 @@ DBDIR="$1"
 OUTDBPATH="$2"
 EXTENSIONCRAWLERDIR="$3"
 
-source "$EXTENSIONCRAWLERDIR/scripts/sge_common"
-load_python
-override_vars
+module -s load apps/python/conda 2> /dev/null
+source activate mypython35
+
+export PATH=~/bin:$PATH
+export LD_LIBRARY_PATH=~/lib:${LD_LIBRARY_PATH:-}
+
+function task_id_to_letter_256 {
+	ABC=abcdefghijklmnopqrstuvwxyz
+	let "I1 = (($1-1) / 16) % 16"
+	let "I2 = ($1-1) % 16"
+	echo ${ABC:$I1:1}${ABC:$I2:1}
+}
 
 set -u
 
