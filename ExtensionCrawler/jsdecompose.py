@@ -22,6 +22,7 @@ import os
 import re
 import json
 from enum import Enum
+import hashlib
 
 
 class JsDecompose:
@@ -74,7 +75,10 @@ class JsDecompose:
         self.identifiedUnLibrariesList = []
         self.identifiedApplicationsList = []
     
-    def detectLibraries(self, zipfile, jsFiles):
+    def detectLibraries(self, zipfile):
+        jsFiles = list(filter(lambda x: x.filename.endswith(".js"),
+                        zipfile.infolist()))
+
         #for each jsFile path in the list
         for jsFile in list(jsFiles):
             #check whether the file is empty
@@ -82,6 +86,7 @@ class JsDecompose:
             isApplication = True
             with zipfile.open(jsFile) as fObject:
                 data = fObject.read()
+                md5 = hashlib.md5(data).hexdigest()
 
                 libraryIdentified = False
 
@@ -104,6 +109,8 @@ class JsDecompose:
                                 'detectMethod':
                                 self.DetectionType.FILENAME.name,
                                 'jsFilename': os.path.basename(jsFile),
+                                'md5': md5,
+                                'size': int(jsFile.file_size),
                                 'path': jsFile.filename
                             })
                             libraryIdentified = True
@@ -128,6 +135,8 @@ class JsDecompose:
                                         'detectMethod':
                                         self.DetectionType.FILECONTENT.name,
                                         'jsFilename': os.path.basename(jsFile),
+                                        'md5': md5,
+                                        'size': int(jsFile.file_size),
                                         'path': jsFile.filename
                                     })
 
@@ -148,6 +157,8 @@ class JsDecompose:
                             'detectMethod': self.DetectionType.FILENAME.name,
                             'type': "library",
                             'jsFilename': os.path.basename(jsFile.filename),
+                            'md5': md5,
+                            'size': int(jsFile.file_size),
                             'path': jsFile.filename
                         })
                         isApplication = False
@@ -176,6 +187,8 @@ class JsDecompose:
                                                     FILENAME_FILECONTENT.name,
                                     'type': "likely_library",
                                     'jsFilename': os.path.basename(jsFile.filename),
+                                    'md5': md5,
+                                    'size': int(jsFile.file_size),
                                     'path': jsFile.filename
                                 })
                             isApplication = False
@@ -190,6 +203,8 @@ class JsDecompose:
                                     'detectMethod': None,
                                     'type': "application",
                                     'jsFilename': os.path.basename(jsFile.filename),
+                                    'md5': md5,
+                                    'size': int(jsFile.file_size),
                                     'path': jsFile.filename
                                 })
 

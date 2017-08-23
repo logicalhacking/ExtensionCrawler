@@ -19,10 +19,10 @@ from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
+from ExtensionCrawler.jsdecompose import JsDecompose
 
 import sqlite3
 import re
-import hashlib
 from bs4 import BeautifulSoup
 from zipfile import ZipFile
 import json
@@ -111,9 +111,14 @@ def setup_tables(con):
                 """)""")
     con.execute("""CREATE TABLE jsfile ("""
                 """crx_etag TEXT,"""
+                """detect_method TEXT,"""
+                """filename TEXT,"""
+                """type TEXT,"""
+                """lib TEXT,"""
                 """path TEXT,"""
-                """size INTEGER,"""
                 """md5 TEXT,"""
+                """size INTEGER,"""
+                """version TEXT,"""
                 """PRIMARY KEY (crx_etag, path)"""
                 """)""")
     con.execute("""CREATE TABLE status ("""
@@ -340,14 +345,20 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
 
             size = os.path.getsize(crx_path)
 
-            jsfiles = filter(lambda x: x.filename.endswith(".js"),
-                             f.infolist())
+            jsd = JsDecompose()
+            jsfiles=jsd.detectLibraries(f)
             for jsfile in jsfiles:
-                with f.open(jsfile) as f2:
-                    md5 = hashlib.md5(f2.read()).hexdigest()
-                con.execute("INSERT INTO jsfile VALUES (?,?,?,?)",
-                            (etag, jsfile.filename, int(jsfile.file_size),
-                             md5))
+                 con.execute("INSERT INTO jsfile VALUES (?,?,?,?,?,?,?,?,?)",
+                             (etag,
+                                jsfile['detectMethod'], 
+                                jsfile['jsFilename'], 
+                                jsfile['type'], 
+                                jsfile['lib'],
+                                jsfile['path'], 
+                                jsfile['md5'], 
+                                jsfile['size'], 
+                                jsfile['ver']))
+
 
             public_key = read_crx(crx_path).public_key
 
