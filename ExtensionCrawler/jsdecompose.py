@@ -38,32 +38,32 @@ class Extension:
     libraryIdentifiers = json.loads(jString)
 
     unknownFilenameIdentifier = re.compile(
-        '(.+)[\-\_]([0-9]{1,2}[\.|\-|\_][0-9a-z]{1,2}[\.|\-|\_][0-9a-z\-\_]*)',
+        r'(.+)[\-\_]([0-9]{1,2}[\.|\-|\_][0-9a-z]{1,2}[\.|\-|\_][0-9a-z\-\_]*)',
         re.IGNORECASE)
 
     #this will be used, when no known library is found
     unknownLibraryIdentifier = [
         re.compile(
-            b'[\/|\/\/|\s]\*?\s?([a-zA-Z0-9\.]+)\sv?([0-9][\.|\-|\_][0-9.a-z_\\\\-]+)',
+            rb'[\/|\/\/|\s]\*?\s?([a-zA-Z0-9\.]+)\sv?([0-9][\.|\-|\_][0-9.a-z_\\\\-]+)',
             re.IGNORECASE
         ),  #MatchType: name version, e.g. mylib v1.2.9b or mylib.anything 1.2.8
         re.compile(
-            b'[\/|\/\/|\s]\*?\s?([a-zA-Z0-9\.]+)\s(?: version)\:?\s?v?([0-9][0-9.a-z_\\\\-]+)',
+            rb'[\/|\/\/|\s]\*?\s?([a-zA-Z0-9\.]+)\s(?: version)\:?\s?v?([0-9][0-9.a-z_\\\\-]+)',
             re.IGNORECASE
         ),  #MatchType: name version: ver, e.g. mylib version: v1.2.9, or mylib.js version 1.2.8
         re.compile(
-            b'\@*(version)\s?[\:|-]?\s?v?([0-9][\.|\-|\_][0-9.a-z_\\\\-]+)',
+            rb'\@*(version)\s?[\:|-]?\s?v?([0-9][\.|\-|\_][0-9.a-z_\\\\-]+)',
             re.IGNORECASE
         ),  #MatchType: version x.x.x, e.g. @version: 1.2.5 or version - 1.2.5 etc.
         re.compile(
-            b'(version)[\:|\=]\s?.?([0-9]{1,2}[\.|\-|\_][0-9.a-z_\\\\-]+).?',
+            rb'(version)[\:|\=]\s?.?([0-9]{1,2}[\.|\-|\_][0-9.a-z_\\\\-]+).?',
             re.IGNORECASE),
-        re.compile(b'(.+) v([0-9]{1,2}[\.|\-|\_][0-9]{1,2}[0-9.a-z_\\\\-]*)',
+        re.compile(rb'(.+) v([0-9]{1,2}[\.|\-|\_][0-9]{1,2}[0-9.a-z_\\\\-]*)',
                    re.IGNORECASE)
     ]
 
     #if even the generic regex is not matched, check if the line contains the string "version"
-    #versionOnlyIdentifier = 
+    #versionOnlyIdentifier =
 
     DetectionType = Enum("DetectionType",
                          'FILENAME FILECONTENT FILENAME_FILECONTENT URL HASH')
@@ -92,18 +92,18 @@ class Extension:
             ##loop through filenames
             for aFile in filenames:
                 #check if a file is a .js file
-                if (aFile.endswith('.js')):
+                if aFile.endswith('.js'):
                     self.jsFiles.append(os.path.join(dirpath, aFile))
 
     #returns 3 items - a list of dictionary, a list of dictionary, a list
     def detectLibraries(self):
-        #get the list of jsFiles in this extension 
+        #get the list of jsFiles in this extension
         self.__getJsFilePaths()
 
         #for each jsFile path in the list
         for jsFile in self.jsFiles:
             #check whether the file is empty
-            if (os.path.getsize(jsFile) == 0):
+            if os.path.getsize(jsFile) == 0:
                 #print("Empty file: " + jsFile)
                 continue
 
@@ -117,12 +117,12 @@ class Extension:
                     ##METHOD_1: Read the filename of this file
                     #if it matches to one of the defined filename regex, store in the dict
                     #check if there is a filename regex exists for this lib
-                    if ('filename' in regex):
+                    if 'filename' in regex:
                         filenameMatched = re.search(regex['filename'],
                                                     os.path.basename(jsFile),
                                                     re.IGNORECASE)
 
-                        if (filenameMatched):
+                        if filenameMatched:
                             #check whether this lib has already been identified in the dict, otherwise store the libname and version from the filename
                             #if(lib not in self.identifiedLibrariesDict):
                             ver = filenameMatched.group(2)
@@ -140,7 +140,7 @@ class Extension:
 
                     ##METHOD_2: Check content of every .js file
                     #check if there is filecontent regex exists for this lib
-                    if ('filecontent' in regex):
+                    if 'filecontent' in regex:
                         #iterate over the filecontent regexes for this lib to see if it has a match
                         for aFilecontent in regex['filecontent']:
                             libraryMatched = re.search(aFilecontent.encode(),
@@ -166,11 +166,11 @@ class Extension:
                                 #do not need to check the other regex for this library - since its already found
 
                 #if none of the regexes in the repository match, check whether the unknown regexes match
-                if (not libraryIdentified):
+                if not libraryIdentified:
                     #check the filename
                     unkFilenameMatch = self.unknownFilenameIdentifier.search(
                         os.path.basename(jsFile))
-                    if (unkFilenameMatch):
+                    if unkFilenameMatch:
                         self.identifiedUnLibrariesList.append({
                             'lib': unkFilenameMatch.group(1),
                             'ver': unkFilenameMatch.group(2),
@@ -186,7 +186,7 @@ class Extension:
                     for unkregex in Extension.unknownLibraryIdentifier:
                         #print("Analysing for regex: {}".format(unkregex))
                         unknownLibraryMatched = unkregex.search(data)
-                        if (unknownLibraryMatched):
+                        if unknownLibraryMatched:
                             #check whether this library is actually unknown, by comparing it with identified dicts
                             #unkLib = unknownLibraryMatched.group(1).lower().decode()
                             unkVer = unknownLibraryMatched.group(2).decode()
@@ -201,7 +201,7 @@ class Extension:
                                     'lib': unkjsFile,
                                     'ver': unkVer,
                                     'detectMethod': self.DetectionType.
-                                    FILENAME_FILECONTENT.name,
+                                                    FILENAME_FILECONTENT.name,
                                     'jsFilename': os.path.basename(jsFile),
                                     'path': jsFile
                                 })
@@ -209,8 +209,8 @@ class Extension:
                             break
                             #do not need to check the rest of the unknown regexes
 
-            #if none of the above regexes match, then it is likely an application  
-            if (isApplication):
+            #if none of the above regexes match, then it is likely an application
+            if isApplication:
                 self.identifiedApplicationsList.append(jsFile)
 
         return (self.identifiedKnLibrariesList, self.identifiedUnLibrariesList,
