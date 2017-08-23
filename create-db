@@ -68,7 +68,7 @@ def process_id(dbbasedir, path):
                 try:
                     update_txt = update_sqlite_incremental(
                         dbpath, iddir, extid, date, True, "")
-                    guarded_stdout("Processing {} ... \n{}".format(extid, update_txt))
+                    guarded_stdout("Processing {} ... \n  {}".format(extid, update_txt))
                 except Exception:
                     guarded_stderr("Exception when handling {} on {}:\n{}\n".
                                    format(extid, date, traceback.format_exc()))
