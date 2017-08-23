@@ -1,22 +1,25 @@
 #!/usr/bin/bash
 set -o nounset
+set -o errexit
 
 PATTERN=$1
-HOST=${2:-sharc.shef.ac.uk}
 BASEDIR=$( cd $(dirname "$0"); cd ..; pwd -P )
 TARGETDIR='/data/$USER/grepper-'$(date +%Y%m%d-%H%M%S)
 
 echo "Creating dirs ..."
-ssh "$HOST" mkdir -p $TARGETDIR/ExtensionCrawler
-ssh "$HOST" mkdir -p $TARGETDIR/logs
-ssh "$HOST" mkdir -p $TARGETDIR/out
+ssh sharc.shef.ac.uk mkdir -p $TARGETDIR/ExtensionCrawler
+ssh sharc.shef.ac.uk mkdir -p $TARGETDIR/logs
+ssh sharc.shef.ac.uk mkdir -p $TARGETDIR/out
 
-echo "Pushing $BASEDIR to $HOST:$TARGETDIR/ExtensionCrawler ..."
-rsync -zr "$BASEDIR/" $HOST:"$TARGETDIR/ExtensionCrawler"
+echo "Pushing $BASEDIR to sharc.shef.ac.uk:$TARGETDIR/ExtensionCrawler ..."
+rsync -zr "$BASEDIR/" sharc.shef.ac.uk:"$TARGETDIR/ExtensionCrawler"
 
 echo "Starting job ..."
-ssh "$HOST" qsub \
-  -v BASEDIR="$TARGETDIR",PATTERN="$PATTERN" \
+ssh sharc.shef.ac.uk \
+  BASEDIR=\"$TARGETDIR\" \
+  PATTERN=\"$PATTERN\" \
+  qsub \
+  -V \
   -t 1-256 \
   -j yes \
   -o "$TARGETDIR/logs" \

@@ -8,4 +8,6 @@ export LD_LIBRARY_PATH=~/lib:$LD_LIBRARY_PATH
 
 set -o nounset
 
+printenv
+
 "$BASEDIR/ExtensionCrawler/create-db" -a "$ARCHIVE" -n $SGE_TASK_ID -N $SGE_TASK_LAST "$BASEDIR/out"

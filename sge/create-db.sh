@@ -1,23 +1,30 @@
 #!/usr/bin/bash
 set -o nounset
+set -o errexit
 
-HOST=${1:-sharc.shef.ac.uk}
+ARCHIVE=${1:-}
+if [ -z "$ARCHIVE" ]; then
+  ARCHIVE=$(ssh sharc.shef.ac.uk find /shared/brucker_research1/Shared/BrowserExtensions/.snapshot -maxdepth 1 -name \"D*\" | sort -r | head -n1)
+fi
+echo "Using archive $ARCHIVE"
+
 BASEDIR=$( cd $(dirname "$0"); cd ..; pwd -P )
 TARGETDIR='/data/$USER/create-db-'$(date +%Y%m%d-%H%M%S)
 
 echo "Creating dirs ..."
-ssh "$HOST" mkdir -p $TARGETDIR/ExtensionCrawler
-ssh "$HOST" mkdir -p $TARGETDIR/logs
-ssh "$HOST" mkdir -p $TARGETDIR/out
+ssh sharc.shef.ac.uk mkdir -p $TARGETDIR/ExtensionCrawler
+ssh sharc.shef.ac.uk mkdir -p $TARGETDIR/logs
+ssh sharc.shef.ac.uk mkdir -p $TARGETDIR/out
 
-echo "Pushing $BASEDIR to $HOST:$TARGETDIR/ExtensionCrawler ..."
-rsync -zr "$BASEDIR/" $HOST:"$TARGETDIR/ExtensionCrawler"
+echo "Pushing $BASEDIR to sharc.shef.ac.uk:$TARGETDIR/ExtensionCrawler ..."
+rsync -zr "$BASEDIR/" sharc.shef.ac.uk:"$TARGETDIR/ExtensionCrawler"
 
 echo "Starting job ..."
-LAST_SNAPSHOT=$(ssh "$HOST" find /shared/brucker_research1/Shared/BrowserExtensions/.snapshot -maxdepth 1 -name \"D*\" | sort -r | head -n1)
-
-ssh "$HOST" qsub \
-  -v BASEDIR="$TARGETDIR",ARCHIVE=\'"$LAST_SNAPSHOT"\' \
+ssh sharc.shef.ac.uk \
+  ARCHIVE=\"$ARCHIVE\" \
+  BASEDIR=\"$TARGETDIR\" \
+  qsub \
+  -V \
   -t 1-256 \
   -j yes \
   -o "$TARGETDIR/logs" \
