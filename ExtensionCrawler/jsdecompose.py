@@ -21,11 +21,10 @@
 import os
 import re
 import json
-import mmap
 from enum import Enum
 
 
-class Extension:
+class JsDecompose:
     ##Class variables- whose values are shared among 'all' instances of this 'class'
     regexFile = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), '../resources/',
@@ -69,71 +68,43 @@ class Extension:
                          'FILENAME FILECONTENT FILENAME_FILECONTENT URL HASH')
 
     #Class constructor initialiser - is called when a new instance of this class is created
-    def __init__(self, path):
-        #check if the path is a directory
-        if not os.path.isdir(path):
-            print("This is not a valid path: " + path)
-            return
-
-        self.extensionPath = path
-        self.jsFiles = [
-        ]  #to store all the js files in this extension instance
-        self.identifiedLibrariesDict = {}
+    def __init__(self):
         self.identifiedKnLibrariesList = []
         self.identifiedUnknownLibrariesDict = {}
         self.identifiedUnLibrariesList = []
         self.identifiedApplicationsList = []
-
-    ##public class instance methods
-    #these are instance level methods - so any changes will effect that instance only
-    def __getJsFilePaths(self):
-        #loop through every element within that path
-        for (dirpath, dirname, filenames) in os.walk(self.extensionPath):
-            ##loop through filenames
-            for aFile in filenames:
-                #check if a file is a .js file
-                if aFile.endswith('.js'):
-                    self.jsFiles.append(os.path.join(dirpath, aFile))
-
-    #returns 3 items - a list of dictionary, a list of dictionary, a list
-    def detectLibraries(self):
-        #get the list of jsFiles in this extension
-        self.__getJsFilePaths()
-
+    
+    def detectLibraries(self, zipfile, jsFiles):
         #for each jsFile path in the list
-        for jsFile in self.jsFiles:
+        for jsFile in list(jsFiles):
             #check whether the file is empty
-            if os.path.getsize(jsFile) == 0:
-                #print("Empty file: " + jsFile)
-                continue
 
             isApplication = True
-            with open(jsFile, 'r+') as fObject:
-                data = mmap.mmap(fObject.fileno(), 0)
+            with zipfile.open(jsFile) as fObject:
+                data = fObject.read()
+
                 libraryIdentified = False
 
                 #iterate over the library regexes, to check whether it has a match
-                for lib, regex in Extension.libraryIdentifiers.items():
+                for lib, regex in JsDecompose.libraryIdentifiers.items():
                     ##METHOD_1: Read the filename of this file
                     #if it matches to one of the defined filename regex, store in the dict
                     #check if there is a filename regex exists for this lib
                     if 'filename' in regex:
                         filenameMatched = re.search(regex['filename'],
-                                                    os.path.basename(jsFile),
+                                                    jsFile.filename,
                                                     re.IGNORECASE)
 
                         if filenameMatched:
                             #check whether this lib has already been identified in the dict, otherwise store the libname and version from the filename
-                            #if(lib not in self.identifiedLibrariesDict):
                             ver = filenameMatched.group(2)
-                            #self.identifiedLibrariesDict[lib] = {'ver':ver, 'detectMethod': self.DetectionType.FILENAME.name, 'path':jsFile}
                             self.identifiedKnLibrariesList.append({
                                 'lib': lib,
                                 'ver': ver,
                                 'detectMethod':
                                 self.DetectionType.FILENAME.name,
                                 'jsFilename': os.path.basename(jsFile),
-                                'path': jsFile
+                                'path': jsFile.filename
                             })
                             libraryIdentified = True
                             isApplication = False
@@ -157,7 +128,7 @@ class Extension:
                                         'detectMethod':
                                         self.DetectionType.FILECONTENT.name,
                                         'jsFilename': os.path.basename(jsFile),
-                                        'path': jsFile
+                                        'path': jsFile.filename
                                     })
 
                                 libraryIdentified = True
@@ -169,28 +140,29 @@ class Extension:
                 if not libraryIdentified:
                     #check the filename
                     unkFilenameMatch = self.unknownFilenameIdentifier.search(
-                        os.path.basename(jsFile))
+                        jsFile.filename)
                     if unkFilenameMatch:
                         self.identifiedUnLibrariesList.append({
                             'lib': unkFilenameMatch.group(1),
                             'ver': unkFilenameMatch.group(2),
                             'detectMethod': self.DetectionType.FILENAME.name,
-                            'jsFilename': os.path.basename(jsFile),
-                            'path': jsFile
+                            'type': "library",
+                            'jsFilename': os.path.basename(jsFile.filename),
+                            'path': jsFile.filename
                         })
                         isApplication = False
                         continue
                         #do not need to check the filecontent
 
                     #otherwise check the filecontent
-                    for unkregex in Extension.unknownLibraryIdentifier:
+                    for unkregex in JsDecompose.unknownLibraryIdentifier:
                         #print("Analysing for regex: {}".format(unkregex))
                         unknownLibraryMatched = unkregex.search(data)
                         if unknownLibraryMatched:
                             #check whether this library is actually unknown, by comparing it with identified dicts
                             #unkLib = unknownLibraryMatched.group(1).lower().decode()
                             unkVer = unknownLibraryMatched.group(2).decode()
-                            unkjsFile = ((os.path.basename(jsFile)).replace(
+                            unkjsFile = ((jsFile.filename).replace(
                                 '.js', '')).replace('.min', '')
 
                             if (not self.isLibExistInList(
@@ -202,8 +174,9 @@ class Extension:
                                     'ver': unkVer,
                                     'detectMethod': self.DetectionType.
                                                     FILENAME_FILECONTENT.name,
-                                    'jsFilename': os.path.basename(jsFile),
-                                    'path': jsFile
+                                    'type': "likely_library",
+                                    'jsFilename': os.path.basename(jsFile.filename),
+                                    'path': jsFile.filename
                                 })
                             isApplication = False
                             break
@@ -211,9 +184,16 @@ class Extension:
 
             #if none of the above regexes match, then it is likely an application
             if isApplication:
-                self.identifiedApplicationsList.append(jsFile)
+                self.identifiedApplicationsList.append({
+                                    'lib': None,
+                                    'ver': None,
+                                    'detectMethod': None,
+                                    'type': "application",
+                                    'jsFilename': os.path.basename(jsFile.filename),
+                                    'path': jsFile.filename
+                                })
 
-        return (self.identifiedKnLibrariesList, self.identifiedUnLibrariesList,
+        return (self.identifiedKnLibrariesList + self.identifiedUnLibrariesList +
                 self.identifiedApplicationsList)
 
     def isLibExistInList(self, lib, ver, listOfDict):
@@ -222,15 +202,3 @@ class Extension:
                     item['ver'].lower() == ver.lower()):
                 return True
         return False
-
-    def showIdentifiedLibraries(self):
-        for identified in self.identifiedKnLibrariesList:
-            print("Identified Known Lib: {}".format(identified))
-
-        print()
-        for identified in self.identifiedUnLibrariesList:
-            print("Identified UnKnown Lib: {}".format(identified))
-
-        print()
-        for app in self.identifiedApplicationsList:
-            print("Likely_Application: {}".format(app))
