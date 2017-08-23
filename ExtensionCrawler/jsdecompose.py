@@ -73,7 +73,7 @@ def unknown_lib_identifiers():
     ])
 
 
-def detectLibraries(zipfile):
+def decompose_js(zipfile):
     """JavaScript decomposition analysis for extensions."""
     detection_type = Enum("DetectionType",
                           'FILENAME FILECONTENT FILENAME_FILECONTENT URL HASH')
