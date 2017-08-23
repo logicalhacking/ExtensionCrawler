@@ -14,7 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """Python analys providing a decomposition analysis of JavaScript code in
    general and Chrome extensions in particular."""
 
@@ -37,10 +36,12 @@ def InitLibIdentifiers():
 
     return json.loads(jString)
 
+
 def InitUnknownFilenameIdentifier():
     return re.compile(
-               r'(.+)[\-\_]([0-9]{1,2}[\.|\-|\_][0-9a-z]{1,2}[\.|\-|\_][0-9a-z\-\_]*)',
-               re.IGNORECASE)
+        r'(.+)[\-\_]([0-9]{1,2}[\.|\-|\_][0-9a-z]{1,2}[\.|\-|\_][0-9a-z\-\_]*)',
+        re.IGNORECASE)
+
 
 def isLibExistInList(lib, ver, listOfDict):
     for item in listOfDict:
@@ -49,28 +50,32 @@ def isLibExistInList(lib, ver, listOfDict):
             return True
     return False
 
+
 def InitUnknownLibraryIdentifier():
-    return ([   re.compile(
-                    rb'[\/|\/\/|\s]\*?\s?([a-zA-Z0-9\.]+)\sv?([0-9][\.|\-|\_][0-9.a-z_\\\\-]+)',
-                    re.IGNORECASE
-                ),  #MatchType: name version, e.g. mylib v1.2.9b or mylib.anything 1.2.8
-                re.compile(
-                    rb'[\/|\/\/|\s]\*?\s?([a-zA-Z0-9\.]+)\s(?: version)\:?\s?v?([0-9][0-9.a-z_\\\\-]+)',
-                    re.IGNORECASE
-                ),  #MatchType: name version: ver, e.g. mylib version: v1.2.9, or mylib.js version 1.2.8
-                re.compile(
-                    rb'\@*(version)\s?[\:|-]?\s?v?([0-9][\.|\-|\_][0-9.a-z_\\\\-]+)',
-                    re.IGNORECASE
-                ),  #MatchType: version x.x.x, e.g. @version: 1.2.5 or version - 1.2.5 etc.
-                re.compile(
-                    rb'(version)[\:|\=]\s?.?([0-9]{1,2}[\.|\-|\_][0-9.a-z_\\\\-]+).?',
-                    re.IGNORECASE),
-                re.compile(rb'(.+) v([0-9]{1,2}[\.|\-|\_][0-9]{1,2}[0-9.a-z_\\\\-]*)',
-                        re.IGNORECASE)
-             ])
+    return ([
+        re.compile(
+            rb'[\/|\/\/|\s]\*?\s?([a-zA-Z0-9\.]+)\sv?([0-9][\.|\-|\_][0-9.a-z_\\\\-]+)',
+            re.IGNORECASE
+        ),  #MatchType: name version, e.g. mylib v1.2.9b or mylib.anything 1.2.8
+        re.compile(
+            rb'[\/|\/\/|\s]\*?\s?([a-zA-Z0-9\.]+)\s(?: version)\:?\s?v?([0-9][0-9.a-z_\\\\-]+)',
+            re.IGNORECASE
+        ),  #MatchType: name version: ver, e.g. mylib version: v1.2.9, or mylib.js version 1.2.8
+        re.compile(
+            rb'\@*(version)\s?[\:|-]?\s?v?([0-9][\.|\-|\_][0-9.a-z_\\\\-]+)',
+            re.IGNORECASE
+        ),  #MatchType: version x.x.x, e.g. @version: 1.2.5 or version - 1.2.5 etc.
+        re.compile(
+            rb'(version)[\:|\=]\s?.?([0-9]{1,2}[\.|\-|\_][0-9.a-z_\\\\-]+).?',
+            re.IGNORECASE),
+        re.compile(rb'(.+) v([0-9]{1,2}[\.|\-|\_][0-9]{1,2}[0-9.a-z_\\\\-]*)',
+                   re.IGNORECASE)
+    ])
+
 
 def detectLibraries(zipfile):
-    DetectionType = Enum("DetectionType", 'FILENAME FILECONTENT FILENAME_FILECONTENT URL HASH')
+    DetectionType = Enum("DetectionType",
+                         'FILENAME FILECONTENT FILENAME_FILECONTENT URL HASH')
     identifiedKnLibrariesList = []
     identifiedUnknownLibrariesDict = {}
     identifiedUnLibrariesList = []
@@ -80,8 +85,8 @@ def detectLibraries(zipfile):
     unknownFilenameIdentifier = InitUnknownFilenameIdentifier()
     unknownLibraryIdentifier = InitUnknownLibraryIdentifier()
 
-    jsFiles = list(filter(lambda x: x.filename.endswith(".js"),
-                    zipfile.infolist()))
+    jsFiles = list(
+        filter(lambda x: x.filename.endswith(".js"), zipfile.infolist()))
 
     #for each jsFile path in the list
     for jsFile in list(jsFiles):
@@ -101,8 +106,7 @@ def detectLibraries(zipfile):
                 #check if there is a filename regex exists for this lib
                 if 'filename' in regex:
                     filenameMatched = re.search(regex['filename'],
-                                                jsFile.filename,
-                                                re.IGNORECASE)
+                                                jsFile.filename, re.IGNORECASE)
 
                     if filenameMatched:
                         #check whether this lib has already been identified in the dict, otherwise store the libname and version from the filename
@@ -110,8 +114,7 @@ def detectLibraries(zipfile):
                         identifiedKnLibrariesList.append({
                             'lib': lib,
                             'ver': ver,
-                            'detectMethod':
-                            DetectionType.FILENAME.name,
+                            'detectMethod': DetectionType.FILENAME.name,
                             'jsFilename': os.path.basename(jsFile),
                             'md5': md5,
                             'size': int(jsFile.file_size),
@@ -125,13 +128,12 @@ def detectLibraries(zipfile):
                 if 'filecontent' in regex:
                     #iterate over the filecontent regexes for this lib to see if it has a match
                     for aFilecontent in regex['filecontent']:
-                        libraryMatched = re.search(aFilecontent.encode(),
-                                                    data, re.IGNORECASE)
+                        libraryMatched = re.search(aFilecontent.encode(), data,
+                                                   re.IGNORECASE)
                         if (libraryMatched):
                             ver = libraryMatched.group(2).decode()
                             if (not isLibExistInList(
-                                    lib, ver,
-                                    identifiedKnLibrariesList)):
+                                    lib, ver, identifiedKnLibrariesList)):
                                 #to be safe, check if the version in the filename, matches with the filecontent
                                 identifiedKnLibrariesList.append({
                                     'lib': lib,
@@ -149,7 +151,7 @@ def detectLibraries(zipfile):
                             break
                             #do not need to check the other regex for this library - since its already found
 
-            #if none of the regexes in the repository match, check whether the unknown regexes match
+                        #if none of the regexes in the repository match, check whether the unknown regexes match
             if not libraryIdentified:
                 #check the filename
                 unkFilenameMatch = unknownFilenameIdentifier.search(
@@ -180,17 +182,17 @@ def detectLibraries(zipfile):
                         unkjsFile = ((jsFile.filename).replace(
                             '.js', '')).replace('.min', '')
 
-                        if (not isLibExistInList(
-                                unkjsFile, unkVer,
-                                identifiedKnLibrariesList)):
+                        if (not isLibExistInList(unkjsFile, unkVer,
+                                                 identifiedKnLibrariesList)):
                             #put this unknown library in the unknown dictionary. use the filename instead - safer
                             identifiedUnLibrariesList.append({
                                 'lib': unkjsFile,
                                 'ver': unkVer,
-                                'detectMethod': DetectionType.
-                                                FILENAME_FILECONTENT.name,
+                                'detectMethod':
+                                DetectionType.FILENAME_FILECONTENT.name,
                                 'type': "likely_library",
-                                'jsFilename': os.path.basename(jsFile.filename),
+                                'jsFilename':
+                                os.path.basename(jsFile.filename),
                                 'md5': md5,
                                 'size': int(jsFile.file_size),
                                 'path': jsFile.filename
@@ -199,19 +201,18 @@ def detectLibraries(zipfile):
                         break
                         #do not need to check the rest of the unknown regexes
 
-        #if none of the above regexes match, then it is likely an application
+                    #if none of the above regexes match, then it is likely an application
         if isApplication:
             identifiedApplicationsList.append({
-                                'lib': None,
-                                'ver': None,
-                                'detectMethod': None,
-                                'type': "application",
-                                'jsFilename': os.path.basename(jsFile.filename),
-                                'md5': md5,
-                                'size': int(jsFile.file_size),
-                                'path': jsFile.filename
-                            })
+                'lib': None,
+                'ver': None,
+                'detectMethod': None,
+                'type': "application",
+                'jsFilename': os.path.basename(jsFile.filename),
+                'md5': md5,
+                'size': int(jsFile.file_size),
+                'path': jsFile.filename
+            })
 
     return (identifiedKnLibrariesList + identifiedUnLibrariesList +
             identifiedApplicationsList)
-
