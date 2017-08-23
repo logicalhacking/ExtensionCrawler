@@ -1,0 +1,214 @@
+{
+	"jquery" : {
+		"filename" : "(jquery)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(jquery) JavaScript Library v?([0-9][0-9.a-z_\\\\-]+)",
+			"(jquery) v?([0-9][0-9.a-z_\\\\-]+)",
+			"Id: (jquery)\\.js,\\s?v\\s?([0-9][0-9.a-z_\\\\-]+)",
+			"(jQuery).*[f|m]=.?v?([0-9][0-9.a-z_\\\\-]+).",
+			"[^a-z.](jQuery)\\:?[ ]?\"?v([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"jquery-migrate" : {
+		"filename" : "(jquery-migrate)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(jQuery Migrate)\\s?\\-?\\s?v([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"jquery.validator" : {
+		"filename" : "(jquery.validate)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(jQuery Validation) Plugin\\s?[\\-\\s]*v?([0-9][0-9.a-z_\\\\-]+)"
+		] 
+	},
+
+	"jquery-mobile" : {
+		"filename" : "(jquery.mobile)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(jQuery Mobile)(?: -)? v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"jquery-ui" :{
+		"filename" : "(jquery.ui).([0-9]+[.a-z_\\\\-][0-9a-z]+[.a-z_\\\\-][0-9a-z]+).([custom.min|min]+)?\\.js",
+		"filecontent" : [
+			"(jQuery UI)(?: -)? v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"jquery-ui-dialog" : {
+		"filecontent" : [
+			"(jQuery UI Dialog)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+			"\"?(ui\\.dialog)\"?,.version:.([0-9][0-9.a-z_\\\\-]+).",
+			".widget.\\s?.(ui\\.dialog).(?:.*[\n\r]+){1,2}.*version:\\s?.([0-9.]+)."
+		]
+	},
+
+	"jquery-ui-autocomplete" : {
+		"filecontent" : [
+			"(jQuery UI Autocomplete)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+			"\"?(ui\\.autocomplete)\"?,.version:.([0-9][0-9.a-z_\\\\-]+).",
+			".widget.\\s?.(ui\\.autocomplete).(?:.*[\n\r]+){1,2}.*version:\\s?.([0-9.]+)."
+		]
+	},
+
+	"jquery-ui-tooltip" : {
+		"filecontent" : [
+			"(jQuery UI Tooltip)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+			"\"?(ui\\.tooltip)\"?,.version:.([0-9][0-9.a-z_\\\\-]+).",
+			".widget.\\s?.(ui\\.tooltip).(?:.*[\n\r]+){1,2}.*version:\\s?.([0-9.]+)."
+		]
+	},
+
+	"jquery.prettyPhoto" : {
+		"filename" : "(jquery.prettyPhoto)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"Class: (prettyPhoto)(?:.*[\n\r]+){1,3}.*Version: v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"jPlayer" : {
+		"filename" : "(jquery.jPlayer)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(jPlayer) Plugin for jQuery(?:.*[\n\r]+){1,10}.*Version: v?([0-9][0-9.a-z_\\\\-]+)",
+			"(jPlayer) v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"sessvars" : {
+		"filename" : "(sessvars)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(sessvars)\\s?[ver]*\\s?v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"swfobject" : {
+		"filename" : "(swfobject)_([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(SWFObject) v([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"YUI" : {
+		"filename" : "(yui)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(YUI) v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"prototypejs" : {
+		"filename" : "(prototype)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(Prototype) JavaScript framework, version v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"ember" : {
+		"filename" : "(ember)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)"
+	},
+
+	"dojo" : {
+		"filename" : "(dojo)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)"
+	},
+
+	"angularjs" : {
+		"filename" : "(angular)(?:js)?-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(angularjs) v?([0-9][0-9.a-z_\\\\-]+)",
+			"http://errors\\.(angularjs)\\.org/([0-9][0-9a-z._\\\\-]+)/"
+		]
+	},
+
+	"backbone.js" : {
+		"filename" : "(backbone)(?:js)?-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"[ ]+(Backbone).[js|VERSION]+ \\=?\\s?v?.?([0-9][0-9.a-z_\\\\-]+).?",
+			"(Backbone).+\\w\\.VERSION=.([0-9.]+).",
+			"\\w=\\w.(Backbone)={}}\\w.VERSION=.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
+	"mustache.js" : {
+		"filename" : "(mustache)(?:js)?-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"[^a-z]mustache\\.name = .(mustache\\.js).(?:.*[\n\r]+){1,3}.*mustache\\.version = .([0-9.]+).",
+			"mustache\\.name=\\s?.(mustache\\.js)..*mustache\\.version=\\s?.([0-9][0-9.a-z_\\\\-]+).",
+			"name:.(mustache.js).,version:.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
+	"handlebars.js" : {
+		"filename" : "(handlebars)[\\-v|\\.min]+([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(handlebars) v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"easyXDM" : {
+		"filename" : "(easyXDM)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"@class (easyXDM)(?:.*[\r|\n]+){1,3}.*@version v?([0-9][0-9.a-z_\\\\-]+)",
+			"(easyXDM).+version:\\s?.([0-9.]+)."
+		]
+	},
+
+	"plupload" : {
+		"filename" : "(plupload)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(Plupload) - multi-runtime File Uploader(?:\r|\n)+ \\*?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+			"(plupload).+VERSION:\\s?.([0-9.]+)."
+		]
+	},
+
+	"DOMPurify" : {
+		"filecontent" : [
+			"(DOMPurify)\\.version = [\\'|\"]([0-9][0-9.a-z_\\\\-]+)[\\'|\"];",
+			"(DOMPurify).*version=\\s?.([0-9.]+)."
+		]
+	},
+
+	"react" : {
+		"filename" : "(react)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(react) v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"flowplayer" : {
+		"filename" : "(flowplayer)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)"
+	},
+
+	"DWR" : {
+		"filecontent" : [
+			"(dwr)-([0-9][0-9.a-z_\\\\-]+).jar"
+		]
+	},
+
+	"moment.js" : {
+		"filecontent" : [
+			"(moment.js)(?:[\n\r]+).* version\\s?:\\s?v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"bootstrap" : {
+		"filename" : "(bootstrap)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(bootstrap)(?:.js){,1} v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"require.js" : {
+		"filecontent" : [
+			"@license (RequireJS) v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"d3js" : {
+		"filecontent" : [
+			"https\\:\/\/(d3js)\\.org\\s+Version\\:*\\s+v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+
+	}
+}
