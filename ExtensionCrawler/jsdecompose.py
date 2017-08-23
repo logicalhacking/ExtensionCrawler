@@ -72,9 +72,9 @@ def unknown_lib_identifiers():
 def detectLibraries(zipfile):
     """JavaScript decomposition analysis for extensions."""
     detection_type = Enum("DetectionType",
-                         'FILENAME FILECONTENT FILENAME_FILECONTENT URL HASH')
-    identifiedKnLibrariesList = []
-    identifiedUnLibrariesList = []
+                          'FILENAME FILECONTENT FILENAME_FILECONTENT URL HASH')
+    known_libs = []
+    unkown_libs = []
     identifiedApplicationsList = []
 
     js_files = list(
@@ -85,10 +85,18 @@ def detectLibraries(zipfile):
         data = ""
         with zipfile.open(js_file) as js_file_obj:
             data = js_file_obj.read()
-            
-        md5 = hashlib.md5(data).hexdigest()
 
-        libraryIdentified = False
+        js_info = {'lib': None,
+                   'ver': None,
+                   'detectMethod': None,
+                   'type': None,
+                   'jsFilename': os.path.basename(js_file.filename),
+                   'md5': hashlib.md5(data).hexdigest(),
+                   'size': int(js_file.file_size),
+                   'path': js_file.filename
+                  }
+
+        lib_identified = False
 
         #iterate over the library regexes, to check whether it has a match
         for lib, regex in lib_identifiers().items():
@@ -101,63 +109,47 @@ def detectLibraries(zipfile):
 
                 if filenameMatched:
                     #check whether this lib has already been identified in the dict, otherwise store the libname and version from the filename
-                    ver = filenameMatched.group(2)
-                    identifiedKnLibrariesList.append({
-                        'lib': lib,
-                        'ver': ver,
-                        'detectMethod': detection_type.FILENAME.name,
-                        'jsFilename': os.path.basename(js_file),
-                        'md5': md5,
-                        'size': int(js_file.file_size),
-                        'path': js_file.filename
-                    })
-                    libraryIdentified = True
+                    js_info['lib'] = lib
+                    js_info['ver'] = filenameMatched.group(2)
+                    js_info['type'] = "library"
+                    js_info['detectMethod'] = detection_type.FILENAME.name
+                    known_libs.append(js_info)
+                    lib_identified = True
                     is_app_js = False
 
             ##METHOD_2: Check content of every .js file
             #check if there is filecontent regex exists for this lib
             if 'filecontent' in regex:
-                #iterate over the filecontent regexes for this lib to see if it has a match
+                #iterate over the filecontent regexes for this  to see if it has a match
                 for aFilecontent in regex['filecontent']:
                     libraryMatched = re.search(aFilecontent.encode(), data,
-                                                re.IGNORECASE)
-                    if (libraryMatched):
+                                               re.IGNORECASE)
+                    if libraryMatched:
                         ver = libraryMatched.group(2).decode()
                         if (not lib_isin_list(
-                                lib, ver, identifiedKnLibrariesList)):
-                            #to be safe, check if the version in the filename, matches with the filecontent
-                            identifiedKnLibrariesList.append({
-                                'lib': lib,
-                                'ver': ver,
-                                'detectMethod':
-                                detection_type.FILECONTENT.name,
-                                'jsFilename': os.path.basename(js_file),
-                                'md5': md5,
-                                'size': int(js_file.file_size),
-                                'path': js_file.filename
-                            })
+                                lib, ver, known_libs)):
+                            js_info['lib'] = lib
+                            js_info['ver'] = ver
+                            js_info['type'] = "library"
+                            js_info['detectMethod'] = detection_type.FILECONTENT.name
+                            known_libs.append(js_info)       
 
-                        libraryIdentified = True
+                        lib_identified = True
                         is_app_js = False
                         break
                         #do not need to check the other regex for this library - since its already found
 
                     #if none of the regexes in the repository match, check whether the unknown regexes match
-        if not libraryIdentified:
+        if not lib_identified:
             #check the filename
             unkFilenameMatch = unknown_filename_identifier().search(
                 js_file.filename)
             if unkFilenameMatch:
-                identifiedUnLibrariesList.append({
-                    'lib': unkFilenameMatch.group(1),
-                    'ver': unkFilenameMatch.group(2),
-                    'detectMethod': detection_type.FILENAME.name,
-                    'type': "library",
-                    'jsFilename': os.path.basename(js_file.filename),
-                    'md5': md5,
-                    'size': int(js_file.file_size),
-                    'path': js_file.filename
-                })
+                js_info['lib'] = unkFilenameMatch.group(1)
+                js_info['ver'] = unkFilenameMatch.group(2)
+                js_info['type'] = "likely_library"
+                js_info['detectMethod'] = detection_type.FILENAME.name
+                unkown_libs.append(js_info)
                 is_app_js = False
                 continue
                 #do not need to check the filecontent
@@ -174,36 +166,24 @@ def detectLibraries(zipfile):
                         '.js', '')).replace('.min', '')
 
                     if (not lib_isin_list(unkjsFile, unkVer,
-                                                identifiedKnLibrariesList)):
+                                          known_libs)):
                         #put this unknown library in the unknown dictionary. use the filename instead - safer
-                        identifiedUnLibrariesList.append({
-                            'lib': unkjsFile,
-                            'ver': unkVer,
-                            'detectMethod':
-                            detection_type.FILENAME_FILECONTENT.name,
-                            'type': "likely_library",
-                            'jsFilename':
-                            os.path.basename(js_file.filename),
-                            'md5': md5,
-                            'size': int(js_file.file_size),
-                            'path': js_file.filename
-                        })
+                        js_info['lib'] = unkjsFile
+                        js_info['ver'] = unkVer
+                        js_info['detectMethod'] = detection_type.FILENAME_FILECONTENT.name
+                        js_info['type'] = "likely_library"
+                        unkown_libs.append(js_info)
                     is_app_js = False
                     break
                     #do not need to check the rest of the unknown regexes
 
                 #if none of the above regexes match, then it is likely an application
         if is_app_js:
-            identifiedApplicationsList.append({
-                'lib': None,
-                'ver': None,
-                'detectMethod': None,
-                'type': "application",
-                'jsFilename': os.path.basename(js_file.filename),
-                'md5': md5,
-                'size': int(js_file.file_size),
-                'path': js_file.filename
-            })
+            js_info['lib'] = None
+            js_info['ver'] = None
+            js_info['detectMethod'] = None
+            js_info['type'] = "application"
+            identifiedApplicationsList.append(js_info)
 
-    return (identifiedKnLibrariesList + identifiedUnLibrariesList +
+    return (known_libs + unkown_libs +
             identifiedApplicationsList)
