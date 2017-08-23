@@ -1,0 +1,8 @@
+#!/bin/bash
+
+module -s load apps/python/conda 2> /dev/null
+source activate mypython35
+
+set -o nounset
+
+"$BASEDIR/ExtensionCrawler/grepper" -a "/shared/brucker_research1/Shared/BrowserExtensions" -n $SGE_TASK_ID -N $SGE_TASK_LAST "$PATTERN" > "$BASEDIR/$SGE_TASK_ID.grep"
