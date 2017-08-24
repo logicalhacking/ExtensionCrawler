@@ -23,6 +23,20 @@ import json
 from enum import Enum
 import hashlib
 
+class DetectionType(Enum):
+    """Enumeration for detection types."""
+    FILENAME = 1
+    FILECONTENT = 2
+    FILENAME_FILECONTENT = 3
+    URL = 4
+    HASH = 5
+
+class FileClassification(Enum):
+    """ Enumeration for file classification"""
+    LIBRARY = 1
+    LIKELY_LIBRARY = 2
+    APPLICATION = 3
+
 def lib_identifiers():
     """Initialize identifiers for known libraries from JSON file."""
     regex_file = os.path.join(
@@ -89,8 +103,6 @@ def init_jsinfo(zipfile, js_file):
     }
     return js_info
 
-detection_type = Enum("DetectionType",
-                      'FILENAME FILECONTENT FILENAME_FILECONTENT URL HASH')
 
 def analyse_known_filename(zipfile, js_file):
     """Check for known file name patterns."""
@@ -103,8 +115,8 @@ def analyse_known_filename(zipfile, js_file):
                 js_info = init_jsinfo(zipfile, js_file)
                 js_info['lib'] = lib
                 js_info['ver'] = filename_matched.group(2)
-                js_info['type'] = "library"
-                js_info['detectMethod'] = detection_type.FILENAME.name
+                js_info['type'] = FileClassification.LIBRARY
+                js_info['detectMethod'] = DetectionType.FILENAME
                 libs.append(js_info)
     return libs
 
@@ -125,8 +137,8 @@ def analyse_known_filecontent(zipfile, js_file):
                     js_info = init_jsinfo(zipfile, js_file)
                     js_info['lib'] = lib
                     js_info['ver'] = ver
-                    js_info['type'] = "library"
-                    js_info['detectMethod'] = detection_type.FILECONTENT.name
+                    js_info['type'] = FileClassification.LIBRARY
+                    js_info['detectMethod'] = DetectionType.FILECONTENT
                     libs.append(js_info)
     return libs
 
@@ -139,8 +151,8 @@ def analyse_generic_filename(zipfile, js_file):
         js_info = init_jsinfo(zipfile, js_file)
         js_info['lib'] = unknown_filename_match.group(1)
         js_info['ver'] = unknown_filename_match.group(2)
-        js_info['type'] = "likely_library"
-        js_info['detectMethod'] = detection_type.FILENAME.name
+        js_info['type'] = FileClassification.LIKELY_LIBRARY
+        js_info['detectMethod'] = DetectionType.FILENAME
         libs.append(js_info)
     return libs
 
@@ -157,8 +169,8 @@ def analyse_generic_filecontent(zipfile, js_file):
             js_info['lib'] = ((js_file.filename).replace(
                 '.js', '')).replace('.min', '')
             js_info['ver'] = match.group(2).decode()
-            js_info['detectMethod'] = detection_type.FILENAME_FILECONTENT.name
-            js_info['type'] = "likely_library"
+            js_info['detectMethod'] = DetectionType.FILENAME_FILECONTENT
+            js_info['type'] = FileClassification.LIKELY_LIBRARY
             libs.append(js_info)
     return libs
 
@@ -186,7 +198,7 @@ def decompose_js(zipfile):
             js_info['lib'] = None
             js_info['ver'] = None
             js_info['detectMethod'] = None
-            js_info['type'] = "application"
+            js_info['type'] = FileClassification.APPLICATION
             js_inventory.append(js_info)
         else:
             js_inventory += js_info_file

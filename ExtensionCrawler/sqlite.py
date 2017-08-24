@@ -19,7 +19,7 @@ from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
-from ExtensionCrawler.jsdecompose import decompose_js
+from ExtensionCrawler.jsdecompose import decompose_js, DetectionType, FileClassification
 
 import sqlite3
 import re
@@ -349,9 +349,9 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
             for js_file_info in js_files:
                  con.execute("INSERT INTO jsfile VALUES (?,?,?,?,?,?,?,?,?)",
                              (etag,
-                                js_file_info['detectMethod'], 
+                                js_file_info['detectMethod'].name, 
                                 js_file_info['jsFilename'], 
-                                js_file_info['type'], 
+                                js_file_info['type'].name, 
                                 js_file_info['lib'],
                                 js_file_info['path'], 
                                 js_file_info['md5'], 
