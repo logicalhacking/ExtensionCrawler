@@ -2,14 +2,13 @@
 set -o nounset
 set -o errexit
 
-ARCHIVE=${1:-}
-if [ -z "$ARCHIVE" ]; then
-  ARCHIVE=$(ssh sharc.shef.ac.uk find /shared/brucker_research1/Shared/BrowserExtensions/.snapshot -maxdepth 1 -name \"D*\" | sort -r | head -n1)
-fi
+ARCHIVE=${1:-$(ssh sharc.shef.ac.uk find /shared/brucker_research1/Shared/BrowserExtensions/.snapshot -maxdepth 1 -name \"D*\" | sort -r | head -n1)}
+TARGETBASEDIR=${2:-'/data/$USER'}
+
 echo "Using archive $ARCHIVE"
 
+TARGETDIR="${TARGETBASEDIR}/create-db-$(date +%Y%m%d-%H%M%S)"
 BASEDIR=$( cd $(dirname "$0"); cd ..; pwd -P )
-TARGETDIR='/data/$USER/create-db-'$(date +%Y%m%d-%H%M%S)
 
 echo "Creating dirs ..."
 ssh sharc.shef.ac.uk mkdir -p $TARGETDIR/ExtensionCrawler
