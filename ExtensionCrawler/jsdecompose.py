@@ -23,7 +23,6 @@ import json
 from enum import Enum
 import hashlib
 
-
 def lib_identifiers():
     """Initialize identifiers for known libraries from JSON file."""
     regex_file = os.path.join(
@@ -73,126 +72,123 @@ def unknown_lib_identifiers():
     ])
 
 
+def init_jsinfo(zipfile, js_file):
+    """Initialize jsinfo record."""
+    data = ""
+    with zipfile.open(js_file) as js_file_obj:
+        data = js_file_obj.read()
+    js_info = {
+        'lib': None,
+        'ver': None,
+        'detectMethod': None,
+        'type': None,
+        'jsFilename': os.path.basename(js_file.filename),
+        'md5': hashlib.md5(data).hexdigest(),
+        'size': int(js_file.file_size),
+        'path': js_file.filename
+    }
+    return js_info
+
+detection_type = Enum("DetectionType",
+                      'FILENAME FILECONTENT FILENAME_FILECONTENT URL HASH')
+
+def analyse_known_filename(zipfile, js_file):
+    """Check for known file name patterns."""
+    libs = list()
+    for lib, regex in lib_identifiers().items():
+        if 'filename' in regex:
+            filename_matched = re.search(regex['filename'],
+                                         js_file.filename, re.IGNORECASE)
+            if filename_matched:
+                js_info = init_jsinfo(zipfile, js_file)
+                js_info['lib'] = lib
+                js_info['ver'] = filename_matched.group(2)
+                js_info['type'] = "library"
+                js_info['detectMethod'] = detection_type.FILENAME.name
+                libs.append(js_info)
+    return libs
+
+def analyse_known_filecontent(zipfile, js_file):
+    """Check for known file content (license headers)."""
+    libs = list()
+    data = ""
+    with zipfile.open(js_file) as js_file_obj:
+        data = js_file_obj.read()
+    for lib, regex in lib_identifiers().items():
+        if 'filecontent' in regex:
+            #iterate over the filecontent regexes for this  to see if it has a match
+            for file_content in regex['filecontent']:
+                lib_matched = re.finditer(file_content.encode(), data,
+                                          re.IGNORECASE)
+                for match in lib_matched:
+                    ver = match.group(2).decode()
+                    js_info = init_jsinfo(zipfile, js_file)
+                    js_info['lib'] = lib
+                    js_info['ver'] = ver
+                    js_info['type'] = "library"
+                    js_info['detectMethod'] = detection_type.FILECONTENT.name
+                    libs.append(js_info)
+    return libs
+
+def analyse_generic_filename(zipfile, js_file):
+    """Check for generic file name patterns."""
+    libs = list()
+    unknown_filename_match = unknown_filename_identifier().search(
+        js_file.filename)
+    if unknown_filename_match:
+        js_info = init_jsinfo(zipfile, js_file)
+        js_info['lib'] = unknown_filename_match.group(1)
+        js_info['ver'] = unknown_filename_match.group(2)
+        js_info['type'] = "likely_library"
+        js_info['detectMethod'] = detection_type.FILENAME.name
+        libs.append(js_info)
+    return libs
+
+def analyse_generic_filecontent(zipfile, js_file):
+    """Check for generic file content (license headers)."""
+    libs = list()
+    data = ""
+    with zipfile.open(js_file) as js_file_obj:
+        data = js_file_obj.read()
+    for unkregex in unknown_lib_identifiers():
+        unkown_lib_matched = unkregex.finditer(data)
+        for match in unkown_lib_matched:
+            js_info = init_jsinfo(zipfile, js_file)
+            js_info['lib'] = ((js_file.filename).replace(
+                '.js', '')).replace('.min', '')
+            js_info['ver'] = match.group(2).decode()
+            js_info['detectMethod'] = detection_type.FILENAME_FILECONTENT.name
+            js_info['type'] = "likely_library"
+            libs.append(js_info)
+    return libs
+
+
 def decompose_js(zipfile):
     """JavaScript decomposition analysis for extensions."""
-    detection_type = Enum("DetectionType",
-                          'FILENAME FILECONTENT FILENAME_FILECONTENT URL HASH')
-    known_libs = []
-    unkown_libs = []
-    app_js = []
+    def remdups(lst):
+        """Remove duplicates in a list."""
+        res = list()
+        for sublist in lst:
+            if sublist not in res:
+                res.append(sublist)
+        return res
 
-    js_files = list(
-        filter(lambda x: x.filename.endswith(".js"), zipfile.infolist()))
+    js_inventory = []
+    for js_file in list(filter(lambda x: x.filename.endswith(".js"), zipfile.infolist())):
+        js_info_file = analyse_known_filename(zipfile, js_file)
+        js_info_file += analyse_known_filecontent(zipfile, js_file)
+        js_info_file += analyse_generic_filename(zipfile, js_file)
+        js_info_file += analyse_generic_filecontent(zipfile, js_file)
 
-    for js_file in js_files:
-        is_app_js = True
-        data = ""
-        with zipfile.open(js_file) as js_file_obj:
-            data = js_file_obj.read()
-
-        js_info = {
-            'lib': None,
-            'ver': None,
-            'detectMethod': None,
-            'type': None,
-            'jsFilename': os.path.basename(js_file.filename),
-            'md5': hashlib.md5(data).hexdigest(),
-            'size': int(js_file.file_size),
-            'path': js_file.filename
-        }
-
-        lib_identified = False
-
-        #iterate over the library regexes, to check whether it has a match
-        for lib, regex in lib_identifiers().items():
-            ##METHOD_1: Read the filename of this file
-            #if it matches to one of the defined filename regex, store in the dict
-            #check if there is a filename regex exists for this lib
-            if 'filename' in regex:
-                filename_matched = re.search(regex['filename'],
-                                             js_file.filename, re.IGNORECASE)
-
-                if filename_matched:
-                    # check whether this lib has already been identified in the dict,
-                    #  otherwise store the libname and version from the filename
-                    js_info['lib'] = lib
-                    js_info['ver'] = filename_matched.group(2)
-                    js_info['type'] = "library"
-                    js_info['detectMethod'] = detection_type.FILENAME.name
-                    known_libs.append(js_info)
-                    lib_identified = True
-                    is_app_js = False
-
-            ##METHOD_2: Check content of every .js file
-            #check if there is filecontent regex exists for this lib
-            if 'filecontent' in regex:
-                #iterate over the filecontent regexes for this  to see if it has a match
-                for file_content in regex['filecontent']:
-                    lib_matched = re.search(file_content.encode(), data,
-                                            re.IGNORECASE)
-                    if lib_matched:
-                        ver = lib_matched.group(2).decode()
-                        if not lib_isin_list(lib, ver, known_libs):
-                            js_info['lib'] = lib
-                            js_info['ver'] = ver
-                            js_info['type'] = "library"
-                            js_info[
-                                'detectMethod'] = detection_type.FILECONTENT.name
-                            known_libs.append(js_info)
-
-                        lib_identified = True
-                        is_app_js = False
-                        break
-                        # do not need to check the other regex for this library,
-                        # since its already found
-
-                    #if none of the regexes in the repository match, check whether the unknown
-                    # regexes match
-        if not lib_identified:
-            #check the filename
-            unknown_filename_match = unknown_filename_identifier().search(
-                js_file.filename)
-            if unknown_filename_match:
-                js_info['lib'] = unknown_filename_match.group(1)
-                js_info['ver'] = unknown_filename_match.group(2)
-                js_info['type'] = "likely_library"
-                js_info['detectMethod'] = detection_type.FILENAME.name
-                unkown_libs.append(js_info)
-                is_app_js = False
-                continue
-                #do not need to check the filecontent
-
-            #otherwise check the filecontent
-            for unkregex in unknown_lib_identifiers():
-                #print("Analysing for regex: {}".format(unkregex))
-                unkown_lib_matched = unkregex.search(data)
-                if unkown_lib_matched:
-                    #check whether this library is actually unknown, by comparing it with
-                    # identified dicts
-                    unkown_version = unkown_lib_matched.group(2).decode()
-                    unkown_js_file = ((js_file.filename).replace(
-                        '.js', '')).replace('.min', '')
-
-                    if (not lib_isin_list(unkown_js_file, unkown_version,
-                                          known_libs)):
-                        #put this unknown library in the unknown dictionary. use the filename
-                        # instead - safer
-                        js_info['lib'] = unkown_js_file
-                        js_info['ver'] = unkown_version
-                        js_info[
-                            'detectMethod'] = detection_type.FILENAME_FILECONTENT.name
-                        js_info['type'] = "likely_library"
-                        unkown_libs.append(js_info)
-                    is_app_js = False
-                    break
-                    #do not need to check the rest of the unknown regexes
-
-                #if none of the above regexes match, then it is likely an application
-        if is_app_js:
+        if not js_info_file:
+            # if no library could be detected, we report the JavaScript file as 'application'.
+            js_info = init_jsinfo(zipfile, js_file)
             js_info['lib'] = None
             js_info['ver'] = None
             js_info['detectMethod'] = None
             js_info['type'] = "application"
-            app_js.append(js_info)
+            js_inventory.append(js_info)
+        else:
+            js_inventory += js_info_file
 
-    return known_libs + unkown_libs + app_js
+    return remdups(js_inventory)
