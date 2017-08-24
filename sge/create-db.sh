@@ -3,11 +3,9 @@ set -o nounset
 set -o errexit
 
 ARCHIVE=${1:-$(ssh sharc.shef.ac.uk find /shared/brucker_research1/Shared/BrowserExtensions/.snapshot -maxdepth 1 -name \"D*\" | sort -r | head -n1)}
-TARGETBASEDIR=${2:-'/data/$USER'}
-
 echo "Using archive $ARCHIVE"
 
-TARGETDIR="${TARGETBASEDIR}/create-db-$(date +%Y%m%d-%H%M%S)"
+TARGETDIR="${2:-/data/\$USER}/create-db-$(date +%Y%m%d-%H%M%S)"
 BASEDIR=$( cd $(dirname "$0"); cd ..; pwd -P )
 
 echo "Creating dirs ..."
@@ -22,6 +20,7 @@ echo "Starting job ..."
 ssh sharc.shef.ac.uk \
   ARCHIVE=\"$ARCHIVE\" \
   BASEDIR=\"$TARGETDIR\" \
+  MAX_SGE_TASK_ID=256 \
   qsub \
   -V \
   -t 1-256 \

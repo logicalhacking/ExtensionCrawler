@@ -7,4 +7,4 @@ set -o nounset
 
 printenv
 
-"$BASEDIR/ExtensionCrawler/grepper" -a "/shared/brucker_research1/Shared/BrowserExtensions" -n $SGE_TASK_ID -N $SGE_TASK_LAST "$PATTERN" | bzip2 > "$BASEDIR/out/$SGE_TASK_ID.bz2"
+"$BASEDIR/ExtensionCrawler/grepper" -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID "$PATTERN" | bzip2 > "$BASEDIR/out/$SGE_TASK_ID.bz2"
