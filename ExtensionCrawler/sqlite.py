@@ -21,131 +21,14 @@ from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
 from ExtensionCrawler.jsdecompose import decompose_js
 
-import sqlite3
+from ExtensionCrawler.dbbackend.sqlite_backend import SqliteBackend
+
 import re
 from bs4 import BeautifulSoup
 from zipfile import ZipFile
 import json
 import os
 import glob
-
-
-class SelfclosingSqliteDB:
-    def __init__(self, filename):
-        self.filename = filename
-
-    def __enter__(self):
-        self.con = sqlite3.connect(self.filename)
-        return self.con
-
-    def __exit__(self, *args):
-        self.con.commit()
-        self.con.close()
-
-
-def setup_fts_tables(con, name, columns, primary_columns):
-    sqls = [
-        s.format(
-            name=name,
-            columns=", ".join(columns),
-            new_columns=", ".join(["new." + x for x in columns]),
-            primary_columns=", ".join(primary_columns))
-        for s in [
-            """CREATE TABLE {name}({columns}, PRIMARY KEY ({primary_columns}));""",
-            """CREATE VIRTUAL TABLE {name}_fts using fts4(content="{name}", {columns});""",
-            """CREATE TRIGGER {name}_bu BEFORE UPDATE ON {name} BEGIN """
-            """DELETE FROM {name}_fts WHERE docid=old.rowid;"""
-            """END;""",
-            """CREATE TRIGGER {name}_bd BEFORE DELETE ON {name} BEGIN """
-            """DELETE FROM {name}_fts WHERE docid=old.rowid;"""
-            """END;""",
-            """CREATE TRIGGER {name}_au AFTER UPDATE ON {name} BEGIN """
-            """INSERT INTO {name}_fts(docid, {columns}) VALUES(new.rowid, {new_columns});"""
-            """END;""",
-            """CREATE TRIGGER {name}_ai AFTER INSERT ON {name} BEGIN """
-            """INSERT INTO {name}_fts(docid, {columns}) VALUES(new.rowid, {new_columns});"""
-            """END;"""
-        ]
-    ]
-    for sql in sqls:
-        con.execute(sql)
-
-
-def setup_tables(con):
-    setup_fts_tables(con, "support", [
-        "author", "commentdate", "extid", "date", "displayname", "title",
-        "language", "shortauthor", "comment"
-    ], ["author", "commentdate", "extid", "date"])
-
-    setup_fts_tables(con, "review", [
-        "author", "commentdate", "extid", "date", "displayname", "rating",
-        "language", "shortauthor", "comment"
-    ], ["author", "commentdate", "extid", "date"])
-
-    setup_fts_tables(con, "reply", [
-        "author", "commentdate", "extid", "date", "displayname", "replyto",
-        "language", "shortauthor", "comment"
-    ], ["author", "commentdate", "extid", "date"])
-
-    con.execute("""CREATE TABLE category ("""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """category TEXT,"""
-                """PRIMARY KEY (extid, date, category)"""
-                """)""")
-    con.execute("""CREATE TABLE content_script_url ("""
-                """crx_etag TEXT,"""
-                """url TEXT,"""
-                """PRIMARY KEY (crx_etag, url)"""
-                """)""")
-    con.execute("""CREATE TABLE permission ("""
-                """crx_etag TEXT,"""
-                """permission TEXT,"""
-                """PRIMARY KEY (crx_etag, permission)"""
-                """)""")
-    con.execute("""CREATE TABLE crx ("""
-                """crx_etag TEXT PRIMARY KEY,"""
-                """filename TEXT,"""
-                """size INTEGER,"""
-                """publickey BLOB"""
-                """)""")
-    con.execute("""CREATE TABLE jsfile ("""
-                """crx_etag TEXT,"""
-                """detect_method TEXT,"""
-                """filename TEXT,"""
-                """type TEXT,"""
-                """lib TEXT,"""
-                """path TEXT,"""
-                """md5 TEXT,"""
-                """size INTEGER,"""
-                """version TEXT,"""
-                """PRIMARY KEY (crx_etag, path)"""
-                """)""")
-    con.execute("""CREATE TABLE status ("""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """crx_status INTEGER,"""
-                """overview_status INTEGER,"""
-                """overview_exception TEXT,"""
-                """PRIMARY KEY (extid, date)"""
-                """)""")
-    con.execute("""CREATE TABLE extension ("""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """name TEXT,"""
-                """version TEXT,"""
-                """description TEXT,"""
-                """downloads INTEGER,"""
-                """rating REAL,"""
-                """ratingcount INTEGER,"""
-                """fulldescription TEXT,"""
-                """developer TEXT,"""
-                """itemcategory TEXT,"""
-                """crx_etag TEXT,"""
-                """lastupdated TEXT,"""
-                """PRIMARY KEY (extid, date),"""
-                """FOREIGN KEY (crx_etag) REFERENCES crx(crx_etag)"""
-                """)""")
 
 
 def get_etag(ext_id, datepath, con, verbose, indent):
@@ -182,12 +65,11 @@ def get_etag(ext_id, datepath, con, verbose, indent):
             link = f.read()
             linked_date = link[3:].split("/")[0]
 
-            row = next(
-                con.execute(
-                    "SELECT crx_etag FROM extension WHERE extid=? AND date=?",
-                    (ext_id, linked_date)), None)
-            if row:
-                return row[0], txt
+            result = con.get_single_value(
+                "SELECT crx_etag FROM extension WHERE extid=? AND date=?",
+                (ext_id, linked_date))
+            if result is not None:
+                return result, txt
 
     return None, txt
 
@@ -287,16 +169,14 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
                 contents)
             itemcategory = match.group(1) if match else None
 
-            con.execute(
-                "INSERT INTO extension VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (ext_id, date, name, version, description, downloads, rating,
-                 rating_count, full_description, developer, itemcategory, etag,
-                 last_updated))
+            con.insert("extension",
+                       (ext_id, date, name, version, description, downloads,
+                        rating, rating_count, full_description, developer,
+                        itemcategory, etag, last_updated))
 
             if categories:
                 for category in categories:
-                    con.execute("INSERT INTO category VALUES (?,?,?)",
-                                (ext_id, date, category))
+                    con.insert("category", (ext_id, date, category))
 
     return txt
 
@@ -332,37 +212,28 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                 manifest = json.loads(content, strict=False)
                 if "permissions" in manifest:
                     for permission in manifest["permissions"]:
-                        con.execute(
-                            "INSERT OR IGNORE INTO permission VALUES (?,?)",
-                            (etag, str(permission)))
+                        con.insert("permission", (etag, str(permission)))
                 if "content_scripts" in manifest:
                     for csd in manifest["content_scripts"]:
                         if "matches" in csd:
                             for urlpattern in csd["matches"]:
-                                con.execute(
-                                    "INSERT OR IGNORE INTO content_script_url VALUES (?,?)",
-                                    (etag, str(urlpattern)))
+                                con.insert("content_script_url",
+                                           (etag, str(urlpattern)))
 
             size = os.path.getsize(crx_path)
 
-            js_files=decompose_js(f)
+            js_files = decompose_js(f)
             for js_file_info in js_files:
-                 con.execute("INSERT INTO jsfile VALUES (?,?,?,?,?,?,?,?,?)",
-                             (etag,
-                                js_file_info['detectMethod'], 
-                                js_file_info['jsFilename'], 
-                                js_file_info['type'], 
-                                js_file_info['lib'],
-                                js_file_info['path'], 
-                                js_file_info['md5'], 
-                                js_file_info['size'], 
-                                js_file_info['ver']))
-
+                con.insert("jsfile",
+                           (etag, js_file_info['detectMethod'],
+                            js_file_info['jsFilename'], js_file_info['type'],
+                            js_file_info['lib'], js_file_info['path'],
+                            js_file_info['md5'], js_file_info['size'],
+                            js_file_info['ver']))
 
             public_key = read_crx(crx_path).public_key
 
-            con.execute("INSERT INTO crx VALUES (?,?,?,?)", (etag, filename,
-                                                             size, public_key))
+            con.insert("crx", (etag, filename, size, public_key))
     return txt
 
 
@@ -387,9 +258,9 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
                 language = get(review, "language")
                 shortauthor = get(get(review, "entity"), "shortAuthor")
 
-                con.execute("INSERT OR IGNORE INTO review VALUES(?,?,?,?,?,?,?,?,?)",
-                            (author, timestamp, ext_id, date, displayname,
-                             starRating, language, shortauthor, comment))
+                con.insert("review",
+                           (author, timestamp, ext_id, date, displayname,
+                            starRating, language, shortauthor, comment))
 
 
 def parse_and_insert_support(ext_id, date, supportpath, con):
@@ -408,9 +279,9 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
                 language = get(review, "language")
                 shortauthor = get(get(review, "entity"), "shortAuthor")
 
-                con.execute("INSERT OR IGNORE INTO support VALUES(?,?,?,?,?,?,?,?,?)",
-                            (author, timestamp, ext_id, date, displayname,
-                             title, language, shortauthor, comment))
+                con.insert("support",
+                           (author, timestamp, ext_id, date, displayname,
+                            title, language, shortauthor, comment))
 
 
 def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
@@ -434,9 +305,9 @@ def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
                 author = get(get(annotation, "entity"), "author")
                 language = get(annotation, "language")
                 shortauthor = get(get(annotation, "entity"), "shortAuthor")
-                con.execute("INSERT OR IGNORE INTO reply VALUES(?,?,?,?,?,?,?,?,?)",
-                            (author, timestamp, ext_id, date, displayname,
-                             replyto, language, shortauthor, comment))
+                con.insert("reply",
+                           (author, timestamp, ext_id, date, displayname,
+                            replyto, language, shortauthor, comment))
     return ""
 
 
@@ -450,9 +321,8 @@ def parse_and_insert_status(ext_id, date, datepath, con):
         with open(overviewexceptionpath) as f:
             overview_exception = f.read()
 
-    con.execute("INSERT INTO status VALUES (?,?,?,?,?)",
-                (ext_id, date, crx_status, overview_status,
-                 overview_exception))
+    con.insert("status", (ext_id, date, crx_status, overview_status,
+                          overview_exception))
 
 
 def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
@@ -465,13 +335,7 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
     txt = logmsg(verbose, txt,
                  indent + "- updating with data from {}\n".format(date))
 
-    if not os.path.exists(db_path):
-        txt = logmsg(verbose, txt,
-                     indent2 + "* db file does not exist, creating...\n")
-        with SelfclosingSqliteDB(db_path) as con:
-            setup_tables(con)
-
-    with SelfclosingSqliteDB(db_path) as con:
+    with SqliteBackend(db_path) as con:
         parse_and_insert_status(ext_id, date, datepath, con)
 
         parse_and_insert_overview(ext_id, date, datepath, con, verbose,
@@ -479,9 +343,8 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
 
         etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
         txt = logmsg(verbose, txt, etag_msg)
-        etag_already_in_db = next(
-            con.execute("SELECT COUNT(crx_etag) FROM crx WHERE crx_etag=?", (
-                etag, )))[0]
+        etag_already_in_db = con.get_single_value(
+            "SELECT COUNT(crx_etag) FROM crx WHERE crx_etag=?", (etag, ))
 
         if etag:
             if not etag_already_in_db:
