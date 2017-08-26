@@ -178,6 +178,7 @@ def analyse_generic_filecontent(zipfile, js_file):
     return libs
 
 def analyse_filename(zipfile, js_file):
+    """Check for file name patterns of libraries (known and generic as fall back)`"""
     res = analyse_known_filename(zipfile, js_file)
     if not res:
         res = analyse_generic_filecontent(zipfile, js_file)
