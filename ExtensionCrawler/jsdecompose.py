@@ -177,6 +177,11 @@ def analyse_generic_filecontent(zipfile, js_file):
             libs.append(js_info)
     return libs
 
+def analyse_filename(zipfile, js_file):
+    res = analyse_known_filename(zipfile, js_file)
+    if not res:
+        res = analyse_generic_filecontent(zipfile, js_file)
+    return res
 
 def decompose_js(zipfile):
     """JavaScript decomposition analysis for extensions."""
@@ -190,10 +195,11 @@ def decompose_js(zipfile):
 
     js_inventory = []
     for js_file in list(filter(lambda x: x.filename.endswith(".js"), zipfile.infolist())):
-        js_info_file = analyse_known_filename(zipfile, js_file)
-        js_info_file += analyse_known_filecontent(zipfile, js_file)
-        js_info_file += analyse_generic_filename(zipfile, js_file)
+        
+        js_info_file = analyse_filename(zipfile, js_file)
+
         js_info_file += analyse_generic_filecontent(zipfile, js_file)
+        js_info_file += analyse_known_filecontent(zipfile, js_file)
 
         if not js_info_file:
             # if no library could be detected, we report the JavaScript file as 'application'.
