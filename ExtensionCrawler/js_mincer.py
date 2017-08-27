@@ -181,8 +181,12 @@ def mince_js_fileobj(fileobj):
             if content.strip():
                 yield (JsBlock(state, (block_start_line, block_start_cpos),
                            (line, cpos), content, string_literals))
-            block_start_line = line
-            block_start_cpos = cpos # + len(next_content)
+            if char == '\n':
+                block_start_line = line+1
+                block_start_cpos = 1
+            else:
+                block_start_line = line
+                block_start_cpos = cpos
             content = next_content
             next_content = ""
             string_literals = []
@@ -193,10 +197,10 @@ def mince_js_fileobj(fileobj):
 
         escaped = bool(char == '\\' and not escaped)
         state = suc_state
-    
-    if content:
+
+    if content.strip():
         yield (JsBlock(state, (block_start_line, block_start_cpos),
-                        (line, cpos), content, string_literals))
+                       (line, cpos), content, string_literals))
 
 
 def mince_js(file):
@@ -204,3 +208,4 @@ def mince_js(file):
     with open(file, encoding="utf-8") as fileobj:
         for block in mince_js_fileobj(fileobj):
             yield block
+
