@@ -19,7 +19,7 @@ from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
-from ExtensionCrawler.jsdecompose import decompose_js, DetectionType, FileClassification
+from ExtensionCrawler.js_decomposer import decompose_js, DetectionType, FileClassification
 
 import sqlite3
 import re
