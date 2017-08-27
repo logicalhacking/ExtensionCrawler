@@ -105,19 +105,19 @@ class JsBlock:
             "***************************************************************\n"
             + "** Type:  " + str(self.typ) + "\n" + "** Start: " + str(
                 self.start) + "\n" + "** End:   " + str(
-                    self.end) + "\n" + str_msg + self.content.strip() + "\n" +
+                    self.end) + "\n" + str_msg +self.content.strip() + "\n" +
             "***************************************************************\n"
         )
 
 
 def mince_js_fileobj(fileobj):
     """Mince JavaScript file object into code and comment blocks."""
-    line = 0
-    cpos = 0
+    line = 1
+    cpos = 1
     escaped = False
     content = ""
-    block_start_line = 0
-    block_start_cpos = 0
+    block_start_line = line
+    block_start_cpos = cpos
     state = JsBlockType.CODE_BLOCK
     string_literals = []
     current_string_literal = ""
@@ -178,17 +178,18 @@ def mince_js_fileobj(fileobj):
 
         if ((is_comment(state) and is_code_or_string_literal(suc_state)) or
                 (is_code_or_string_literal(state) and is_comment(suc_state))):
-            yield (JsBlock(state, (block_start_line, block_start_cpos),
+            if content.strip():
+                yield (JsBlock(state, (block_start_line, block_start_cpos),
                            (line, cpos), content, string_literals))
             block_start_line = line
-            block_start_cpos = cpos + len(next_content)
+            block_start_cpos = cpos # + len(next_content)
             content = next_content
             next_content = ""
             string_literals = []
 
         if char == '\n':
             line += 1
-            cpos = 0
+            cpos = 1
 
         escaped = bool(char == '\\' and not escaped)
         state = suc_state
