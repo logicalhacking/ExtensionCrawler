@@ -22,7 +22,7 @@ from ExtensionCrawler.archive import *
 from ExtensionCrawler.jsdecompose import decompose_js
 
 from ExtensionCrawler.dbbackend.sqlite_backend import SqliteBackend
-# from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
+from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
 
 import re
 from bs4 import BeautifulSoup
@@ -69,7 +69,7 @@ def get_etag(ext_id, datepath, con, verbose, indent):
 
             result = con.get_single_value(
                 "SELECT crx_etag FROM extension WHERE extid=? AND date=?",
-                (ext_id, linked_date))
+                (ext_id, linked_date[:-6]))
             if result is not None:
                 return result, txt
 
@@ -174,7 +174,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
             con.insert(
                 "extension",
                 extid=ext_id,
-                date=date,
+                date=date[:-6],
                 name=name,
                 version=version,
                 description=description,
@@ -190,7 +190,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
             if categories:
                 for category in categories:
                     con.insert(
-                        "category", extid=ext_id, date=date, category=category)
+                        "category", extid=ext_id, date=date[:-6], category=category)
 
     return txt
 
@@ -283,7 +283,7 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
                     "extid":
                     ext_id,
                     "date":
-                    date,
+                    date[:-6],
                     "commentdate":
                     datetime.datetime.utcfromtimestamp(get(review, "timestamp")) if "timestamp" in review else None,
                     "rating":
@@ -316,7 +316,7 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
                     "extid":
                     ext_id,
                     "date":
-                    date,
+                    date[:-6],
                     "commentdate":
                     datetime.datetime.utcfromtimestamp(get(review, "timestamp")) if "timestamp" in review else None,
                     "title":
@@ -354,7 +354,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
                     "extid":
                     ext_id,
                     "date":
-                    date,
+                    date[:-6],
                     "commentdate":
                     datetime.datetime.utcfromtimestamp(get(annotation, "timestamp")) if "timestamp" in annotation else None,
                     "replyto":
@@ -389,7 +389,7 @@ def parse_and_insert_status(ext_id, date, datepath, con):
     con.insert(
         "status",
         extid=ext_id,
-        date=date,
+        date=date[:-6],
         crx_status=crx_status,
         overview_status=overview_status,
         overview_exception=overview_exception)
@@ -405,12 +405,12 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
     txt = logmsg(verbose, txt,
                  indent + "- updating with data from {}\n".format(date))
 
-    # # Don't forget to create a ~/.my.cnf file with the credentials
-    # with MysqlBackend(
-    #         host="dbknecht.mherzberg.de",
-    #         db="extensions_test",
-    #         read_default_file="~/.my.cnf") as con:
-    with SqliteBackend(db_path) as con:
+    # Don't forget to create a ~/.my.cnf file with the credentials
+    with MysqlBackend(
+            host="dbknecht.mherzberg.de",
+            db="extensions_test",
+            read_default_file="~/.my.cnf") as con:
+    # with SqliteBackend(db_path) as con:
         etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
         txt = logmsg(verbose, txt, etag_msg)
         etag_already_in_db = con.etag_already_in_db(etag)
