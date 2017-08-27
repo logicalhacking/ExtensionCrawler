@@ -236,7 +236,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                     for permission in manifest["permissions"]:
                         con.insert(
                             "permission",
-                            etag=etag,
+                            crx_etag=etag,
                             permission=str(permission))
                 if "content_scripts" in manifest:
                     for csd in manifest["content_scripts"]:
@@ -244,14 +244,14 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                             for urlpattern in csd["matches"]:
                                 con.insert(
                                     "content_script_url",
-                                    etag=etag,
+                                    crx_etag=etag,
                                     urlpattern=str(urlpattern))
 
             js_files = decompose_js(f)
             for js_file_info in js_files:
                 con.insert(
                     "jsfile",
-                    etag=etag,
+                    crx_etag=etag,
                     detect_method=js_file_info['detectMethod'],
                     filename=js_file_info['jsFilename'],
                     type=js_file_info['type'],
