@@ -18,6 +18,7 @@
 import os
 import sqlite3
 
+
 def setup_fts_tables(con, name, columns, primary_columns):
     sqls = [
         s.format(
@@ -122,6 +123,7 @@ def setup_tables(con):
                 """FOREIGN KEY (crx_etag) REFERENCES crx(crx_etag)"""
                 """)""")
 
+
 class SqliteBackend:
     def __init__(self, filename):
         self.filename = filename
@@ -146,6 +148,15 @@ class SqliteBackend:
         else:
             return None
 
-    def insert(self, table, args):
-        self.con.execute("INSERT INTO {} VALUES ({})".format(table, ",".join(len(args) * ["?"])),
-                         args)
+    def etag_already_in_db(self, etag):
+        return self.get_single_value(
+            "SELECT COUNT(crx_etag) FROM crx WHERE crx_etag=?", (etag, ))
+
+    def insert(self, table, **kwargs):
+        args = tuple(kwargs.values())
+        self.con.execute("INSERT OR REPLACE INTO {} VALUES ({})".format(
+            table, ",".join(len(args) * ["?"])), args)
+
+    def insertmany(self, table, argslist):
+        for arg in argslist:
+            self.insert(table, **arg)
