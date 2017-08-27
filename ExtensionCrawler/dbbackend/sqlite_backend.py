@@ -154,8 +154,8 @@ class SqliteBackend:
 
     def insert(self, table, **kwargs):
         args = tuple(kwargs.values())
-        self.con.execute("INSERT OR REPLACE INTO {} VALUES ({})".format(
-            table, ",".join(len(args) * ["?"])), args)
+        self.con.execute("INSERT OR REPLACE INTO {}({}) VALUES ({})".format(
+            table, ",".join(kwargs.keys()), ",".join(len(args) * ["?"])), args)
 
     def insertmany(self, table, argslist):
         for arg in argslist:

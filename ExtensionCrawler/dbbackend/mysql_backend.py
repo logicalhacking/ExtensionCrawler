@@ -39,15 +39,6 @@ class MysqlBackend:
             db = MySQLdb.connect(**self.dbargs)
         self.cursor = db.cursor()
 
-        self.columns = {}
-        self.cursor.execute(
-            "select table_name,column_name from information_schema.columns where table_schema=%s",
-            (self.dbargs["db"], ))
-        for table, column in self.cursor.fetchall():
-            if table not in self.columns:
-                self.columns[table] = []
-            self.columns[table] += [column]
-
         return self
 
     def __exit__(self, *args):
@@ -64,16 +55,18 @@ class MysqlBackend:
             return None
 
     def insertmany(self, table, arglist):
-        args = [
-            tuple([arg[k] for k in self.columns[table]]) for arg in arglist
-        ]
+        args = [tuple(arg.values()) for arg in arglist]
+
         # Looks like this, for example:
-        # INSERT INTO category VALUES (%s,%s,%s) ON DUPLICATE KEY UPDATE extid=VALUES(extid),date=VALUES(date),category=VALUES(category)
-        query = "INSERT INTO {} VALUES ({}) ON DUPLICATE KEY UPDATE {}".format(
+        # INSERT INTO category VALUES(extid,date,category) (%s,%s,%s)
+        #   ON DUPLICATE KEY UPDATE extid=VALUES(extid),date=VALUES(date)
+        #   ,category=VALUES(category)
+        query = "INSERT INTO {}({}) VALUES ({}) ON DUPLICATE KEY UPDATE {}".format(
             table,
+            ",".join(arglist[0].keys()),
             ",".join(len(args[0]) * ["%s"]),
             ",".join(
-                ["{c}=VALUES({c})".format(c=c) for c in self.columns[table]]))
+                ["{c}=VALUES({c})".format(c=c) for c in arglist[0].keys()]))
         self.cursor.executemany(query, args)
 
     def insert(self, table, **kwargs):
