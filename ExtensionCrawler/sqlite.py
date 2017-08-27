@@ -248,7 +248,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                                 con.insert(
                                     "content_script_url",
                                     crx_etag=etag,
-                                    urlpattern=str(urlpattern))
+                                    url=str(urlpattern))
 
             js_files = decompose_js(f)
             for js_file_info in js_files:
