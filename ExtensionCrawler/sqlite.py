@@ -21,7 +21,7 @@ from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
 from ExtensionCrawler.jsdecompose import decompose_js
 
-# from ExtensionCrawler.dbbackend.sqlite_backend import SqliteBackend
+from ExtensionCrawler.dbbackend.sqlite_backend import SqliteBackend
 from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
 
 import re
@@ -67,7 +67,7 @@ def get_etag(ext_id, datepath, con, verbose, indent):
             link = f.read()
             linked_date = link[3:].split("/")[0]
 
-            result = con.get_most_recent_etag(ext_id, linked_date[:-6])
+            result = con.get_most_recent_etag(ext_id, con.convert_date(linked_date))
             if result is not None:
                 return result, txt
 
@@ -172,7 +172,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
             con.insert(
                 "extension",
                 extid=ext_id,
-                date=date[:-6],
+                date=con.convert_date(date),
                 name=name,
                 version=version,
                 description=description,
@@ -188,7 +188,10 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
             if categories:
                 for category in categories:
                     con.insert(
-                        "category", extid=ext_id, date=date[:-6], category=category)
+                        "category",
+                        extid=ext_id,
+                        date=con.convert_date(date),
+                        category=category)
 
     return txt
 
@@ -281,9 +284,11 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
                     "extid":
                     ext_id,
                     "date":
-                    date[:-6],
+                    con.convert_date(date),
                     "commentdate":
-                    datetime.datetime.utcfromtimestamp(get(review, "timestamp")) if "timestamp" in review else None,
+                    datetime.datetime.utcfromtimestamp(
+                        get(review, "timestamp"))
+                    if "timestamp" in review else None,
                     "rating":
                     get(review, "starRating"),
                     "comment":
@@ -314,9 +319,11 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
                     "extid":
                     ext_id,
                     "date":
-                    date[:-6],
+                    con.convert_date(date),
                     "commentdate":
-                    datetime.datetime.utcfromtimestamp(get(review, "timestamp")) if "timestamp" in review else None,
+                    datetime.datetime.utcfromtimestamp(
+                        get(review, "timestamp"))
+                    if "timestamp" in review else None,
                     "title":
                     get(review, "title"),
                     "comment":
@@ -352,9 +359,11 @@ def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
                     "extid":
                     ext_id,
                     "date":
-                    date[:-6],
+                    con.convert_date(date),
                     "commentdate":
-                    datetime.datetime.utcfromtimestamp(get(annotation, "timestamp")) if "timestamp" in annotation else None,
+                    datetime.datetime.utcfromtimestamp(
+                        get(annotation, "timestamp"))
+                    if "timestamp" in annotation else None,
                     "replyto":
                     get(
                         get(get(annotation, "entity"), "annotation"),
@@ -387,7 +396,7 @@ def parse_and_insert_status(ext_id, date, datepath, con):
     con.insert(
         "status",
         extid=ext_id,
-        date=date[:-6],
+        date=con.convert_date(date),
         crx_status=crx_status,
         overview_status=overview_status,
         overview_exception=overview_exception)
@@ -403,12 +412,16 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
     txt = logmsg(verbose, txt,
                  indent + "- updating with data from {}\n".format(date))
 
-    # Don't forget to create a ~/.my.cnf file with the credentials
-    with MysqlBackend(
-            host="dbknecht.mherzberg.de",
-            db="extensions_test",
-            read_default_file="~/.my.cnf") as con:
-    # with SqliteBackend(db_path) as con:
+    if const_use_mysql():
+        # Don't forget to create a ~/.my.cnf file with the credentials
+        backend = MysqlBackend(
+            host=const_mysql_host(),
+            db=const_mysql_db(),
+            read_default_file=const_mysql_config_file())
+    else:
+        backend = SqliteBackend(db_path)
+
+    with backend as con:
         etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
         txt = logmsg(verbose, txt, etag_msg)
         etag_already_in_db = con.etag_already_in_db(etag)

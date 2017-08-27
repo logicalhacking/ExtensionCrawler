@@ -166,3 +166,6 @@ class SqliteBackend:
             """SELECT crx_etag from extension e1 where extid=? and date<? and not exists """
             """(select 1 from extension e2 where e2.extid=e1.extid and e2.date<e1.date)""",
             (extid, date))
+
+    def convert_date(self, date):
+        return date

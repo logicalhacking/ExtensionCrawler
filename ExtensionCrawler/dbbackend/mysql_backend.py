@@ -88,3 +88,6 @@ class MysqlBackend:
     def etag_already_in_db(self, etag):
         return self.get_single_value(
             "SELECT COUNT(crx_etag) FROM crx WHERE crx_etag=%s", (etag, ))
+
+    def convert_date(self, date):
+        return date[:-6]
