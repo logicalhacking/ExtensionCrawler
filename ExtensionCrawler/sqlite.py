@@ -22,7 +22,7 @@ from ExtensionCrawler.archive import *
 from ExtensionCrawler.jsdecompose import decompose_js
 
 from ExtensionCrawler.dbbackend.sqlite_backend import SqliteBackend
-from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
+# from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
 
 import re
 from bs4 import BeautifulSoup
@@ -405,12 +405,12 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
     txt = logmsg(verbose, txt,
                  indent + "- updating with data from {}\n".format(date))
 
-    # Don't forget to create a ~/.my.cnf file with the credentials
-    with MysqlBackend(
-            host="dbknecht.mherzberg.de",
-            db="extensions_test",
-            read_default_file="~/.my.cnf") as con:
-    # with SqliteBackend(db_path) as con:
+    # # Don't forget to create a ~/.my.cnf file with the credentials
+    # with MysqlBackend(
+    #         host="dbknecht.mherzberg.de",
+    #         db="extensions_test",
+    #         read_default_file="~/.my.cnf") as con:
+    with SqliteBackend(db_path) as con:
         etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
         txt = logmsg(verbose, txt, etag_msg)
         etag_already_in_db = con.etag_already_in_db(etag)
