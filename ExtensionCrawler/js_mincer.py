@@ -19,21 +19,23 @@
 
 from enum import Enum
 
-class ParserState(Enum):
+
+class JsBlockType(Enum):
     """Enumeration of the possible parser states."""
-    CODE = 1
+    CODE_BLOCK = 1
     SINGLE_LINE_COMMENT = 2
-    MULTI_LINE_COMMENT = 3
-    STRING_SQ = 4
-    STRING_DQ = 5
+    SINGLE_LINE_COMMENT_BLOCK = 3
+    MULTI_LINE_COMMENT_BLOCK = 4
+    STRING_SQ = 5
+    STRING_DQ = 6
 
 
 def is_string_literal_sq(state):
-    return state == ParserState.STRING_SQ
+    return state == JsBlockType.STRING_SQ
 
 
 def is_string_literal_dq(state):
-    return state == ParserState.STRING_DQ
+    return state == JsBlockType.STRING_DQ
 
 
 def is_string_literal(state):
@@ -41,7 +43,7 @@ def is_string_literal(state):
 
 
 def is_code(state):
-    return state == ParserState.CODE
+    return state == JsBlockType.CODE_BLOCK
 
 
 def is_code_or_string_literal(state):
@@ -49,11 +51,11 @@ def is_code_or_string_literal(state):
 
 
 def is_comment_multi_line(state):
-    return state == ParserState.MULTI_LINE_COMMENT
+    return state == JsBlockType.MULTI_LINE_COMMENT_BLOCK
 
 
 def is_comment_single_line(state):
-    return state == ParserState.SINGLE_LINE_COMMENT
+    return state == JsBlockType.SINGLE_LINE_COMMENT
 
 
 def is_comment(state):
@@ -68,60 +70,87 @@ def get_next_character(fileobj):
         char = fileobj.read(1)
 
 
+class JsBlock:
+    def __init__(self, typ, start, end, content, string_literals=None):
+        self.typ = typ
+        self.start = start
+        self.end = end
+        self.content = content
+        self.string_literals = string_literals
+    def __str__(self):
+        str_msg=""
+        if self.string_literals is not None:
+            str_msg = "** String Literals: " + len(self.string_literals)
+        return ("***************************************************************\n"
+                + "** Type:  " + str(self.typ) + "\n"
+                + "** Start: " + str(self.start) + "\n" 
+                + "** End:   " + str(self.end) + "\n" 
+                + str_msg
+                + self.content.strip() + "\n" 
+                + "***************************************************************\n")
+
+
 def mince_js(file):
     with open(file, encoding="utf-8") as fileobj:
         line = 0
         cpos = 0
         escaped = False
-        block_buffer = ""
+        content = ""
         block_start_line = 0
         block_start_cpos = 0
-        state = ParserState.CODE
+        state = JsBlockType.CODE_BLOCK
 
         for char in get_next_character(fileobj):
             cpos += 1
+            content += char
             suc_state = state
             if not escaped:
                 if is_code_or_string_literal(state):
                     if is_code(state):
                         if char == "'":
-                            suc_state = ParserState.STRING_SQ
+                            suc_state = JsBlockType.STRING_SQ
                         if char == '"':
-                            suc_state = ParserState.STRING_DQ
+                            suc_state = JsBlockType.STRING_DQ
                         if char == '/':
                             next_char = next(get_next_character(fileobj))
                             if next_char == '/':
-                                suc_state = ParserState.SINGLE_LINE_COMMENT
+                                suc_state = JsBlockType.SINGLE_LINE_COMMENT
                             elif next_char == '*':
-                                suc_state = ParserState.MULTI_LINE_COMMENT
-                            char = char + next_char
-                            cpos += 1
+                                suc_state = JsBlockType.MULTI_LINE_COMMENT_BLOCK
+                            next_content = content[-1]+next_char
+                            content=content[:-1]
+                            cpos -= 1
                     elif is_string_literal_dq(state):
                         if char == '"':
-                            suc_state = ParserState.CODE
+                            suc_state = JsBlockType.CODE_BLOCK
                     elif is_string_literal_sq(state):
                         if char == "'":
-                            suc_state = ParserState.CODE
+                            suc_state = JsBlockType.CODE_BLOCK
                     else:
                         raise Exception("Unknown state")
                 elif is_comment(state):
                     if is_comment_single_line(state):
                         if char == '\n':
-                            suc_state = ParserState.CODE
+                            suc_state = JsBlockType.CODE_BLOCK
                     elif is_comment_multi_line(state):
                         if char == '*':
                             next_char = next(get_next_character(fileobj))
                             if next_char == '/':
-                                suc_state = ParserState.CODE
-                            char = char + next_char
+                                suc_state = JsBlockType.CODE_BLOCK
+                            content = content+next_char
                             cpos += 1
 
-            print(char, sep="", end="")
+            if ((is_comment(state) and is_code_or_string_literal(suc_state)) 
+               or (is_code_or_string_literal(state) and is_comment(suc_state))):
+                yield (JsBlock(state, (block_start_line, block_start_cpos), (line, cpos), content))
+                block_start_line = line
+                block_start_cpos = cpos+len(next_content)
+                content=next_content
+                next_content=""
+
             if char == '\n':
-                print(str(line) + ": ", end='')
                 line += 1
                 cpos = 0
 
             escaped = bool(char == '\\' and not escaped)
-
             state = suc_state
