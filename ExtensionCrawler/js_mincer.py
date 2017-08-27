@@ -88,6 +88,14 @@ class JsBlock:
         self.content = content
         self.string_literals = string_literals
 
+    def is_code(self):
+        """Check if block is a code block."""
+        is_code(self.typ)
+
+    def is_comment(self):
+        """Check if block is a comment."""
+        is_comment(self.typ)
+
     def __str__(self):
         str_msg = ""
         if is_code(self.typ):
