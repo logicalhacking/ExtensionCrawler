@@ -160,3 +160,9 @@ class SqliteBackend:
     def insertmany(self, table, argslist):
         for arg in argslist:
             self.insert(table, **arg)
+
+    def get_most_recent_etag(self, extid, date):
+        return self.get_single_value(
+            """SELECT crx_etag from extension e1 where extid=? and date<? and not exists """
+            """(select 1 from extension e2 where e2.extid=e1.extid and e2.date<e1.date)""",
+            (extid, date))

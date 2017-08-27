@@ -64,17 +64,26 @@ class MysqlBackend:
             return None
 
     def insertmany(self, table, arglist):
-        args = [tuple([arg[k] for k in self.columns[table]]) for arg in arglist]
+        args = [
+            tuple([arg[k] for k in self.columns[table]]) for arg in arglist
+        ]
         # Looks like this, for example:
         # INSERT INTO category VALUES (%s,%s,%s) ON DUPLICATE KEY UPDATE extid=VALUES(extid),date=VALUES(date),category=VALUES(category)
         query = "INSERT INTO {} VALUES ({}) ON DUPLICATE KEY UPDATE {}".format(
-                table, ",".join(len(args[0]) * ["%s"]),
-                ",".join(["{c}=VALUES({c})".format(c=c)
-                          for c in self.columns[table]]))
+            table,
+            ",".join(len(args[0]) * ["%s"]),
+            ",".join(
+                ["{c}=VALUES({c})".format(c=c) for c in self.columns[table]]))
         self.cursor.executemany(query, args)
 
     def insert(self, table, **kwargs):
         self.insertmany(table, [kwargs])
+
+    def get_most_recent_etag(self, extid, date):
+        return self.get_single_value(
+            """SELECT crx_etag from extension e1 where extid=%s and date<%s and not exists """
+            """(select 1 from extension e2 where e2.extid=e1.extid and e2.date<e1.date)""",
+            (extid, date))
 
     def etag_already_in_db(self, etag):
         return self.get_single_value(

@@ -21,8 +21,8 @@ from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
 from ExtensionCrawler.jsdecompose import decompose_js
 
-from ExtensionCrawler.dbbackend.sqlite_backend import SqliteBackend
-# from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
+# from ExtensionCrawler.dbbackend.sqlite_backend import SqliteBackend
+from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
 
 import re
 from bs4 import BeautifulSoup
@@ -67,9 +67,7 @@ def get_etag(ext_id, datepath, con, verbose, indent):
             link = f.read()
             linked_date = link[3:].split("/")[0]
 
-            result = con.get_single_value(
-                "SELECT crx_etag FROM extension WHERE extid=? AND date=?",
-                (ext_id, linked_date[:-6]))
+            result = con.get_most_recent_etag(ext_id, linked_date[:-6])
             if result is not None:
                 return result, txt
 
@@ -209,10 +207,10 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
             public_key = read_crx(crx_path).public_key
             con.insert(
                 "crx",
-                etag=etag,
+                crx_etag=etag,
                 filename=filename,
                 size=size,
-                public_key=public_key)
+                publickey=public_key)
 
             with f.open("manifest.json") as m:
                 raw_content = m.read()
@@ -405,12 +403,12 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
     txt = logmsg(verbose, txt,
                  indent + "- updating with data from {}\n".format(date))
 
-    # # Don't forget to create a ~/.my.cnf file with the credentials
-    # with MysqlBackend(
-    #         host="dbknecht.mherzberg.de",
-    #         db="extensions_test",
-    #         read_default_file="~/.my.cnf") as con:
-    with SqliteBackend(db_path) as con:
+    # Don't forget to create a ~/.my.cnf file with the credentials
+    with MysqlBackend(
+            host="dbknecht.mherzberg.de",
+            db="extensions_test",
+            read_default_file="~/.my.cnf") as con:
+    # with SqliteBackend(db_path) as con:
         etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
         txt = logmsg(verbose, txt, etag_msg)
         etag_already_in_db = con.etag_already_in_db(etag)
