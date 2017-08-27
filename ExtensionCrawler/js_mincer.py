@@ -79,8 +79,8 @@ class JsBlock:
         self.string_literals = string_literals
     def __str__(self):
         str_msg=""
-        if self.string_literals is not None:
-            str_msg = "** String Literals: " + len(self.string_literals)
+        if is_code(self.typ):
+            str_msg = "** String Literals: " + str(len(self.string_literals)) + "\n"
         return ("***************************************************************\n"
                 + "** Type:  " + str(self.typ) + "\n"
                 + "** Start: " + str(self.start) + "\n" 
@@ -99,6 +99,8 @@ def mince_js(file):
         block_start_line = 0
         block_start_cpos = 0
         state = JsBlockType.CODE_BLOCK
+        string_literals=[]
+        current_string_literal=""
 
         for char in get_next_character(fileobj):
             cpos += 1
@@ -123,9 +125,17 @@ def mince_js(file):
                     elif is_string_literal_dq(state):
                         if char == '"':
                             suc_state = JsBlockType.CODE_BLOCK
+                            string_literals.append(current_string_literal)
+                            current_string_literal=""
+                        else:
+                            current_string_literal += char        
                     elif is_string_literal_sq(state):
                         if char == "'":
                             suc_state = JsBlockType.CODE_BLOCK
+                            string_literals.append(current_string_literal)
+                            current_string_literal=""
+                        else:
+                            current_string_literal += char        
                     else:
                         raise Exception("Unknown state")
                 elif is_comment(state):
@@ -142,11 +152,12 @@ def mince_js(file):
 
             if ((is_comment(state) and is_code_or_string_literal(suc_state)) 
                or (is_code_or_string_literal(state) and is_comment(suc_state))):
-                yield (JsBlock(state, (block_start_line, block_start_cpos), (line, cpos), content))
+                yield (JsBlock(state, (block_start_line, block_start_cpos), (line, cpos), content, string_literals))
                 block_start_line = line
                 block_start_cpos = cpos+len(next_content)
                 content=next_content
                 next_content=""
+                string_literals=[]
 
             if char == '\n':
                 line += 1
