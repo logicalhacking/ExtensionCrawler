@@ -134,14 +134,17 @@ def mince_js_fileobj(fileobj):
                     if char == '"':
                         suc_state = JsBlockType.STRING_DQ
                     if char == '/':
-                        next_char = next(get_next_character(fileobj))
-                        if next_char == '/':
-                            suc_state = JsBlockType.SINGLE_LINE_COMMENT
-                        elif next_char == '*':
-                            suc_state = JsBlockType.MULTI_LINE_COMMENT_BLOCK
-                        next_content = content[-1] + next_char
-                        content = content[:-1]
-                        cpos -= 1
+                        try:
+                            next_char = next(get_next_character(fileobj))
+                            if next_char == '/':
+                                suc_state = JsBlockType.SINGLE_LINE_COMMENT
+                            elif next_char == '*':
+                                suc_state = JsBlockType.MULTI_LINE_COMMENT_BLOCK
+                            next_content = content[-1] + next_char
+                            content = content[:-1]
+                            cpos -= 1
+                        except StopIteration:
+                            pass
                 elif is_string_literal_dq(state):
                     if char == '"':
                         suc_state = JsBlockType.CODE_BLOCK
@@ -164,11 +167,14 @@ def mince_js_fileobj(fileobj):
                         suc_state = JsBlockType.CODE_BLOCK
                 elif is_comment_multi_line(state):
                     if char == '*':
-                        next_char = next(get_next_character(fileobj))
-                        if next_char == '/':
-                            suc_state = JsBlockType.CODE_BLOCK
-                        content = content + next_char
-                        cpos += 1
+                        try:
+                            next_char = next(get_next_character(fileobj))
+                            if next_char == '/':
+                                suc_state = JsBlockType.CODE_BLOCK
+                            content = content + next_char
+                            cpos += 1
+                        except StopIteration:
+                            pass
 
         if ((is_comment(state) and is_code_or_string_literal(suc_state)) or
                 (is_code_or_string_literal(state) and is_comment(suc_state))):
@@ -186,6 +192,10 @@ def mince_js_fileobj(fileobj):
 
         escaped = bool(char == '\\' and not escaped)
         state = suc_state
+    
+    if content:
+        yield (JsBlock(state, (block_start_line, block_start_cpos),
+                        (line, cpos), content, string_literals))
 
 
 def mince_js(file):
