@@ -21,7 +21,7 @@ from enum import Enum
 
 
 class JsBlockType(Enum):
-    """Enumeration of the possible parser states."""
+    """Enumeration of the different JavaScript blocks."""
     CODE_BLOCK = 1
     SINGLE_LINE_COMMENT = 2
     SINGLE_LINE_COMMENT_BLOCK = 3
@@ -31,39 +31,47 @@ class JsBlockType(Enum):
 
 
 def is_string_literal_sq(state):
+    """Check if block is a single quote tring literal."""
     return state == JsBlockType.STRING_SQ
 
 
 def is_string_literal_dq(state):
+    """Check if block is a double quote tring literal."""
     return state == JsBlockType.STRING_DQ
 
 
 def is_string_literal(state):
+    """Check if block is a quote tring literal."""
     return is_string_literal_sq(state) or is_string_literal_dq(state)
 
 
 def is_code(state):
+    """Check if block is code (without string literals)."""
     return state == JsBlockType.CODE_BLOCK
 
 
 def is_code_or_string_literal(state):
+    """Check if block is code or a string literal."""
     return is_code(state) or is_string_literal(state)
 
 
 def is_comment_multi_line(state):
+    """Check if block is a multi line comment."""
     return state == JsBlockType.MULTI_LINE_COMMENT_BLOCK
 
 
 def is_comment_single_line(state):
+    """Check if block is a single line comment."""
     return state == JsBlockType.SINGLE_LINE_COMMENT
 
 
 def is_comment(state):
+    """Check if block is a comment."""
     return is_comment_single_line(state) or is_comment_multi_line(state)
 
 
 def get_next_character(fileobj):
-    """Reads one character from the given textfile"""
+    """Get next character from (text) file."""
     char = fileobj.read(1)
     while char:
         yield char
@@ -71,26 +79,31 @@ def get_next_character(fileobj):
 
 
 class JsBlock:
+    """Class representing JavaScript blocks."""
+
     def __init__(self, typ, start, end, content, string_literals=None):
         self.typ = typ
         self.start = start
         self.end = end
         self.content = content
         self.string_literals = string_literals
+
     def __str__(self):
-        str_msg=""
+        str_msg = ""
         if is_code(self.typ):
-            str_msg = "** String Literals: " + str(len(self.string_literals)) + "\n"
-        return ("***************************************************************\n"
-                + "** Type:  " + str(self.typ) + "\n"
-                + "** Start: " + str(self.start) + "\n" 
-                + "** End:   " + str(self.end) + "\n" 
-                + str_msg
-                + self.content.strip() + "\n" 
-                + "***************************************************************\n")
+            str_msg = "** String Literals: " + str(
+                len(self.string_literals)) + "\n"
+        return (
+            "***************************************************************\n"
+            + "** Type:  " + str(self.typ) + "\n" + "** Start: " + str(
+                self.start) + "\n" + "** End:   " + str(
+                    self.end) + "\n" + str_msg + self.content.strip() + "\n" +
+            "***************************************************************\n"
+        )
 
 
 def mince_js(file):
+    """Mince JavaScript file into code and comment blocks."""
     with open(file, encoding="utf-8") as fileobj:
         line = 0
         cpos = 0
@@ -99,8 +112,8 @@ def mince_js(file):
         block_start_line = 0
         block_start_cpos = 0
         state = JsBlockType.CODE_BLOCK
-        string_literals=[]
-        current_string_literal=""
+        string_literals = []
+        current_string_literal = ""
 
         for char in get_next_character(fileobj):
             cpos += 1
@@ -119,23 +132,23 @@ def mince_js(file):
                                 suc_state = JsBlockType.SINGLE_LINE_COMMENT
                             elif next_char == '*':
                                 suc_state = JsBlockType.MULTI_LINE_COMMENT_BLOCK
-                            next_content = content[-1]+next_char
-                            content=content[:-1]
+                            next_content = content[-1] + next_char
+                            content = content[:-1]
                             cpos -= 1
                     elif is_string_literal_dq(state):
                         if char == '"':
                             suc_state = JsBlockType.CODE_BLOCK
                             string_literals.append(current_string_literal)
-                            current_string_literal=""
+                            current_string_literal = ""
                         else:
-                            current_string_literal += char        
+                            current_string_literal += char
                     elif is_string_literal_sq(state):
                         if char == "'":
                             suc_state = JsBlockType.CODE_BLOCK
                             string_literals.append(current_string_literal)
-                            current_string_literal=""
+                            current_string_literal = ""
                         else:
-                            current_string_literal += char        
+                            current_string_literal += char
                     else:
                         raise Exception("Unknown state")
                 elif is_comment(state):
@@ -147,17 +160,18 @@ def mince_js(file):
                             next_char = next(get_next_character(fileobj))
                             if next_char == '/':
                                 suc_state = JsBlockType.CODE_BLOCK
-                            content = content+next_char
+                            content = content + next_char
                             cpos += 1
 
-            if ((is_comment(state) and is_code_or_string_literal(suc_state)) 
-               or (is_code_or_string_literal(state) and is_comment(suc_state))):
-                yield (JsBlock(state, (block_start_line, block_start_cpos), (line, cpos), content, string_literals))
+            if ((is_comment(state) and is_code_or_string_literal(suc_state)) or
+                    (is_code_or_string_literal(state) and is_comment(suc_state))):
+                yield (JsBlock(state, (block_start_line, block_start_cpos),
+                               (line, cpos), content, string_literals))
                 block_start_line = line
-                block_start_cpos = cpos+len(next_content)
-                content=next_content
-                next_content=""
-                string_literals=[]
+                block_start_cpos = cpos + len(next_content)
+                content = next_content
+                next_content = ""
+                string_literals = []
 
             if char == '\n':
                 line += 1
