@@ -7,6 +7,194 @@
 			"Id: (jquery)\\.js,\\s?v\\s?([0-9][0-9.a-z_\\\\-]+)",
 			"(jQuery).*[f|m]=.?v?([0-9][0-9.a-z_\\\\-]+).",
 			"[^a-z.](jQuery)\\:?[ ]?\"?v([0-9][0-9.a-z_\\\\-]+)"
+		],
+		"md5": [
+			{
+			"hash": "e071abda8fe61194711cfc2ab99fe104",
+			"version": "3.1.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "e40ec2161fe7993196f23c8a07346306",
+			"version": "2.1.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "f9c7afd05729f10f55b689f36bb20172",
+			"version": "2.1.4",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "c9f5aeeca3ad37bf2aa006139b935f0a",
+			"version": "3.2.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "8101d596b2b8fa35fe3a634ea342d7c3",
+			"version": "1.11.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "ddb84c1587287b2df08966081ef063bf",
+			"version": "1.7.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "32015dd42e9582a80a84736f5d9a44d7",
+			"version": "2.1.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "397754ba49e9e0cf4e7c190da78dda05",
+			"version": "1.9.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "895323ed2f7258af4fae2c738c8aea49",
+			"version": "1.11.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "05e51b1db558320f1939f9789ccf5c8f",
+			"version": "3.1.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "6fc159d00dc3cea4153c038739683f93",
+			"version": "2.2.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "2edc942c0bd2476be8967a9f788d9e26",
+			"version": "2.0.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "2f6b11a7e914718e0290410e85366fe9",
+			"version": "2.2.4",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "b8d64d0bc142b3f670cc0611b0aebcae",
+			"version": "1.7.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "107fbe9555bfc88ec5cab524c790fe34",
+			"version": "2.1.4",
+			"minified": "",
+			"comment":""
+			},
+			{
+			"hash": "46836bbc603c9565b5cc061100ccbac8",
+			"version": "3.1.1",
+			"minified": "",
+			"comment":""
+			},
+			{
+			"hash": "5790ead7ad3ba27397aedfa3d263b867",
+			"version": "1.11.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "cfa9051cc0b05eb519f1e16b2a6645d7",
+			"version": "1.8.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "628072e7212db1e8cdacb22b21752cda",
+			"version": "1.10.2",
+			"minified": "",
+			"comment":""
+			},
+			{
+			"hash": "e1288116312e4728f98923c79b034b67",
+			"version": "1.8.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "e51be64870f23f7ba920206ed3efeab9",
+			"version": "2.0.0",
+			"minified": "min",
+			"comment":""
+			},
+			{
+			"hash": "4a356126b9573eb7bd1e9a7494737410",
+			"version": "2.1.4",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "0a6e846b954e345951e710cd6ce3440e",
+			"version": "2.0.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "91515770ce8c55de23b306444d8ea998",
+			"version": "1.10.2",
+			"minified": "",
+			"comment":""
+			},
+			{
+			"hash": "33cabfa15c1060aaa3d207c653afb1ee",
+			"version": "2.2.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "5ca7582261c421482436dfdf3af9bffe",
+			"version": "2.1.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "00f66eada2c54b64a3f632747ce1fe2d",
+			"version": "1.11.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "b11ced65f32fedbe9bf81ef9db0f3c94",
+			"version": "1.7.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "8fc25e27d42774aeae6edbc0a18b72aa",
+			"version": "1.11.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "d0212568ce69457081dacf84e327fa5c",
+			"version": "3.0.0",
+			"minified": "yes",
+			"comment":""
+			}
+		]
+	},
+
+	"jquery-easing" : {
+		"filecontent" : [
+			"(jQuery Easing) v?([0-9][0-9.a-z_\\\\-]+)."
 		]
 	},
 
@@ -106,7 +294,10 @@
 	},
 
 	"ember" : {
-		"filename" : "(ember)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)"
+		"filename" : "(ember)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(Ember).VERSION\\s?\\=\\s?.([0-9][0-9.a-z_\\\\-]+)"
+		]
 	},
 
 	"dojo" : {
@@ -192,16 +383,130 @@
 		]
 	},
 
+	"moment-timezone.js" : {
+		"filecontent" : [
+			"(moment-timezone.js)(?:[\n\r]+).* version\\s?:\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+			"(moment-timezone.js)(?:.*[\n\r]+){1,60}.*version\\s?[:|=]\\s?v?.?([0-9][0-9.a-z_\\\\-]+).?"
+		]
+
+	},
+
 	"bootstrap" : {
 		"filename" : "(bootstrap)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
 		"filecontent" : [
 			"(bootstrap)(?:.js){,1} v?([0-9][0-9.a-z_\\\\-]+)"
+		],
+		"md5": [
+			{
+			"hash": "5869c96cc8f19086aee625d670d741f9",
+			"version": "3.3.7",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+		    "hash": "c5b5b2fa19bd66ff23211d9f844e0131",
+			"version": "3.3.6",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "4becdc9104623e891fbb9d38bba01be4",
+			"version": "3.3.5",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "8c237312864d2e4c4f03544cd4f9b195",
+			"version": "3.3.4",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "046ba2b5f4cff7d2eaaa1af55caa9fd8",
+			"version": "3.3.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "2616d3564578d8f845813483352802a9",
+			"version": "3.3.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "281cd50dd9f58c5550620fc148a7bc39",
+			"version": "3.3.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "abda843684d022f3bc22bc83927fe05f",
+			"version": "3.2.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "ba847811448ef90d98d272aeccef2a95",
+			"version": "3.1.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "e1d08589ec26bec3a81625ce274d76d9",
+			"version": "3.1.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "353240ad37d1b084a53b1575f8ce57da",
+			"version": "3.0.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "c2e5221c3336abe0dff8568e73cd0dae",
+			"version": "3.0.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "d6834e94301cc3ab9cc013574d092b61",
+			"version": "3.0.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "9e25e8e29ef0ea358e9778082ffd97d8",
+			"version": "3.0.0",
+			"minified": "yes",
+			"comment":""
+			}
+		]	
+	},
+
+	"ui-bootstrap-tpls" : {
+		"filename" : "(ui[-_]bootstrap[-_]tpls)(?:.)*[-_]([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(ui-bootstrap)(?:.*[\r\n]){1,6}.*Version\\:?\\s?v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"package" : {
+		"filecontent" : [
+			"(Package)\\.describe(?:.*[\r\n]){1,50}.*version\\:\\s?.([0-9][0-9.a-z_\\\\-]+)."
 		]
 	},
 
 	"require.js" : {
 		"filecontent" : [
-			"@license (RequireJS) v?([0-9][0-9.a-z_\\\\-]+)"
+			"@license (RequireJS) v?([0-9][0-9.a-z_\\\\-]+)",
+			"(requirejs).*version\\=.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
+	"require-json" : {
+		"filecontent" : [
+			"(RequireJS).*JSON(?:.*[\r\n]){1,7}.*Version\\:?\\s?([0-9][0-9.a-z_\\\\-]+)"
 		]
 	},
 
@@ -210,5 +515,103 @@
 			"https\\:\/\/(d3js)\\.org\\s+Version\\:*\\s+v?([0-9][0-9.a-z_\\\\-]+)"
 		]
 
+	},
+
+	"UnderscoreJS" : {
+		"filecontent" : [
+			"(Underscore[\\.js]*) v?([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+			"(Underscore[\\.js]*)(?:.*[\n\r]+){1,60}.*\\_\\.VERSION\\s?\\=\\s?.([0-9][0-9.a-z_\\\\-]+)."
+		],
+		"md5": [
+			{
+			"hash": "543feb1ecaf06ea516f8cec5f9f3f279",
+			"version": "1.8.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "b0e9839a6bb6f12774494fa30c06bcdf",
+			"version": "1.8.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "6959908db2ddae758885b6c2cb2f07a5",
+			"version": "1.8.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "137af05d496f59d468d1ffbce32f375d",
+			"version": "1.7.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "dd9663be9a71f3570bc35f0edba28712",
+			"version": "1.6.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "ca26dc8cdf5d413cd8d3b62490e28210",
+			"version": "1.5.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "cc07a4658799e1512b086467e7ef5ca5",
+			"version": "1.5.0",
+			"minified": "yes",
+			"comment":""
+			}
+		]
+	},
+
+	"string.js" : {
+		"filecontent" : [
+			"(string\\.js)(?:.*[\r\n]){1,50}.*VERSION\\s?\\=\\s?.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
+	"mousewheel" : {
+		"filecontent" : [
+			"jQuery (Mousewheel) v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"materialize" : {
+		"filecontent" : [
+			"(Materialize[\\.js]*) v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"mootools" : {
+		"filename" : "(MooTools)(?:.)*[-_]([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" :[
+			"this\\.(MooTools)(?:.*[\r\n]).*version\\:\\s?.([0-9][0-9.a-z_\\\\-]+).",
+			"this\\.(MooTools)\\={version\\:.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
+	"require-text" : {
+		"filecontent" : [
+			"(text)\\s?\\=\\s?{(?:.*[\r\n]){1,4}.*version\\:\\s?.([0-9][0-9.a-z_\\\\-]+).",
+			"(text)\\s?\\=\\s?{version\\:\\s?.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
+	"CryptoJS" : {
+		"filecontent" : [
+			"(CryptoJS) v?([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)"
+		]
+	},
+
+	"share-button" : {
+		"filecontent" : [
+			"(ShareButton)(?:.*[\r\n]){1,25}.*version\\:\\s?.([0-9][0-9.a-z_\\\\-]+)."
+		]
 	}
+
+
 }
