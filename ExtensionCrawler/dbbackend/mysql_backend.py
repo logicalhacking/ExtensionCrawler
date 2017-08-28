@@ -15,8 +15,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from ExtensionCrawler.config import *
 import MySQLdb
+import _mysql_exceptions
 import atexit
+import time
 
 db = None
 
@@ -28,6 +31,17 @@ def close_db():
 
 atexit.register(close_db)
 
+def retry(f):
+    for t in range(const_mysql_maxtries()):
+        try:
+            return f()
+        except _mysql_exceptions.OperationalError as e:
+            last_exception = e
+        if t + 1 == const_mysql_maxtries():
+            raise last_exception
+        else:
+            time.sleep(const_mysql_try_wait())
+
 
 class MysqlBackend:
     def __init__(self, **kwargs):
@@ -36,19 +50,19 @@ class MysqlBackend:
     def __enter__(self):
         global db
         if db is None:
-            db = MySQLdb.connect(**self.dbargs)
-        self.cursor = db.cursor()
+            db = retry(lambda: MySQLdb.connect(**self.dbargs))
+        self.cursor = retry(lambda: db.cursor())
 
         return self
 
     def __exit__(self, *args):
-        db.commit()
-        self.cursor.close()
+        retry(lambda: db.commit())
+        retry(lambda: self.cursor.close())
 
     def get_single_value(self, query, args):
-        self.cursor.execute(query, args)
+        retry(lambda: self.cursor.execute(query, args))
 
-        result = self.cursor.fetchone()
+        result = retry(lambda: self.cursor.fetchone())
         if result is not None:
             return result[0]
         else:
@@ -67,7 +81,7 @@ class MysqlBackend:
             ",".join(len(args[0]) * ["%s"]),
             ",".join(
                 ["{c}=VALUES({c})".format(c=c) for c in arglist[0].keys()]))
-        self.cursor.executemany(query, args)
+        retry(lambda: self.cursor.executemany(query, args))
 
     def insert(self, table, **kwargs):
         self.insertmany(table, [kwargs])

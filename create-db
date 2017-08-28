@@ -55,7 +55,7 @@ def guarded_stderr(string):
 
 
 def process_id(dbbasedir, path):
-    start = time.clock()
+    start = time.time()
     with tempfile.TemporaryDirectory() as tmpdir:
         with tarfile.open(path) as t:
             t.extractall(tmpdir)
@@ -74,7 +74,7 @@ def process_id(dbbasedir, path):
                 except Exception:
                     guarded_stderr("Exception when handling {} on {}:\n{}\n".
                                    format(extid, date, traceback.format_exc()))
-    guarded_stdout("Finished {} in {}s\n".format(extid, time.clock() - start))
+    guarded_stdout("Finished   {} in {}s\n".format(extid, time.time() - start))
 
 
 def find(archive, pattern):

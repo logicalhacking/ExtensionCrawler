@@ -156,7 +156,13 @@ def const_mysql_host():
     return "dbknecht.mherzberg.de"
 
 def const_mysql_db():
-    return "extensions_test"
+    return "extensions"
 
 def const_mysql_config_file():
     return "~/.my.cnf"
+
+def const_mysql_maxtries():
+    return 20
+
+def const_mysql_try_wait():
+    return 30

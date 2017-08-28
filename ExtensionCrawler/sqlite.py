@@ -67,7 +67,8 @@ def get_etag(ext_id, datepath, con, verbose, indent):
             link = f.read()
             linked_date = link[3:].split("/")[0]
 
-            result = con.get_most_recent_etag(ext_id, con.convert_date(linked_date))
+            result = con.get_most_recent_etag(ext_id,
+                                              con.convert_date(linked_date))
             if result is not None:
                 return result, txt
 
