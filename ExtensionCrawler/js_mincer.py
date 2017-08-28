@@ -121,7 +121,7 @@ class JsBlock:
                 len(self.string_literals)) + "\n"
         return (
             "***************************************************************\n"
-            + "** Type:  " + str(self.typ) + "\n" + "** Start: " + str(
+            + "** Type:  " + str(self.typ.name) + "\n" + "** Start: " + str(
                 self.start) + "\n" + "** End:   " + str(
                     self.end) + "\n" + str_msg + self.content.strip() + "\n" +
             "***************************************************************\n"
