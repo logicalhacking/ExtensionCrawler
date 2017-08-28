@@ -152,12 +152,6 @@ def const_discover():
 def const_use_mysql():
     return False
 
-def const_mysql_host():
-    return "dbknecht.mherzberg.de"
-
-def const_mysql_db():
-    return "extensions"
-
 def const_mysql_config_file():
     return "~/.my.cnf"
 

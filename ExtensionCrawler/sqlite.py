@@ -416,10 +416,7 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
 
     if const_use_mysql():
         # Don't forget to create a ~/.my.cnf file with the credentials
-        backend = MysqlBackend(
-            host=const_mysql_host(),
-            db=const_mysql_db(),
-            read_default_file=const_mysql_config_file())
+        backend = MysqlBackend(read_default_file=const_mysql_config_file())
     else:
         backend = SqliteBackend(db_path)
 
