@@ -257,7 +257,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                 con.insert(
                     "jsfile",
                     crx_etag=etag,
-                    detect_method=js_file_info['detectMethod'],
+                    detect_method=str(js_file_info['detectMethod']),
                     filename=js_file_info['jsFilename'],
                     type=(js_file_info['type']).name,
                     lib=js_file_info['lib'],
@@ -289,7 +289,7 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
                     con.convert_date(date),
                     "commentdate":
                     datetime.datetime.utcfromtimestamp(
-                        get(review, "timestamp"))
+                        get(review, "timestamp")).isoformat()
                     if "timestamp" in review else None,
                     "rating":
                     get(review, "starRating"),
@@ -324,7 +324,7 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
                     con.convert_date(date),
                     "commentdate":
                     datetime.datetime.utcfromtimestamp(
-                        get(review, "timestamp"))
+                        get(review, "timestamp")).isoformat()
                     if "timestamp" in review else None,
                     "title":
                     get(review, "title"),
@@ -364,7 +364,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
                     con.convert_date(date),
                     "commentdate":
                     datetime.datetime.utcfromtimestamp(
-                        get(annotation, "timestamp"))
+                        get(annotation, "timestamp")).isoformat()
                     if "timestamp" in annotation else None,
                     "replyto":
                     get(
