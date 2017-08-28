@@ -23,6 +23,7 @@ import re
 import json
 from enum import Enum
 import hashlib
+import cchardet as chardet
 from ExtensionCrawler.js_mincer import mince_js
 
 class DetectionType(Enum):
@@ -91,6 +92,7 @@ def init_jsinfo(zipfile, js_file):
         'evidenceStartPos': None,
         'evidenceEndPos': None,
         'evidenceText': None,
+        'encoding': chardet.detect(data)['encoding'],
         'jsFilename': os.path.basename(js_file.filename),
         'md5': hashlib.md5(data).hexdigest(),
         'size': int(js_file.file_size),
@@ -187,15 +189,19 @@ def analyse_comment_generic_libs(zipfile, js_file, comment):
 def analyse_comment_blocks(zipfile, js_file):
     """Search for library identifiers in comment."""
     libs = list()
-    with zipfile.open(js_file) as js_file_obj:
-        with io.TextIOWrapper(js_file_obj, 'utf-8') as js_text_file_obj:
-            for block in mince_js(js_text_file_obj, single_line_comments_block=True):
-                block_libs = list()
-                if block.is_comment():
-                    block_libs = analyse_comment_known_libs(zipfile, js_file, block)
-                    if block_libs is None:
-                        block_libs = analyse_comment_generic_libs(zipfile, js_file, block)
-                libs += block_libs
+    js_info = init_jsinfo(zipfile, js_file)
+    try:
+        with zipfile.open(js_file) as js_file_obj:
+            with io.TextIOWrapper(js_file_obj, js_info['encoding']) as js_text_file_obj:
+                for block in mince_js(js_text_file_obj, single_line_comments_block=True):
+                    block_libs = list()
+                    if block.is_comment():
+                        block_libs = analyse_comment_known_libs(zipfile, js_file, block)
+                        if block_libs is None:
+                            block_libs = analyse_comment_generic_libs(zipfile, js_file, block)
+                    libs += block_libs
+    except _:
+        libs=list()                
     return libs
 
 def decompose_js(zipfile):
@@ -212,8 +218,8 @@ def decompose_js(zipfile):
     for js_file in list(filter(lambda x: x.filename.endswith(".js"), zipfile.infolist())):
         js_info_file = analyse_md5_checksum(zipfile, js_file)
         if not js_info_file:
-          js_info_file = analyse_filename(zipfile, js_file)
-          js_info_file += analyse_comment_blocks(zipfile, js_file)
+            js_info_file = analyse_filename(zipfile, js_file)
+            js_info_file += analyse_comment_blocks(zipfile, js_file)
 
         if not js_info_file:
             # if no library could be detected, we report the JavaScript file as 'application'.
