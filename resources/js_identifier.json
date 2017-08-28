@@ -70,6 +70,12 @@
 			"comment":""
 			},
 			{
+			"hash": "6fc159d00dc3cea4153c038739683f93",
+			"version": "2.2.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
 			"hash": "2edc942c0bd2476be8967a9f788d9e26",
 			"version": "2.0.0",
 			"minified": "yes",
@@ -372,9 +378,94 @@
 		"filename" : "(bootstrap)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
 		"filecontent" : [
 			"(bootstrap)(?:.js){,1} v?([0-9][0-9.a-z_\\\\-]+)"
-		]
+		],
+		"md5": [
+			{
+			"hash": "5869c96cc8f19086aee625d670d741f9",
+			"version": "3.3.7",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+		    "hash": "c5b5b2fa19bd66ff23211d9f844e0131",
+			"version": "3.3.6",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "4becdc9104623e891fbb9d38bba01be4",
+			"version": "3.3.5",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "8c237312864d2e4c4f03544cd4f9b195",
+			"version": "3.3.4",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "046ba2b5f4cff7d2eaaa1af55caa9fd8",
+			"version": "3.3.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "2616d3564578d8f845813483352802a9",
+			"version": "3.3.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "281cd50dd9f58c5550620fc148a7bc39",
+			"version": "3.3.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "abda843684d022f3bc22bc83927fe05f",
+			"version": "3.2.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "ba847811448ef90d98d272aeccef2a95",
+			"version": "3.1.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "e1d08589ec26bec3a81625ce274d76d9",
+			"version": "3.1.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "353240ad37d1b084a53b1575f8ce57da",
+			"version": "3.0.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "c2e5221c3336abe0dff8568e73cd0dae",
+			"version": "3.0.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "d6834e94301cc3ab9cc013574d092b61",
+			"version": "3.0.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "9e25e8e29ef0ea358e9778082ffd97d8",
+			"version": "3.0.0",
+			"minified": "yes",
+			"comment":""
+			}
+		]	
 	},
-
 	"require.js" : {
 		"filecontent" : [
 			"@license (RequireJS) v?([0-9][0-9.a-z_\\\\-]+)"
