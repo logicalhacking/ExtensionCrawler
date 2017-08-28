@@ -31,10 +31,6 @@ from ExtensionCrawler.archive import get_forum_ext_ids, get_existing_ids, update
 from ExtensionCrawler.util import log
 import ExtensionCrawler.config
 
-# Script should run with python 3.4 or 3.5
-assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
-
-
 def write_log(dirname, fname, text):
     """Write text into the file with name fname in directory dirname."""
     os.makedirs(dirname, exist_ok=True)

@@ -20,6 +20,7 @@ import getopt
 import os
 import sys
 import tarfile
+import time
 import tempfile
 import traceback
 import fnmatch
@@ -54,11 +55,13 @@ def guarded_stderr(string):
 
 
 def process_id(dbbasedir, path):
+    start = time.clock()
     with tempfile.TemporaryDirectory() as tmpdir:
         with tarfile.open(path) as t:
             t.extractall(tmpdir)
 
             extid = os.listdir(tmpdir)[0]
+            guarded_stdout("Processing {}\n".format(extid))
             dbpath = os.path.join(dbbasedir, extid + ".sqlite")
             if os.path.exists(dbpath):
                 os.remove(dbpath)
@@ -71,6 +74,7 @@ def process_id(dbbasedir, path):
                 except Exception:
                     guarded_stderr("Exception when handling {} on {}:\n{}\n".
                                    format(extid, date, traceback.format_exc()))
+    guarded_stdout("Finished {} in {}s\n".format(extid, time.clock() - start))
 
 
 def find(archive, pattern):

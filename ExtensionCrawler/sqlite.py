@@ -21,131 +21,16 @@ from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
 from ExtensionCrawler.js_decomposer import decompose_js, DetectionType, FileClassification
 
-import sqlite3
+from ExtensionCrawler.dbbackend.sqlite_backend import SqliteBackend
+from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
+
 import re
 from bs4 import BeautifulSoup
 from zipfile import ZipFile
 import json
 import os
 import glob
-
-
-class SelfclosingSqliteDB:
-    def __init__(self, filename):
-        self.filename = filename
-
-    def __enter__(self):
-        self.con = sqlite3.connect(self.filename)
-        return self.con
-
-    def __exit__(self, *args):
-        self.con.commit()
-        self.con.close()
-
-
-def setup_fts_tables(con, name, columns, primary_columns):
-    sqls = [
-        s.format(
-            name=name,
-            columns=", ".join(columns),
-            new_columns=", ".join(["new." + x for x in columns]),
-            primary_columns=", ".join(primary_columns))
-        for s in [
-            """CREATE TABLE {name}({columns}, PRIMARY KEY ({primary_columns}));""",
-            """CREATE VIRTUAL TABLE {name}_fts using fts4(content="{name}", {columns});""",
-            """CREATE TRIGGER {name}_bu BEFORE UPDATE ON {name} BEGIN """
-            """DELETE FROM {name}_fts WHERE docid=old.rowid;"""
-            """END;""",
-            """CREATE TRIGGER {name}_bd BEFORE DELETE ON {name} BEGIN """
-            """DELETE FROM {name}_fts WHERE docid=old.rowid;"""
-            """END;""",
-            """CREATE TRIGGER {name}_au AFTER UPDATE ON {name} BEGIN """
-            """INSERT INTO {name}_fts(docid, {columns}) VALUES(new.rowid, {new_columns});"""
-            """END;""",
-            """CREATE TRIGGER {name}_ai AFTER INSERT ON {name} BEGIN """
-            """INSERT INTO {name}_fts(docid, {columns}) VALUES(new.rowid, {new_columns});"""
-            """END;"""
-        ]
-    ]
-    for sql in sqls:
-        con.execute(sql)
-
-
-def setup_tables(con):
-    setup_fts_tables(con, "support", [
-        "author", "commentdate", "extid", "date", "displayname", "title",
-        "language", "shortauthor", "comment"
-    ], ["author", "commentdate", "extid", "date"])
-
-    setup_fts_tables(con, "review", [
-        "author", "commentdate", "extid", "date", "displayname", "rating",
-        "language", "shortauthor", "comment"
-    ], ["author", "commentdate", "extid", "date"])
-
-    setup_fts_tables(con, "reply", [
-        "author", "commentdate", "extid", "date", "displayname", "replyto",
-        "language", "shortauthor", "comment"
-    ], ["author", "commentdate", "extid", "date"])
-
-    con.execute("""CREATE TABLE category ("""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """category TEXT,"""
-                """PRIMARY KEY (extid, date, category)"""
-                """)""")
-    con.execute("""CREATE TABLE content_script_url ("""
-                """crx_etag TEXT,"""
-                """url TEXT,"""
-                """PRIMARY KEY (crx_etag, url)"""
-                """)""")
-    con.execute("""CREATE TABLE permission ("""
-                """crx_etag TEXT,"""
-                """permission TEXT,"""
-                """PRIMARY KEY (crx_etag, permission)"""
-                """)""")
-    con.execute("""CREATE TABLE crx ("""
-                """crx_etag TEXT PRIMARY KEY,"""
-                """filename TEXT,"""
-                """size INTEGER,"""
-                """publickey BLOB"""
-                """)""")
-    con.execute("""CREATE TABLE jsfile ("""
-                """crx_etag TEXT,"""
-                """detect_method TEXT,"""
-                """filename TEXT,"""
-                """type TEXT,"""
-                """lib TEXT,"""
-                """path TEXT,"""
-                """md5 TEXT,"""
-                """size INTEGER,"""
-                """version TEXT,"""
-                """PRIMARY KEY (crx_etag, path)"""
-                """)""")
-    con.execute("""CREATE TABLE status ("""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """crx_status INTEGER,"""
-                """overview_status INTEGER,"""
-                """overview_exception TEXT,"""
-                """PRIMARY KEY (extid, date)"""
-                """)""")
-    con.execute("""CREATE TABLE extension ("""
-                """extid TEXT,"""
-                """date TEXT,"""
-                """name TEXT,"""
-                """version TEXT,"""
-                """description TEXT,"""
-                """downloads INTEGER,"""
-                """rating REAL,"""
-                """ratingcount INTEGER,"""
-                """fulldescription TEXT,"""
-                """developer TEXT,"""
-                """itemcategory TEXT,"""
-                """crx_etag TEXT,"""
-                """lastupdated TEXT,"""
-                """PRIMARY KEY (extid, date),"""
-                """FOREIGN KEY (crx_etag) REFERENCES crx(crx_etag)"""
-                """)""")
+import datetime
 
 
 def get_etag(ext_id, datepath, con, verbose, indent):
@@ -182,12 +67,9 @@ def get_etag(ext_id, datepath, con, verbose, indent):
             link = f.read()
             linked_date = link[3:].split("/")[0]
 
-            row = next(
-                con.execute(
-                    "SELECT crx_etag FROM extension WHERE extid=? AND date=?",
-                    (ext_id, linked_date)), None)
-            if row:
-                return row[0], txt
+            result = con.get_most_recent_etag(ext_id, con.convert_date(linked_date))
+            if result is not None:
+                return result, txt
 
     return None, txt
 
@@ -287,16 +169,29 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
                 contents)
             itemcategory = match.group(1) if match else None
 
-            con.execute(
-                "INSERT INTO extension VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (ext_id, date, name, version, description, downloads, rating,
-                 rating_count, full_description, developer, itemcategory, etag,
-                 last_updated))
+            con.insert(
+                "extension",
+                extid=ext_id,
+                date=con.convert_date(date),
+                name=name,
+                version=version,
+                description=description,
+                downloads=downloads,
+                rating=rating,
+                ratingcount=rating_count,
+                fulldescription=full_description,
+                developer=developer,
+                itemcategory=itemcategory,
+                crx_etag=etag,
+                lastupdated=last_updated)
 
             if categories:
                 for category in categories:
-                    con.execute("INSERT INTO category VALUES (?,?,?)",
-                                (ext_id, date, category))
+                    con.insert(
+                        "category",
+                        extid=ext_id,
+                        date=con.convert_date(date),
+                        category=category)
 
     return txt
 
@@ -310,6 +205,16 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
         with ZipFile(crx_path) as f:
             etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent)
             txt = logmsg(verbose, txt, etag_msg)
+
+            size = os.path.getsize(crx_path)
+            public_key = read_crx(crx_path).public_key
+            con.insert(
+                "crx",
+                crx_etag=etag,
+                filename=filename,
+                size=size,
+                publickey=public_key)
+
             with f.open("manifest.json") as m:
                 raw_content = m.read()
                 # There are some manifests that seem to have weird encodings...
@@ -332,37 +237,33 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                 manifest = json.loads(content, strict=False)
                 if "permissions" in manifest:
                     for permission in manifest["permissions"]:
-                        con.execute(
-                            "INSERT OR IGNORE INTO permission VALUES (?,?)",
-                            (etag, str(permission)))
+                        con.insert(
+                            "permission",
+                            crx_etag=etag,
+                            permission=str(permission))
                 if "content_scripts" in manifest:
                     for csd in manifest["content_scripts"]:
                         if "matches" in csd:
                             for urlpattern in csd["matches"]:
-                                con.execute(
-                                    "INSERT OR IGNORE INTO content_script_url VALUES (?,?)",
-                                    (etag, str(urlpattern)))
+                                con.insert(
+                                    "content_script_url",
+                                    crx_etag=etag,
+                                    url=str(urlpattern))
 
-            size = os.path.getsize(crx_path)
-
-            js_files=decompose_js(f)
+            js_files = decompose_js(f)
             for js_file_info in js_files:
-                 con.execute("INSERT INTO jsfile VALUES (?,?,?,?,?,?,?,?,?)",
-                             (etag,
-                                js_file_info['detectMethod'].name, 
-                                js_file_info['jsFilename'], 
-                                js_file_info['type'].name, 
-                                js_file_info['lib'],
-                                js_file_info['path'], 
-                                js_file_info['md5'], 
-                                js_file_info['size'], 
-                                js_file_info['ver']))
-
-
-            public_key = read_crx(crx_path).public_key
-
-            con.execute("INSERT INTO crx VALUES (?,?,?,?)", (etag, filename,
-                                                             size, public_key))
+                # TODO: Add: evidenceStartPos, evidenceEndPos, and EvidenceText
+                con.insert(
+                    "jsfile",
+                    crx_etag=etag,
+                    detect_method=js_file_info['detectMethod'],
+                    filename=js_file_info['jsFilename'],
+                    type=(js_file_info['type']).name,
+                    lib=js_file_info['lib'],
+                    path=js_file_info['path'],
+                    md5=js_file_info['md5'],
+                    size=js_file_info['size'],
+                    version=js_file_info['ver'])
     return txt
 
 
@@ -378,18 +279,32 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
         d = json.JSONDecoder().raw_decode(stripped)
         annotations = get(next(iter(d), None), "annotations")
         if annotations:
+            results = []
             for review in d[0]["annotations"]:
-                timestamp = get(review, "timestamp")
-                starRating = get(review, "starRating")
-                comment = get(review, "comment")
-                displayname = get(get(review, "entity"), "displayName")
-                author = get(get(review, "entity"), "author")
-                language = get(review, "language")
-                shortauthor = get(get(review, "entity"), "shortAuthor")
+                results += [{
+                    "extid":
+                    ext_id,
+                    "date":
+                    con.convert_date(date),
+                    "commentdate":
+                    datetime.datetime.utcfromtimestamp(
+                        get(review, "timestamp"))
+                    if "timestamp" in review else None,
+                    "rating":
+                    get(review, "starRating"),
+                    "comment":
+                    get(review, "comment"),
+                    "displayname":
+                    get(get(review, "entity"), "displayName"),
+                    "author":
+                    get(get(review, "entity"), "author"),
+                    "language":
+                    get(review, "language"),
+                    "shortauthor":
+                    get(get(review, "entity"), "shortAuthor")
+                }]
 
-                con.execute("INSERT OR IGNORE INTO review VALUES(?,?,?,?,?,?,?,?,?)",
-                            (author, timestamp, ext_id, date, displayname,
-                             starRating, language, shortauthor, comment))
+            con.insertmany("review", results)
 
 
 def parse_and_insert_support(ext_id, date, supportpath, con):
@@ -399,18 +314,32 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
         d = json.JSONDecoder().raw_decode(stripped)
         annotations = get(next(iter(d), None), "annotations")
         if annotations:
+            results = []
             for review in d[0]["annotations"]:
-                timestamp = get(review, "timestamp")
-                title = get(review, "title")
-                comment = get(review, "comment")
-                displayname = get(get(review, "entity"), "displayName")
-                author = get(get(review, "entity"), "author")
-                language = get(review, "language")
-                shortauthor = get(get(review, "entity"), "shortAuthor")
+                results += [{
+                    "extid":
+                    ext_id,
+                    "date":
+                    con.convert_date(date),
+                    "commentdate":
+                    datetime.datetime.utcfromtimestamp(
+                        get(review, "timestamp"))
+                    if "timestamp" in review else None,
+                    "title":
+                    get(review, "title"),
+                    "comment":
+                    get(review, "comment"),
+                    "displayname":
+                    get(get(review, "entity"), "displayName"),
+                    "author":
+                    get(get(review, "entity"), "author"),
+                    "language":
+                    get(review, "language"),
+                    "shortauthor":
+                    get(get(review, "entity"), "shortAuthor")
+                }]
 
-                con.execute("INSERT OR IGNORE INTO support VALUES(?,?,?,?,?,?,?,?,?)",
-                            (author, timestamp, ext_id, date, displayname,
-                             title, language, shortauthor, comment))
+            con.insertmany("support", results)
 
 
 def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
@@ -422,21 +351,36 @@ def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
                 indent + "* WARNING: there are no search results in {}\n".
                 format(repliespath))
             return txt
+        results = []
         for result in d["searchResults"]:
             if "annotations" not in result:
                 continue
             for annotation in result["annotations"]:
-                timestamp = get(annotation, "timestamp")
-                replyto = get(
-                    get(get(annotation, "entity"), "annotation"), "author")
-                comment = get(annotation, "comment")
-                displayname = get(get(annotation, "entity"), "displayName")
-                author = get(get(annotation, "entity"), "author")
-                language = get(annotation, "language")
-                shortauthor = get(get(annotation, "entity"), "shortAuthor")
-                con.execute("INSERT OR IGNORE INTO reply VALUES(?,?,?,?,?,?,?,?,?)",
-                            (author, timestamp, ext_id, date, displayname,
-                             replyto, language, shortauthor, comment))
+                results += [{
+                    "extid":
+                    ext_id,
+                    "date":
+                    con.convert_date(date),
+                    "commentdate":
+                    datetime.datetime.utcfromtimestamp(
+                        get(annotation, "timestamp"))
+                    if "timestamp" in annotation else None,
+                    "replyto":
+                    get(
+                        get(get(annotation, "entity"), "annotation"),
+                        "author"),
+                    "comment":
+                    get(annotation, "comment"),
+                    "displayname":
+                    get(get(annotation, "entity"), "displayName"),
+                    "author":
+                    get(get(annotation, "entity"), "author"),
+                    "language":
+                    get(annotation, "language"),
+                    "shortauthor":
+                    get(get(annotation, "entity"), "shortAuthor")
+                }]
+        con.insertmany("reply", results)
     return ""
 
 
@@ -450,9 +394,13 @@ def parse_and_insert_status(ext_id, date, datepath, con):
         with open(overviewexceptionpath) as f:
             overview_exception = f.read()
 
-    con.execute("INSERT INTO status VALUES (?,?,?,?,?)",
-                (ext_id, date, crx_status, overview_status,
-                 overview_exception))
+    con.insert(
+        "status",
+        extid=ext_id,
+        date=con.convert_date(date),
+        crx_status=crx_status,
+        overview_status=overview_status,
+        overview_exception=overview_exception)
 
 
 def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
@@ -465,23 +413,19 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
     txt = logmsg(verbose, txt,
                  indent + "- updating with data from {}\n".format(date))
 
-    if not os.path.exists(db_path):
-        txt = logmsg(verbose, txt,
-                     indent2 + "* db file does not exist, creating...\n")
-        with SelfclosingSqliteDB(db_path) as con:
-            setup_tables(con)
+    if const_use_mysql():
+        # Don't forget to create a ~/.my.cnf file with the credentials
+        backend = MysqlBackend(
+            host=const_mysql_host(),
+            db=const_mysql_db(),
+            read_default_file=const_mysql_config_file())
+    else:
+        backend = SqliteBackend(db_path)
 
-    with SelfclosingSqliteDB(db_path) as con:
-        parse_and_insert_status(ext_id, date, datepath, con)
-
-        parse_and_insert_overview(ext_id, date, datepath, con, verbose,
-                                  indent2)
-
+    with backend as con:
         etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
         txt = logmsg(verbose, txt, etag_msg)
-        etag_already_in_db = next(
-            con.execute("SELECT COUNT(crx_etag) FROM crx WHERE crx_etag=?", (
-                etag, )))[0]
+        etag_already_in_db = con.etag_already_in_db(etag)
 
         if etag:
             if not etag_already_in_db:
@@ -501,6 +445,10 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
             if crx_status != 401 and crx_status != 204 and crx_status != 404:
                 txt = logmsg(verbose, txt,
                              indent2 + "* WARNING: could not find etag\n")
+
+        parse_and_insert_overview(ext_id, date, datepath, con, verbose,
+                                  indent2)
+        parse_and_insert_status(ext_id, date, datepath, con)
 
         reviewpaths = glob.glob(os.path.join(datepath, "reviews*-*.text"))
         for reviewpath in reviewpaths:
