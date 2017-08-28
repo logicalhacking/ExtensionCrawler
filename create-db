@@ -45,12 +45,14 @@ def help():
 def guarded_stdout(string):
     lock.acquire()
     sys.stdout.write(string)
+    sys.stdout.flush()
     lock.release()
 
 
 def guarded_stderr(string):
     lock.acquire()
     sys.stderr.write(string)
+    sys.stderr.flush()
     lock.release()
 
 
