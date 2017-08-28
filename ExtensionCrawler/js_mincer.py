@@ -105,7 +105,7 @@ class JsBlock:
             "***************************************************************\n"
             + "** Type:  " + str(self.typ) + "\n" + "** Start: " + str(
                 self.start) + "\n" + "** End:   " + str(
-                    self.end) + "\n" + str_msg +self.content.strip() + "\n" +
+                    self.end) + "\n" + str_msg + self.content.strip() + "\n" +
             "***************************************************************\n"
         )
 
@@ -180,9 +180,9 @@ def mince_js_fileobj(fileobj):
                 (is_code_or_string_literal(state) and is_comment(suc_state))):
             if content.strip():
                 yield (JsBlock(state, (block_start_line, block_start_cpos),
-                           (line, cpos), content, string_literals))
+                               (line, cpos), content, string_literals))
             if char == '\n':
-                block_start_line = line+1
+                block_start_line = line + 1
                 block_start_cpos = 1
             else:
                 block_start_line = line
@@ -203,9 +203,62 @@ def mince_js_fileobj(fileobj):
                        (line, cpos), content, string_literals))
 
 
-def mince_js(file):
+def mince_js_fileobj_slc_blocks(fileobj):
+    """Mince JavaScript file object into code and comment blocks (join subsequent
+       single line comments)."""
+    for block in mince_js_fileobj(fileobj):
+        if block.typ == JsBlockType.SINGLE_LINE_COMMENT:
+            start = block.start
+            end = block.end
+            content = block.content
+            single_block = False
+            for suc in mince_js_fileobj(fileobj):
+                if suc.typ == JsBlockType.SINGLE_LINE_COMMENT:
+                    content += suc.content
+                    end = suc.end
+                    single_block = True
+                else:
+                    if single_block:
+                        yield (JsBlock(JsBlockType.SINGLE_LINE_COMMENT_BLOCK,
+                                       start, end, content))
+                    else:
+                        yield block
+                    content = ""
+                    yield suc
+                    break
+            if content.strip() != "":
+                yield (JsBlock(JsBlockType.SINGLE_LINE_COMMENT_BLOCK, start,
+                               end, content))
+        else:
+            yield block
+
+
+def mince_js_file(file):
     """Mince JavaScript file into code and comment blocks."""
     with open(file, encoding="utf-8") as fileobj:
         for block in mince_js_fileobj(fileobj):
             yield block
 
+
+def mince_js_file_slc_blocks(file):
+    """Mince JavaScript file into code and comment blocks (join subsequent single
+       line comments)."""
+    with open(file, encoding="utf-8") as fileobj:
+        for block in mince_js_fileobj_slc_blocks(fileobj):
+            yield block
+
+
+def mince_js(file, single_line_comments_block=False):
+    """Mince JavaScript file (either file name or open file object) into code and
+       comment blocks. Subsequent comment line blocks can be minced into separate
+       entitites or merged."""
+    if isinstance(file, str):
+        if single_line_comments_block:
+            return mince_js_file_slc_blocks(file)
+        else:
+            return mince_js_file(file)
+    else:
+        if single_line_comments_block:
+            return mince_js_fileobj_slc_blocks(file)
+        else:
+            return mince_js_fileobj(file)
