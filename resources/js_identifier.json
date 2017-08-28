@@ -192,6 +192,12 @@
 		]
 	},
 
+	"jquery-easing" : {
+		"filecontent" : [
+			"(jQuery Easing) v?([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
 	"jquery-migrate" : {
 		"filename" : "(jquery-migrate)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
 		"filecontent" : [
@@ -288,7 +294,10 @@
 	},
 
 	"ember" : {
-		"filename" : "(ember)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)"
+		"filename" : "(ember)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(Ember).VERSION\\s?\\=\\s?.([0-9][0-9.a-z_\\\\-]+)"
+		]
 	},
 
 	"dojo" : {
@@ -372,6 +381,14 @@
 		"filecontent" : [
 			"(moment.js)(?:[\n\r]+).* version\\s?:\\s?v?([0-9][0-9.a-z_\\\\-]+)"
 		]
+	},
+
+	"moment-timezone.js" : {
+		"filecontent" : [
+			"(moment-timezone.js)(?:[\n\r]+).* version\\s?:\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+			"(moment-timezone.js)(?:.*[\n\r]+){1,60}.*version\\s?[:|=]\\s?v?.?([0-9][0-9.a-z_\\\\-]+).?"
+		]
+
 	},
 
 	"bootstrap" : {
@@ -466,9 +483,30 @@
 			}
 		]	
 	},
+
+	"ui-bootstrap-tpls" : {
+		"filename" : "(ui[-_]bootstrap[-_]tpls)(?:.)*[-_]([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" : [
+			"(ui-bootstrap)(?:.*[\r\n]){1,6}.*Version\\:?\\s?v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"package" : {
+		"filecontent" : [
+			"(Package)\\.describe(?:.*[\r\n]){1,50}.*version\\:\\s?.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
 	"require.js" : {
 		"filecontent" : [
-			"@license (RequireJS) v?([0-9][0-9.a-z_\\\\-]+)"
+			"@license (RequireJS) v?([0-9][0-9.a-z_\\\\-]+)",
+			"(requirejs).*version\\=.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
+	"require-json" : {
+		"filecontent" : [
+			"(RequireJS).*JSON(?:.*[\r\n]){1,7}.*Version\\:?\\s?([0-9][0-9.a-z_\\\\-]+)"
 		]
 	},
 
@@ -477,5 +515,59 @@
 			"https\\:\/\/(d3js)\\.org\\s+Version\\:*\\s+v?([0-9][0-9.a-z_\\\\-]+)"
 		]
 
+	},
+
+	"underscore.js" : {
+		"filecontent" : [
+			"(Underscore[\\.js]*) v?([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+			"(Underscore[\\.js]*)(?:.*[\n\r]+){1,60}.*\\_\\.VERSION\\s?\\=\\s?.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
+	"string.js" : {
+		"filecontent" : [
+			"(string\\.js)(?:.*[\r\n]){1,50}.*VERSION\\s?\\=\\s?.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
+	"mousewheel" : {
+		"filecontent" : [
+			"jQuery (Mousewheel) v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"materialize" : {
+		"filecontent" : [
+			"(Materialize[\\.js]*) v?([0-9][0-9.a-z_\\\\-]+)"
+		]
+	},
+
+	"mootools" : {
+		"filename" : "(MooTools)(?:.)*[-_]([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
+		"filecontent" :[
+			"this\\.(MooTools)(?:.*[\r\n]).*version\\:\\s?.([0-9][0-9.a-z_\\\\-]+).",
+			"this\\.(MooTools)\\={version\\:.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
+	"require-text" : {
+		"filecontent" : [
+			"(text)\\s?\\=\\s?{(?:.*[\r\n]){1,4}.*version\\:\\s?.([0-9][0-9.a-z_\\\\-]+).",
+			"(text)\\s?\\=\\s?{version\\:\\s?.([0-9][0-9.a-z_\\\\-]+)."
+		]
+	},
+
+	"CryptoJS" : {
+		"filecontent" : [
+			"(CryptoJS) v?([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)"
+		]
+	},
+
+	"share-button" : {
+		"filecontent" : [
+			"(ShareButton)(?:.*[\r\n]){1,25}.*version\\:\\s?.([0-9][0-9.a-z_\\\\-]+)."
+		]
 	}
+
+
 }
