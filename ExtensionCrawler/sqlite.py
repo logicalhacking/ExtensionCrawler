@@ -19,7 +19,7 @@ from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
-from ExtensionCrawler.jsdecompose import decompose_js
+from ExtensionCrawler.js_decomposer import decompose_js, DetectionType, FileClassification
 
 from ExtensionCrawler.dbbackend.sqlite_backend import SqliteBackend
 from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
@@ -253,12 +253,13 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
 
             js_files = decompose_js(f)
             for js_file_info in js_files:
+                # TODO: Add: evidenceStartPos, evidenceEndPos, and EvidenceText
                 con.insert(
                     "jsfile",
                     crx_etag=etag,
                     detect_method=js_file_info['detectMethod'],
                     filename=js_file_info['jsFilename'],
-                    type=js_file_info['type'],
+                    type=(js_file_info['type']).name,
                     lib=js_file_info['lib'],
                     path=js_file_info['path'],
                     md5=js_file_info['md5'],
