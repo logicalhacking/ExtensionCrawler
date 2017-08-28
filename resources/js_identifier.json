@@ -7,6 +7,182 @@
 			"Id: (jquery)\\.js,\\s?v\\s?([0-9][0-9.a-z_\\\\-]+)",
 			"(jQuery).*[f|m]=.?v?([0-9][0-9.a-z_\\\\-]+).",
 			"[^a-z.](jQuery)\\:?[ ]?\"?v([0-9][0-9.a-z_\\\\-]+)"
+		],
+		"md5": [
+			{
+			"hash": "e071abda8fe61194711cfc2ab99fe104",
+			"version": "3.1.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "e40ec2161fe7993196f23c8a07346306",
+			"version": "2.1.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "f9c7afd05729f10f55b689f36bb20172",
+			"version": "2.1.4",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "c9f5aeeca3ad37bf2aa006139b935f0a",
+			"version": "3.2.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "8101d596b2b8fa35fe3a634ea342d7c3",
+			"version": "1.11.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "ddb84c1587287b2df08966081ef063bf",
+			"version": "1.7.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "32015dd42e9582a80a84736f5d9a44d7",
+			"version": "2.1.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "397754ba49e9e0cf4e7c190da78dda05",
+			"version": "1.9.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "895323ed2f7258af4fae2c738c8aea49",
+			"version": "1.11.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "05e51b1db558320f1939f9789ccf5c8f",
+			"version": "3.1.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "2edc942c0bd2476be8967a9f788d9e26",
+			"version": "2.0.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "2f6b11a7e914718e0290410e85366fe9",
+			"version": "2.2.4",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "b8d64d0bc142b3f670cc0611b0aebcae",
+			"version": "1.7.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "107fbe9555bfc88ec5cab524c790fe34",
+			"version": "2.1.4",
+			"minified": "",
+			"comment":""
+			},
+			{
+			"hash": "46836bbc603c9565b5cc061100ccbac8",
+			"version": "3.1.1",
+			"minified": "",
+			"comment":""
+			},
+			{
+			"hash": "5790ead7ad3ba27397aedfa3d263b867",
+			"version": "1.11.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "cfa9051cc0b05eb519f1e16b2a6645d7",
+			"version": "1.8.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "628072e7212db1e8cdacb22b21752cda",
+			"version": "1.10.2",
+			"minified": "",
+			"comment":""
+			},
+			{
+			"hash": "e1288116312e4728f98923c79b034b67",
+			"version": "1.8.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "e51be64870f23f7ba920206ed3efeab9",
+			"version": "2.0.0",
+			"minified": "min",
+			"comment":""
+			},
+			{
+			"hash": "4a356126b9573eb7bd1e9a7494737410",
+			"version": "2.1.4",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "0a6e846b954e345951e710cd6ce3440e",
+			"version": "2.0.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "91515770ce8c55de23b306444d8ea998",
+			"version": "1.10.2",
+			"minified": "",
+			"comment":""
+			},
+			{
+			"hash": "33cabfa15c1060aaa3d207c653afb1ee",
+			"version": "2.2.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "5ca7582261c421482436dfdf3af9bffe",
+			"version": "2.1.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "00f66eada2c54b64a3f632747ce1fe2d",
+			"version": "1.11.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "b11ced65f32fedbe9bf81ef9db0f3c94",
+			"version": "1.7.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "8fc25e27d42774aeae6edbc0a18b72aa",
+			"version": "1.11.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "d0212568ce69457081dacf84e327fa5c",
+			"version": "3.0.0",
+			"minified": "yes",
+			"comment":""
+			}
 		]
 	},
 

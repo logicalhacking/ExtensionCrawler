@@ -98,6 +98,23 @@ def init_jsinfo(zipfile, js_file):
     }
     return js_info
 
+def analyse_md5_checksum(zipfile, js_file):
+    """Check for known md5 hashes (file content)."""
+    js_info = init_jsinfo(zipfile, js_file)
+    json_data = load_lib_identifiers()
+    for lib in json_data:
+        for info in json_data[lib]:
+            if info == 'md5':
+                for md5 in json_data[lib]['md5']:
+                    if md5['hash'] == js_info['md5']:
+                        js_info['lib'] = lib
+                        js_info['ver'] = md5['version']
+                        js_info['type'] = FileClassification.LIBRARY
+                        js_info['detectMethod'] = DetectionType.HASH
+                        return [js_info]
+    return None
+
+
 
 def analyse_known_filename(zipfile, js_file):
     """Check for known file name patterns."""
@@ -193,8 +210,10 @@ def decompose_js(zipfile):
 
     js_inventory = []
     for js_file in list(filter(lambda x: x.filename.endswith(".js"), zipfile.infolist())):
-        js_info_file = analyse_filename(zipfile, js_file)
-        js_info_file += analyse_comment_blocks(zipfile, js_file)
+        js_info_file = analyse_md5_checksum(zipfile, js_file)
+        if not js_info_file:
+          js_info_file = analyse_filename(zipfile, js_file)
+          js_info_file += analyse_comment_blocks(zipfile, js_file)
 
         if not js_info_file:
             # if no library could be detected, we report the JavaScript file as 'application'.
