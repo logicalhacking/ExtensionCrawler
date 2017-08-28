@@ -517,10 +517,54 @@
 
 	},
 
-	"underscore.js" : {
+	"UnderscoreJS" : {
 		"filecontent" : [
 			"(Underscore[\\.js]*) v?([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
 			"(Underscore[\\.js]*)(?:.*[\n\r]+){1,60}.*\\_\\.VERSION\\s?\\=\\s?.([0-9][0-9.a-z_\\\\-]+)."
+		]
+		"md5": [
+			{
+			"hash": "543feb1ecaf06ea516f8cec5f9f3f279",
+			"version": "1.8.3",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "b0e9839a6bb6f12774494fa30c06bcdf",
+			"version": "1.8.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "6959908db2ddae758885b6c2cb2f07a5",
+			"version": "1.8.1",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "137af05d496f59d468d1ffbce32f375d",
+			"version": "1.7.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "dd9663be9a71f3570bc35f0edba28712",
+			"version": "1.6.0",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "ca26dc8cdf5d413cd8d3b62490e28210",
+			"version": "1.5.2",
+			"minified": "yes",
+			"comment":""
+			},
+			{
+			"hash": "cc07a4658799e1512b086467e7ef5ca5",
+			"version": "1.5.0",
+			"minified": "yes",
+			"comment":""
+			}
 		]
 	},
 
