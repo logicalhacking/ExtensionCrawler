@@ -39,7 +39,7 @@ class FileClassification(Enum):
     LIKELY_LIBRARY = 2
     APPLICATION = 3
 
-def lib_identifiers():
+def load_lib_identifiers():
     """Initialize identifiers for known libraries from JSON file."""
     regex_file = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), '../resources/',
@@ -54,16 +54,6 @@ def unknown_filename_identifier():
     return re.compile(
         r'(.+)[\-\_]([0-9]{1,2}[\.|\-|\_][0-9a-z]{1,2}[\.|\-|\_][0-9a-z\-\_]*)',
         re.IGNORECASE)
-
-
-def lib_isin_list(lib, ver, lib_list):
-    """Check if a specific library/version has already been detected."""
-    for item in lib_list:
-        if (item['lib'].lower() == lib.lower() and
-                item['ver'].lower() == ver.lower()):
-            return True
-    return False
-
 
 def unknown_lib_identifiers():
     """List of identifiers for generic library version headers."""
@@ -112,7 +102,7 @@ def init_jsinfo(zipfile, js_file):
 def analyse_known_filename(zipfile, js_file):
     """Check for known file name patterns."""
     libs = list()
-    for lib, regex in lib_identifiers().items():
+    for lib, regex in load_lib_identifiers().items():
         if 'filename' in regex:
             filename_matched = re.search(regex['filename'],
                                          js_file.filename, re.IGNORECASE)
