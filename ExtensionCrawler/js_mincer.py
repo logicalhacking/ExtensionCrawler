@@ -96,23 +96,23 @@ class JsBlock:
 
     def is_code(self):
         """Check if block is a code block."""
-        is_code(self.typ)
+        return is_code(self.typ)
 
     def is_comment(self):
         """Check if block is a comment."""
-        is_comment(self.typ)
+        return is_comment(self.typ)
 
     def is_comment_single_line(self):
         """Check if block is a single line comment."""
-        is_comment_single_line(self.typ)
+        return is_comment_single_line(self.typ)
         
     def is_comment_single_line_block(self):
         """Check if block is single line comment block."""
-        is_comment_single_line_block(self.typ)
+        return is_comment_single_line_block(self.typ)
 
     def is_comment_multi_line_block(self):
         """Check if block is a multi line comment."""
-        is_comment_multi_line(self.typ)
+        return is_comment_multi_line(self.typ)
 
     def __str__(self):
         str_msg = ""
