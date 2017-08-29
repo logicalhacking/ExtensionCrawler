@@ -33,7 +33,7 @@ assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
 def helpmsg():
     """Print help message."""
-    print("extract-crx [OPTION] extid")
+    print("crx-extract [OPTION] extid")
     print("    -h        print this help text")
     print("    -s        silent (no log messages)")
     print("    -e        use etag instead of date in outoput")
