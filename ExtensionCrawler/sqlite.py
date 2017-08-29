@@ -251,9 +251,9 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                 con.insert(
                     "jsfile",
                     crx_etag=etag,
-                    detect_method=str(js_file_info['detectMethod']),
+                    detect_method=(js_file_info['detectMethod']).value,
                     filename=js_file_info['jsFilename'],
-                    type=(js_file_info['type']).name,
+                    type=(js_file_info['type']).value,
                     lib=js_file_info['lib'],
                     path=js_file_info['path'],
                     md5=js_file_info['md5'],

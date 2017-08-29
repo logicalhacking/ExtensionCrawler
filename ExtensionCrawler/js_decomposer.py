@@ -28,18 +28,21 @@ from ExtensionCrawler.js_mincer import mince_js
 
 class DetectionType(Enum):
     """Enumeration for detection types."""
-    FILENAME = 1
-    FILECONTENT = 2
-    FILENAME_FILECONTENT = 3
-    URL = 4
-    HASH = 5
+    FILENAME = "filename"
+    COMMENTBLOCK = "comment_block"
+    CODEBLOCK = "code_block"
+    FILENAME_COMMENT = "filename_and_comment_block"
+    FILENAME_CODE = "filename_and_code_block"
+    URL = "known_url"
+    MD5 = "md5"
+    SHA1 = "sha1"
 
 class FileClassification(Enum):
     """ Enumeration for file classification"""
-    LIBRARY = 1
-    LIKELY_LIBRARY = 2
-    APPLICATION = 3
-    EMPTY_FILE = 4
+    LIBRARY = "known_library"
+    LIKELY_LIBRARY = "likely_library"
+    APPLICATION = "likely_application"
+    EMPTY_FILE = "empty_file"
 
 def load_lib_identifiers():
     """Initialize identifiers for known libraries from JSON file."""
@@ -116,7 +119,7 @@ def analyse_md5_checksum(zipfile, js_file, js_info):
                         js_info['lib'] = lib
                         js_info['ver'] = md5['version']
                         js_info['type'] = FileClassification.LIBRARY
-                        js_info['detectMethod'] = DetectionType.HASH
+                        js_info['detectMethod'] = DetectionType.MD5
                         return [js_info]
     return None
 
