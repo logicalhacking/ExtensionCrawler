@@ -209,12 +209,6 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
 
             size = os.path.getsize(crx_path)
             public_key = read_crx(crx_path).public_key
-            con.insert(
-                "crx",
-                crx_etag=etag,
-                filename=filename,
-                size=size,
-                publickey=public_key)
 
             with f.open("manifest.json") as m:
                 raw_content = m.read()
@@ -234,6 +228,14 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                             line) or multiline_comment_regex.match(line):
                         lines[index] = ""
                 content = "\n".join(lines)
+
+                con.insert(
+                    "crx",
+                    crx_etag=etag,
+                    filename=filename,
+                    size=size,
+                    manifest=content,
+                    publickey=public_key)
 
                 manifest = json.loads(content, strict=False)
                 if "permissions" in manifest:
