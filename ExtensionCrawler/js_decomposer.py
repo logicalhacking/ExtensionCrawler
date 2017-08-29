@@ -109,16 +109,24 @@ def init_jsinfo(zipfile, js_file):
 
     return js_info
 
-def analyse_md5_checksum(zipfile, js_file, js_info):
+def analyse_checksum(zipfile, js_file, js_info):
     """Check for known md5 hashes (file content)."""
     json_data = load_lib_identifiers()
     for lib in json_data:
         for info in json_data[lib]:
-            if info == 'md5':
-                for md5 in json_data[lib]['md5']:
-                    if md5['hash'] == js_info['md5']:
+            if info == 'sha1':
+                for file in json_data[lib]['sha1']:
+                    if file['sha1'] == js_info['sha1']:
                         js_info['lib'] = lib
-                        js_info['ver'] = md5['version']
+                        js_info['ver'] = file['version']
+                        js_info['type'] = FileClassification.LIBRARY
+                        js_info['detectMethod'] = DetectionType.SHA1
+                        return [js_info]
+            if info == 'md5':
+                for file in json_data[lib]['md5']:
+                    if file['md5'] == js_info['md5']:
+                        js_info['lib'] = lib
+                        js_info['ver'] = file['version']
                         js_info['type'] = FileClassification.LIBRARY
                         js_info['detectMethod'] = DetectionType.MD5
                         return [js_info]
@@ -224,7 +232,7 @@ def decompose_js(zipfile):
         if js_info['type'] == FileClassification.EMPTY_FILE:
             js_inventory.append(js_info)
         else:
-            js_info_file = analyse_md5_checksum(zipfile, js_file, js_info)
+            js_info_file = analyse_checksum(zipfile, js_file, js_info)
             if not js_info_file:
                 js_info_file = analyse_filename(zipfile, js_file, js_info)
                 js_info_file += analyse_comment_blocks(zipfile, js_file, js_info)
