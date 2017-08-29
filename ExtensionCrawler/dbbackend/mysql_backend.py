@@ -20,6 +20,7 @@ import MySQLdb
 import _mysql_exceptions
 import atexit
 import time
+import logging
 
 db = None
 
@@ -38,8 +39,10 @@ def retry(f):
         except _mysql_exceptions.OperationalError as e:
             last_exception = e
         if t + 1 == const_mysql_maxtries():
+            logging.error("MySQL connection eventually failed!")
             raise last_exception
         else:
+            logging.error("Exception on mysql connection attempt {} of {}, wating {}s before retrying...".format(t+1, const_mysql_maxtries(), const_mysql_try_wait()))
             time.sleep(const_mysql_try_wait())
 
 
