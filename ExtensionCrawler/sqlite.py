@@ -247,7 +247,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
 
             js_files = decompose_js(f)
             for js_file_info in js_files:
-                # TODO: Add: evidenceStartPos, evidenceEndPos, and EvidenceText
+                # TODO: Add: evidenceStartPos, evidenceEndPos, and EvidenceText, sha1
                 con.insert(
                     "jsfile",
                     crx_etag=etag,
