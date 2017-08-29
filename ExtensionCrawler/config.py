@@ -137,6 +137,7 @@ def jsloc_timeout():
 def const_basedir():
     """Top-level directory for the extension crawler archive."""
     return "archive"
+
 def const_parallel_downloads():
     """Number of parallel downloads."""
     return 36
@@ -144,6 +145,9 @@ def const_parallel_downloads():
 def const_verbose():
     """Default verbosity."""
     return True
+
+def const_log_format():
+    return '%(process)s %(asctime)s %(message)s'
 
 def const_discover():
     """Default configuration of discovery mode"""

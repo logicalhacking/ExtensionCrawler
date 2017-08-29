@@ -18,7 +18,6 @@
 
 """ Various utility methods."""
 
-import sys
 from time import sleep
 from random import random
 
@@ -26,19 +25,6 @@ def google_dos_protection(maxrange=0.3):
     """Wait a random number of seconds (between 0.5 to 0.5+maxrange)
        to avoid Google's bot detection"""
     sleep(0.5+(random()*maxrange))
-
-def log(verbose, msg):
-    """Print log message."""
-    if verbose:
-        sys.stdout.write(msg)
-        sys.stdout.flush()
-
-def logmsg(verbose, msg1, msg2):
-    """Append msg2 to log stream msg1."""
-    if verbose:
-        return msg1 + msg2
-    else:
-        return msg1
 
 def value_of(value, default):
     """Get value or default value if None."""

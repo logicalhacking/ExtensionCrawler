@@ -31,17 +31,16 @@ import json
 import os
 import glob
 import datetime
+import logging
 
 
-def get_etag(ext_id, datepath, con, verbose, indent):
-    txt = ""
-
+def get_etag(ext_id, datepath, con):
     # Trying to parse etag file
     etagpath = next(
         iter(glob.glob(os.path.join(datepath, "*.crx.etag"))), None)
     if etagpath:
         with open(etagpath) as f:
-            return f.read(), txt
+            return f.read()
 
     # Trying to parse header file for etag
     headerpath = next(
@@ -52,12 +51,10 @@ def get_etag(ext_id, datepath, con, verbose, indent):
             try:
                 headers = eval(content)
                 if "ETag" in headers:
-                    return headers["ETag"], txt
+                    return headers["ETag"]
             except Exception:
-                txt = logmsg(
-                    verbose, txt,
-                    indent + "* WARNING: could not parse crx header file")
-                pass
+                logging.warning(16 * " " +
+                                "* WARNING: could not parse crx header file")
 
     # Trying to look up previous etag in database
     linkpath = next(
@@ -70,9 +67,9 @@ def get_etag(ext_id, datepath, con, verbose, indent):
             result = con.get_most_recent_etag(ext_id,
                                               con.convert_date(linked_date))
             if result is not None:
-                return result, txt
+                return result
 
-    return None, txt
+    return None
 
 
 def get_overview_status(datepath):
@@ -102,9 +99,8 @@ def get_crx_status(datepath):
             return int(f.read())
 
 
-def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
-    txt = ""
-
+def parse_and_insert_overview(ext_id, date, datepath, con):
+    logging.info(16 * " " + "- parsing overview file")
     overview_path = os.path.join(datepath, "overview.html")
     if os.path.exists(overview_path):
         with open(overview_path) as overview_file:
@@ -162,8 +158,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
             last_updated = str(last_updated_parent.contents[
                 0]) if last_updated_parent else None
 
-            etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent)
-            txt = logmsg(verbose, txt, etag_msg)
+            etag = get_etag(ext_id, datepath, con)
 
             match = re.search(
                 """<Attribute name="item_category">(.*?)</Attribute>""",
@@ -194,18 +189,15 @@ def parse_and_insert_overview(ext_id, date, datepath, con, verbose, indent):
                         date=con.convert_date(date),
                         category=category)
 
-    return txt
 
-
-def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
-    txt = ""
+def parse_and_insert_crx(ext_id, date, datepath, con):
+    logging.info(16 * " " + "- parsing crx file")
     crx_path = next(iter(glob.glob(os.path.join(datepath, "*.crx"))), None)
     if crx_path:
         filename = os.path.basename(crx_path)
 
         with ZipFile(crx_path) as f:
-            etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent)
-            txt = logmsg(verbose, txt, etag_msg)
+            etag = get_etag(ext_id, datepath, con)
 
             size = os.path.getsize(crx_path)
             public_key = read_crx(crx_path).public_key
@@ -267,7 +259,6 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
                     md5=js_file_info['md5'],
                     size=js_file_info['size'],
                     version=js_file_info['ver'])
-    return txt
 
 
 def get(d, k):
@@ -276,6 +267,7 @@ def get(d, k):
 
 
 def parse_and_insert_review(ext_id, date, reviewpath, con):
+    logging.info(16 * " " + "- parsing review file")
     with open(reviewpath) as f:
         content = f.read()
         stripped = content[content.find('{"'):]
@@ -311,6 +303,7 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
 
 
 def parse_and_insert_support(ext_id, date, supportpath, con):
+    logging.info(16 * " " + "- parsing support file")
     with open(supportpath) as f:
         content = f.read()
         stripped = content[content.find('{"'):]
@@ -345,15 +338,13 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
             con.insertmany("support", results)
 
 
-def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
+def parse_and_insert_replies(ext_id, date, repliespath, con):
+    logging.info(16 * " " + "- parsing reply file")
     with open(repliespath) as f:
         d = json.load(f)
         if not "searchResults" in d:
-            txt = logmsg(
-                verbose, "",
-                indent + "* WARNING: there are no search results in {}\n".
-                format(repliespath))
-            return txt
+            logging.warning("* WARNING: there are no search results in {}".
+                            format(repliespath))
         results = []
         for result in d["searchResults"]:
             if "annotations" not in result:
@@ -388,6 +379,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con, verbose, indent):
 
 
 def parse_and_insert_status(ext_id, date, datepath, con):
+    logging.info(16 * " " + "- parsing status file")
     overview_status = get_overview_status(datepath)
     crx_status = get_crx_status(datepath)
 
@@ -406,15 +398,9 @@ def parse_and_insert_status(ext_id, date, datepath, con):
         overview_exception=overview_exception)
 
 
-def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
-                              indent):
-    txt = ""
-    indent2 = indent + 4 * " "
-
+def update_sqlite_incremental(db_path, tmptardir, ext_id, date):
+    logging.info(12 * " " + "- parsing data from {}".format(date))
     datepath = os.path.join(tmptardir, date)
-
-    txt = logmsg(verbose, txt,
-                 indent + "- updating with data from {}\n".format(date))
 
     if const_use_mysql():
         # Don't forget to create a ~/.my.cnf file with the credentials
@@ -423,29 +409,22 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
         backend = SqliteBackend(db_path)
 
     with backend as con:
-        etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
-        txt = logmsg(verbose, txt, etag_msg)
+        etag = get_etag(ext_id, datepath, con)
 
         if etag:
             try:
-                crx_msg = parse_and_insert_crx(ext_id, date, datepath, con,
-                                               verbose, indent2)
-                txt = logmsg(verbose, txt, crx_msg)
+                parse_and_insert_crx(ext_id, date, datepath, con)
             except zipfile.BadZipfile as e:
-                txt = logmsg(
-                    verbose, txt, indent2 +
-                    "* WARNING: the found crx file is not a zip file, exception: "
-                )
-                txt = logmsg(verbose, txt, str(e))
-                txt = logmsg(verbose, txt, "\n")
+                logging.warning(
+                    16 * " " +
+                    "* WARNING: the found crx file is not a zip file, exception: {}".
+                    format(str(e)))
         else:
             crx_status = get_crx_status(datepath)
             if crx_status != 401 and crx_status != 204 and crx_status != 404:
-                txt = logmsg(verbose, txt,
-                             indent2 + "* WARNING: could not find etag\n")
+                logging.warning(16 * " " + "* WARNING: could not find etag")
 
-        parse_and_insert_overview(ext_id, date, datepath, con, verbose,
-                                  indent2)
+        parse_and_insert_overview(ext_id, date, datepath, con)
         parse_and_insert_status(ext_id, date, datepath, con)
 
         reviewpaths = glob.glob(os.path.join(datepath, "reviews*-*.text"))
@@ -453,34 +432,24 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
             try:
                 parse_and_insert_review(ext_id, date, reviewpath, con)
             except json.decoder.JSONDecodeError as e:
-                txt = logmsg(
-                    verbose, txt,
-                    indent2 + "* Could not parse review file, exception: ")
-                txt = logmsg(verbose, txt, str(e))
-                txt = logmsg(verbose, txt, "\n")
+                logging.warning(16 * " " +
+                                "* Could not parse review file, exception: {}".
+                                format(str(e)))
 
         supportpaths = glob.glob(os.path.join(datepath, "support*-*.text"))
         for supportpath in supportpaths:
             try:
                 parse_and_insert_support(ext_id, date, supportpath, con)
             except json.decoder.JSONDecodeError as e:
-                txt = logmsg(
-                    verbose, txt,
-                    indent2 + "* Could not parse support file, exception: ")
-                txt = logmsg(verbose, txt, str(e))
-                txt = logmsg(verbose, txt, "\n")
+                logging.warning(
+                    16 * " " + "* Could not parse support file, exception: {}".
+                    format(str(e)))
 
         repliespaths = glob.glob(os.path.join(datepath, "*replies.text"))
         for repliespath in repliespaths:
             try:
-                reply_txt = parse_and_insert_replies(ext_id, date, repliespath,
-                                                     con, verbose, indent)
-                txt = logmsg(verbose, txt, reply_txt)
+                parse_and_insert_replies(ext_id, date, repliespath, con)
             except json.decoder.JSONDecodeError as e:
-                txt = logmsg(
-                    verbose, txt,
-                    indent2 + "* Could not parse reply file, exception: ")
-                txt = logmsg(verbose, txt, str(e))
-                txt = logmsg(verbose, txt, "\n")
-
-    return txt
+                logging.warning(16 * " " +
+                                "* Could not parse reply file, exception: {}".
+                                format(str(e)))

@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
 """
 Module for handling archives of the Browser Extension Crawler.
 """
@@ -35,18 +34,19 @@ import datetime
 import dateutil
 import dateutil.parser
 import requests
+import logging
 
-from ExtensionCrawler.config import (const_review_payload, const_review_search_url,
-                                     const_download_url, get_local_archive_dir,
-                                     const_overview_url, const_support_url,
-                                     const_support_payload, const_review_search_payload,
-                                     const_review_url)
-from ExtensionCrawler.util import logmsg, google_dos_protection, log, value_of
+from ExtensionCrawler.config import (
+    const_review_payload, const_review_search_url, const_download_url,
+    get_local_archive_dir, const_overview_url, const_support_url,
+    const_support_payload, const_review_search_payload, const_review_url)
+from ExtensionCrawler.util import google_dos_protection, value_of
 from ExtensionCrawler.sqlite import db_file, update_sqlite_incremental
 
 
 class Error(Exception):
     pass
+
 
 class CrawlError(Error):
     def __init__(self, extid, message, pagecontent=""):
@@ -54,6 +54,7 @@ class CrawlError(Error):
         self.message = message
         self.pagecontent = pagecontent
         super(CrawlError, self).__init__()
+
 
 class RequestResult:
     def __init__(self, response=None, exception=None):
@@ -97,38 +98,38 @@ class UpdateResult:
         return self.new
 
     def is_ok(self):
-        return (self.res_overview.is_ok() and
-                (self.res_crx.is_ok() or self.res_crx.not_modified()) and
-                ((self.res_reviews is None) or self.res_reviews.is_ok()) and (
-                    (self.res_support is None) or self.res_support.is_ok()))
+        return (self.res_overview.is_ok()
+                and (self.res_crx.is_ok() or self.res_crx.not_modified())
+                and ((self.res_reviews is None) or self.res_reviews.is_ok())
+                and ((self.res_support is None) or self.res_support.is_ok()))
 
     def not_authorized(self):
-        return (self.res_overview.not_authorized() or
-                self.res_crx.not_authorized() or
-                (self.res_reviews is not None and
-                 self.res_reviews.not_authorized()) or (
-                     self.res_support is not None and
-                     self.res_support.not_authorized()))
+        return (self.res_overview.not_authorized()
+                or self.res_crx.not_authorized()
+                or (self.res_reviews is not None
+                    and self.res_reviews.not_authorized())
+                or (self.res_support is not None
+                    and self.res_support.not_authorized()))
 
     def not_in_store(self):
-        return (
-            self.res_overview.not_found() or self.res_crx.not_found() or
-            (self.res_reviews is not None and self.res_reviews.not_found()) or
-            (self.res_support is not None and self.res_support.not_found()))
+        return (self.res_overview.not_found() or self.res_crx.not_found() or
+                (self.res_reviews is not None and self.res_reviews.not_found())
+                or (self.res_support is not None
+                    and self.res_support.not_found()))
 
     def has_exception(self):
-        return (self.res_overview.has_exception() or
-                self.res_crx.has_exception() or
-                (self.res_reviews is not None and
-                 self.res_reviews.has_exception()) or (
-                     self.res_support is not None and
-                     self.res_support.has_exception()))
+        return (self.res_overview.has_exception()
+                or self.res_crx.has_exception()
+                or (self.res_reviews is not None
+                    and self.res_reviews.has_exception())
+                or (self.res_support is not None
+                    and self.res_support.has_exception()))
 
     def raised_google_ddos(self):
-        return ((self.res_reviews is not None and
-                 self.res_reviews.not_available()) or
-                (self.res_support is not None and
-                 self.res_support.not_available()))
+        return ((self.res_reviews is not None
+                 and self.res_reviews.not_available())
+                or (self.res_support is not None
+                    and self.res_support.not_available()))
 
     def not_modified(self):
         return self.res_crx.not_modified()
@@ -167,8 +168,9 @@ def httpdate(dt):
         "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
         "Nov", "Dec"
     ][dt.month - 1]
-    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (
-        weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
+    return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (weekday, dt.day, month,
+                                                    dt.year, dt.hour,
+                                                    dt.minute, dt.second)
 
 
 def last_modified_utc_date(path):
@@ -191,8 +193,8 @@ def last_crx(archivedir, extid, date=None):
         t = tarfile.open(tar, 'r')
         old_crxs = sorted([
             x.name for x in t.getmembers()
-            if x.name.endswith(".crx") and x.size > 0 and (date is None or (
-                dateutil.parser.parse(
+            if x.name.endswith(".crx") and x.size > 0 and (
+                date is None or (dateutil.parser.parse(
                     os.path.split(os.path.split(x.name)[0])[1]) <= date))
         ])
         t.close()
@@ -217,20 +219,19 @@ def last_etag(archivedir, extid, crxfile):
     return etag
 
 
-def update_overview(tar, date, verbose, ext_id):
-    logtxt = logmsg(verbose, "", "           * overview page: ")
+def update_overview(tar, date, ext_id):
     res = None
     try:
         res = requests.get(const_overview_url(ext_id), timeout=10)
-        logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
+        logging.info(8 * " " +
+                     "* overview page: {}".format(str(res.status_code)))
         store_request_text(tar, date, 'overview.html', res)
     except Exception as e:
-        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+        logging.exception("Exception when retrieving overview page")
         write_text(tar, date, 'overview.html.exception',
                    traceback.format_exc())
-        return RequestResult(res, e), logtxt
-    logtxt = logmsg(verbose, logtxt, "\n")
-    return RequestResult(res), logtxt
+        return RequestResult(res, e)
+    return RequestResult(res)
 
 
 def validate_crx_response(res, extid, extfilename):
@@ -250,24 +251,23 @@ def validate_crx_response(res, extid, extfilename):
                 extfilename))
 
 
-def update_crx(archivedir, tmptardir, verbose, ext_id, date):
+def update_crx(archivedir, tmptardir, ext_id, date):
     res = None
     extfilename = "default_ext_archive.crx"
     last_crx_file = last_crx(archivedir, ext_id)
     last_crx_etag = last_etag(archivedir, ext_id, last_crx_file)
     last_crx_http_date = last_modified_http_date(last_crx_file)
-    logtxt = logmsg(verbose, "",
-                    "           * crx archive (Last: {}): ".format(
-                        value_of(last_crx_http_date, "n/a")))
     headers = ""
     if last_crx_file is not "":
         headers = {'If-Modified-Since': last_crx_http_date}
     try:
-        res = requests.get(const_download_url().format(ext_id),
-                           stream=True,
-                           headers=headers,
-                           timeout=10)
-        logtxt = logmsg(verbose, logtxt, "{}\n".format(str(res.status_code)))
+        res = requests.get(
+            const_download_url().format(ext_id),
+            stream=True,
+            headers=headers,
+            timeout=10)
+        logging.info(8 * " " + "* crx archive (Last: {}): {}".format(
+            value_of(last_crx_http_date, "n/a"), str(res.status_code)))
         extfilename = os.path.basename(res.url)
         if re.search('&', extfilename):
             extfilename = "default.crx"
@@ -278,19 +278,17 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
                 timeout=10,
                 allow_redirects=True).headers.get('ETag')
             write_text(tmptardir, date, extfilename + ".etag", etag)
-            logtxt = logmsg(verbose, logtxt, (
-                "               - checking etag, last: {}\n" +
-                "                             current: {}\n").format(
-                    last_crx_etag, etag))
+            logging.info(12 * " " +
+                         "- checking etag, last: {}".format(last_crx_etag))
+            logging.info(12 * " " + "              current: {}".format(etag))
 
             if (etag is not "") and (etag != last_crx_etag):
-                logtxt = logmsg(
-                    verbose, logtxt,
-                    "               - downloading due to different etags\n")
+                logging.info(12 * " " + "- downloading due to different etags")
 
-                res = requests.get(const_download_url().format(ext_id),
-                                   stream=True,
-                                   timeout=10)
+                res = requests.get(
+                    const_download_url().format(ext_id),
+                    stream=True,
+                    timeout=10)
             else:
                 write_text(tmptardir, date, extfilename + ".link",
                            os.path.join("..",
@@ -306,28 +304,23 @@ def update_crx(archivedir, tmptardir, verbose, ext_id, date):
             write_text(tmptardir, date, extfilename + ".etag",
                        res.headers.get("ETag"))
     except Exception as e:
-        logtxt = logmsg(verbose, logtxt,
-                        "               - Exception: {}\n".format(str(e)))
+        logging.exception("Exception when updating crx")
         write_text(tmptardir, date, extfilename + ".exception",
                    traceback.format_exc())
-        return RequestResult(res, e), logtxt
-    logtxt = logmsg(verbose, logtxt, "\n")
-    return RequestResult(res), logtxt
+        return RequestResult(res, e)
+    return RequestResult(res)
 
 
 def iterate_authors(pages):
     for page in pages:
         json_page = json.loads(page[page.index("{\""):page.rindex("}}},") + 1])
         for annotation in json_page["annotations"]:
-            if "attributes" in annotation and "replyExists" in annotation[
-                    "attributes"] and annotation["attributes"]["replyExists"]:
+            if "attributes" in annotation and "replyExists" in annotation["attributes"] and annotation["attributes"]["replyExists"]:
                 yield (annotation["entity"]["author"],
                        annotation["entity"]["groups"])
 
 
-def update_reviews(tar, date, verbose, ext_id):
-    dir = os.path.join(os.path.splitext(tar)[0], date)
-    logtxt = logmsg(verbose, "", "           * review page:   ")
+def update_reviews(tar, date, ext_id):
     res = None
     try:
         pages = []
@@ -337,7 +330,8 @@ def update_reviews(tar, date, verbose, ext_id):
             const_review_url(),
             data=const_review_payload(ext_id, "0", "100"),
             timeout=10)
-        logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
+        logging.info(8 * " " +
+                     "* review page   0-100: {}".format(str(res.status_code)))
         store_request_text(tar, date, 'reviews000-099.text', res)
         pages += [res.text]
 
@@ -346,7 +340,8 @@ def update_reviews(tar, date, verbose, ext_id):
             const_review_url(),
             data=const_review_payload(ext_id, "100", "100"),
             timeout=10)
-        logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
+        logging.info(8 * " " + "* review page   100-200: {}".format(
+            str(res.status_code)))
         store_request_text(tar, date, 'reviews100-199.text', res)
         pages += [res.text]
 
@@ -359,21 +354,17 @@ def update_reviews(tar, date, verbose, ext_id):
                 const_review_search_url(),
                 data=const_review_search_payload(ext_id_author_tups),
                 timeout=10)
-            logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
+            logging.info(8 * " " + "* review page replies: {}".format(
+                str(res.status_code)))
             store_request_text(tar, date, 'reviewsreplies.text', res)
-        else:
-            logtxt = logmsg(verbose, logtxt, "-")
     except Exception as e:
-        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+        logging.exception("Exception when updating reviews")
         write_text(tar, date, 'reviews.html.exception', traceback.format_exc())
-        return RequestResult(res, e), logtxt
-    logtxt = logmsg(verbose, logtxt, "\n")
-    return RequestResult(res), logtxt
+        return RequestResult(res, e)
+    return RequestResult(res)
 
 
-def update_support(tar, date, verbose, ext_id):
-    dir = os.path.join(os.path.splitext(tar)[0], date)
-    logtxt = logmsg(verbose, "", "           * support page:  ")
+def update_support(tar, date, ext_id):
     res = None
     try:
         pages = []
@@ -383,7 +374,8 @@ def update_support(tar, date, verbose, ext_id):
             const_support_url(),
             data=const_support_payload(ext_id, "0", "100"),
             timeout=10)
-        logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
+        logging.info(8 * " " +
+                     "* support page   0-100: {}".format(str(res.status_code)))
         store_request_text(tar, date, 'support000-099.text', res)
         pages += [res.text]
 
@@ -392,7 +384,8 @@ def update_support(tar, date, verbose, ext_id):
             const_support_url(),
             data=const_support_payload(ext_id, "100", "100"),
             timeout=10)
-        logtxt = logmsg(verbose, logtxt, "{}/".format(str(res.status_code)))
+        logging.info(8 * " " +
+                     "* support page 100-200: {}".format(str(res.status_code)))
         store_request_text(tar, date, 'support100-199.text', res)
         pages += [res.text]
 
@@ -405,20 +398,19 @@ def update_support(tar, date, verbose, ext_id):
                 const_review_search_url(),
                 data=const_review_search_payload(ext_id_author_tups),
                 timeout=10)
-            logtxt = logmsg(verbose, logtxt, "{}".format(str(res.status_code)))
+            logging.info(8 * " " + "* support page replies: {}".format(
+                str(res.status_code)))
             store_request_text(tar, date, 'supportreplies.text', res)
-        else:
-            logtxt = logmsg(verbose, logtxt, "-")
     except Exception as e:
-        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+        logging.exception("Exception when updating support pages")
         write_text(tar, date, 'support.html.exception', traceback.format_exc())
-        return RequestResult(res, e), logtxt
-    logtxt = logmsg(verbose, logtxt, "\n")
-    return RequestResult(res), logtxt
+        return RequestResult(res, e)
+    return RequestResult(res)
 
 
-def update_extension(archivedir, verbose, forums, ext_id):
-    logtxt = logmsg(verbose, "", "    Updating extension {}".format(ext_id))
+def update_extension(archivedir, forums, ext_id):
+    logging.info(4 * " " + "Updating extension {}{}".format(
+        ext_id, " (including forums)" if forums else ""))
     is_new = False
     tar_exception = None
     sql_exception = None
@@ -426,9 +418,6 @@ def update_extension(archivedir, verbose, forums, ext_id):
     tmptardir = ""
     start = time.time()
 
-    if forums:
-        logtxt = logmsg(verbose, logtxt, " (including forums)")
-    logtxt = logmsg(verbose, logtxt, "\n")
     date = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     tardir = os.path.join(archivedir, get_local_archive_dir(ext_id), ext_id)
@@ -437,43 +426,26 @@ def update_extension(archivedir, verbose, forums, ext_id):
     try:
         tmpdir = tempfile.mkdtemp()
         tmptardir = os.path.join(tmpdir, ext_id)
-        logtxt = logmsg(verbose, logtxt,
-                        "           * tmptardir =  {}\n".format(tmptardir))
+        logging.info(8 * " " + "* tmptardir = {}".format(tmptardir))
         os.makedirs(
             os.path.join(archivedir, get_local_archive_dir(ext_id)),
             exist_ok=True)
     except Exception as e:
-        logtxt = logmsg(verbose, logtxt,
-                        "           * FATAL: cannot create tmpdir")
-        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+        logging.exception(8 * " " + "* FATAL: cannot create tmpdir")
         tar_exception = e
-        logtxt = logmsg(
-            verbose,
-            logtxt,
-            "           * Duration: {}\n".format(
-                datetime.timedelta(seconds=int(time.time() - start))))
-        log(verbose, logtxt)
-        return UpdateResult(ext_id, is_new, tar_exception, None,
-                            None, None, None, sql_exception,
-                            False)
+        return UpdateResult(ext_id, is_new, tar_exception, None, None, None,
+                            None, sql_exception, False)
 
-    res_overview, msg_overview = update_overview(tmptardir, date, verbose,
-                                                 ext_id)
+    res_overview = update_overview(tmptardir, date, ext_id)
     res_reviews = None
-    msg_reviews = ""
     res_support = None
-    msg_support = ""
     if forums:
-        res_reviews, msg_reviews = update_reviews(tmptardir, date, verbose,
-                                                  ext_id)
+        res_reviews = update_reviews(tmptardir, date, ext_id)
 
-    res_crx, msg_crx = update_crx(archivedir, tmptardir, verbose, ext_id, date)
+    res_crx = update_crx(archivedir, tmptardir, ext_id, date)
 
     if forums:
-        res_support, msg_support = update_support(tmptardir, date, verbose,
-                                                  ext_id)
-
-    logtxt = logtxt + msg_overview + msg_crx + msg_reviews + msg_support
+        res_support = update_support(tmptardir, date, ext_id)
 
     backup = False
     if backup:
@@ -490,11 +462,8 @@ def update_extension(archivedir, verbose, forums, ext_id):
             if os.path.exists(tar):
                 shutil.copyfile(tar, tardir + ".bak.tar")
         except Exception as e:
-            logtxt = logmsg(
-                verbose, logtxt,
-                "           * FATAL: cannot rename old tar archive")
-            logtxt = logmsg(verbose, logtxt,
-                            " / Exception: {}\n".format(str(e)))
+            logging.exception(8 * " " +
+                              "* FATAL: cannot rename old tar archive")
             tar_exception = e
             try:
                 write_text(tardir, date, ext_id + ".tar.rename.exception",
@@ -509,9 +478,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
         ar.add(tmptardir, arcname=ext_id)
         ar.close()
     except Exception as e:
-        logtxt = logmsg(verbose, logtxt,
-                        "           * FATAL: cannot create tar archive")
-        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+        logging.exception(8 * " " + "* FATAL: cannot create tar archive")
         tar_exception = e
         try:
             write_text(tardir, date, ext_id + ".tar.create.exception",
@@ -520,17 +487,12 @@ def update_extension(archivedir, verbose, forums, ext_id):
             pass
 
     try:
-        logtxt = logmsg(verbose, logtxt, "           * Updating db...\n")
+        logging.info(8 * " " + "* Updating db...")
         db_path = db_file(archivedir, ext_id)
-        msg_updatesqlite = update_sqlite_incremental(
-            db_path, tmptardir, ext_id, date, verbose, 15 * " ")
-        logtxt = logmsg(verbose, logtxt, msg_updatesqlite)
+        update_sqlite_incremental(db_path, tmptardir, ext_id, date)
         sql_success = True
     except Exception as e:
-        logtxt = logmsg(verbose, logtxt,
-                        "           * Exception during update of sqlite db ")
-        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
-
+        logging.exception(8 * " " + "* Exception during update of sqlite db")
         sql_exception = e
 
         try:
@@ -541,9 +503,7 @@ def update_extension(archivedir, verbose, forums, ext_id):
     try:
         shutil.rmtree(path=tmpdir)
     except Exception as e:
-        logtxt = logmsg(verbose, logtxt,
-                        "           * FATAL: cannot remove archive directory")
-        logtxt = logmsg(verbose, logtxt, " / Exception: {}\n".format(str(e)))
+        logging.exception(8 * " " + "* FATAL: cannot remove archive directory")
         tar_exception = e
         try:
             write_text(tardir, date, ext_id + ".dir.remove.exception",
@@ -551,49 +511,41 @@ def update_extension(archivedir, verbose, forums, ext_id):
         except Exception:
             pass
 
-    logtxt = logmsg(
-        verbose,
-        logtxt,
-        "           * Duration: {}\n".format(
+        logging.info(8 * " " + "* Duration: {}".format(
             datetime.timedelta(seconds=int(time.time() - start))))
-    log(verbose, logtxt)
     return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
                         res_reviews, res_support, sql_exception, sql_success)
 
 
-def update_extensions(archivedir, verbose, parallel, forums_ext_ids, ext_ids):
+def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
     ext_with_forums = []
     ext_without_forums = []
     ext_ids = list(set(ext_ids) - set(forums_ext_ids))
     forums_ext_ids = list(set(forums_ext_ids))
-    log(verbose, "Updating {} extensions ({} including forums)\n".format(
+    logging.info("Updating {} extensions ({} including forums)".format(
         len(ext_ids), len(forums_ext_ids)))
     # First, update extensions with forums sequentially (and with delays) to
     # avoid running into Googles DDOS detection.
-    log(verbose,
-        "  Updating {} extensions including forums (sequentially))\n".format(
-            len(forums_ext_ids)))
+    logging.info(2 * " " +
+                 "Updating {} extensions including forums (sequentially))".
+                 format(len(forums_ext_ids)))
 
     ext_with_forums = list(
-        map(
-            partial(update_extension, archivedir, verbose, True),
-            forums_ext_ids))
+        map(partial(update_extension, archivedir, True), forums_ext_ids))
 
     # Second, update extensions without forums parallel to increase speed.
     parallel_ids = list(set(ext_ids) - set(forums_ext_ids))
-    log(verbose,
-        "  Updating {} extensions excluding forums (parallel))\n".format(
-            len(parallel_ids)))
+    logging.info(2 * " " +
+                 "Updating {} extensions excluding forums (parallel))".format(
+                     len(parallel_ids)))
     with Pool(parallel) as p:
         ext_without_forums = list(
-            p.map(
-                partial(update_extension, archivedir, verbose, False),
-                parallel_ids))
+            p.map(partial(update_extension, archivedir, False), parallel_ids))
 
     return ext_with_forums + ext_without_forums
 
 
-def get_existing_ids(archivedir, verbose):
+def get_existing_ids(archivedir):
     byte = '[0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z]'
     word = byte + byte + byte + byte
     return list(
@@ -601,7 +553,7 @@ def get_existing_ids(archivedir, verbose):
             glob.glob(os.path.join(archivedir, "*", word + ".tar"))))
 
 
-def get_forum_ext_ids(confdir, verbose):
+def get_forum_ext_ids(confdir):
     with open(os.path.join(confdir, "forums.conf")) as f:
         ids = f.readlines()
     r = re.compile('^[a-p]+$')
