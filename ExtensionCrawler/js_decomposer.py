@@ -39,6 +39,7 @@ class FileClassification(Enum):
     LIBRARY = 1
     LIKELY_LIBRARY = 2
     APPLICATION = 3
+    EMPTY_FILE = 4
 
 def load_lib_identifiers():
     """Initialize identifiers for known libraries from JSON file."""
@@ -98,6 +99,9 @@ def init_jsinfo(zipfile, js_file):
         'size': int(js_file.file_size),
         'path': js_file.filename
     }
+    if js_info['size'] == 0:
+        js_info['type'] = FileClassification.EMPTY_FILE
+
     return js_info
 
 def analyse_md5_checksum(zipfile, js_file, js_info):
@@ -212,19 +216,22 @@ def decompose_js(zipfile):
     for js_file in list(filter(lambda x: x.filename.endswith(".js"), zipfile.infolist())):
         js_info = init_jsinfo(zipfile, js_file)
 
-        js_info_file = analyse_md5_checksum(zipfile, js_file, js_info)
-        if not js_info_file:
-            js_info_file = analyse_filename(zipfile, js_file, js_info)
-            js_info_file += analyse_comment_blocks(zipfile, js_file, js_info)
-
-        if not js_info_file:
-            # if no library could be detected, we report the JavaScript file as 'application'.
-            js_info['lib'] = None
-            js_info['ver'] = None
-            js_info['detectMethod'] = None
-            js_info['type'] = FileClassification.APPLICATION
+        if js_info['type'] == FileClassification.EMPTY_FILE:
             js_inventory.append(js_info)
         else:
-            js_inventory += js_info_file
+            js_info_file = analyse_md5_checksum(zipfile, js_file, js_info)
+            if not js_info_file:
+                js_info_file = analyse_filename(zipfile, js_file, js_info)
+                js_info_file += analyse_comment_blocks(zipfile, js_file, js_info)
+
+            if not js_info_file:
+                # if no library could be detected, we report the JavaScript file as 'application'.
+                js_info['lib'] = None
+                js_info['ver'] = None
+                js_info['detectMethod'] = None
+                js_info['type'] = FileClassification.APPLICATION
+                js_inventory.append(js_info)
+            else:
+                js_inventory += js_info_file
 
     return remdups(js_inventory)
