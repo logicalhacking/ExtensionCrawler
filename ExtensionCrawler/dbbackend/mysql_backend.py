@@ -92,9 +92,5 @@ class MysqlBackend:
             """(select 1 from extension e2 where e2.extid=e1.extid and e2.date<e1.date)""",
             (extid, date))
 
-    def etag_already_in_db(self, etag):
-        return self.get_single_value(
-            "SELECT COUNT(crx_etag) FROM crx WHERE crx_etag=%s", (etag, ))
-
     def convert_date(self, date):
         return date[:-6]

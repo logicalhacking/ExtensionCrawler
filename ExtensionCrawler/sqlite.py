@@ -209,12 +209,6 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
 
             size = os.path.getsize(crx_path)
             public_key = read_crx(crx_path).public_key
-            con.insert(
-                "crx",
-                crx_etag=etag,
-                filename=filename,
-                size=size,
-                publickey=public_key)
 
             with f.open("manifest.json") as m:
                 raw_content = m.read()
@@ -227,13 +221,21 @@ def parse_and_insert_crx(ext_id, date, datepath, con, verbose, indent):
 
                 # Attempt to remove JavaScript-style comments from json
                 comment_regex = re.compile(r'\s*//.*')
-                multiline_comment_regex = re.compile(r'\s*/\\*.*\\*/')
+                multiline_comment_regex = re.compile(r'\s*/\\*.*\\*/\s*')
                 lines = content.splitlines()
                 for index, line in enumerate(lines):
-                    if comment_regex.match(
-                            line) or multiline_comment_regex.match(line):
+                    if comment_regex.fullmatch(
+                            line) or multiline_comment_regex.fullmatch(line):
                         lines[index] = ""
                 content = "\n".join(lines)
+
+                con.insert(
+                    "crx",
+                    crx_etag=etag,
+                    filename=filename,
+                    size=size,
+                    manifest=content,
+                    publickey=public_key)
 
                 manifest = json.loads(content, strict=False)
                 if "permissions" in manifest:
@@ -416,31 +418,26 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
 
     if const_use_mysql():
         # Don't forget to create a ~/.my.cnf file with the credentials
-        backend = MysqlBackend(
-            host=const_mysql_host(),
-            db=const_mysql_db(),
-            read_default_file=const_mysql_config_file())
+        backend = MysqlBackend(read_default_file=const_mysql_config_file())
     else:
         backend = SqliteBackend(db_path)
 
     with backend as con:
         etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
         txt = logmsg(verbose, txt, etag_msg)
-        etag_already_in_db = con.etag_already_in_db(etag)
 
         if etag:
-            if not etag_already_in_db:
-                try:
-                    crx_msg = parse_and_insert_crx(ext_id, date, datepath, con,
-                                                   verbose, indent2)
-                    txt = logmsg(verbose, txt, crx_msg)
-                except zipfile.BadZipfile as e:
-                    txt = logmsg(
-                        verbose, txt, indent2 +
-                        "* WARNING: the found crx file is not a zip file, exception: "
-                    )
-                    txt = logmsg(verbose, txt, str(e))
-                    txt = logmsg(verbose, txt, "\n")
+            try:
+                crx_msg = parse_and_insert_crx(ext_id, date, datepath, con,
+                                               verbose, indent2)
+                txt = logmsg(verbose, txt, crx_msg)
+            except zipfile.BadZipfile as e:
+                txt = logmsg(
+                    verbose, txt, indent2 +
+                    "* WARNING: the found crx file is not a zip file, exception: "
+                )
+                txt = logmsg(verbose, txt, str(e))
+                txt = logmsg(verbose, txt, "\n")
         else:
             crx_status = get_crx_status(datepath)
             if crx_status != 401 and crx_status != 204 and crx_status != 404:
