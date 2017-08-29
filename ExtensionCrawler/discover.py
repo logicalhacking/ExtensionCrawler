@@ -23,7 +23,7 @@ import re
 from functools import reduce
 import requests
 import ExtensionCrawler.config
-from ExtensionCrawler.util import log
+import logging
 
 
 def crawl_nearly_all_of_ext_ids():
@@ -54,16 +54,15 @@ def crawl_nearly_all_of_ext_ids():
     return [re.search("[a-z]{32}", url).group(0) for url in overview_urls]
 
 
-def get_new_ids(verbose, known_ids):
+def get_new_ids(known_ids):
     """Discover new extension ids."""
-    log(verbose, "Discovering new ids ... \n")
+    logging.info("Discovering new ids ...")
     discovered_ids = []
     try:
         discovered_ids = ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
-    except Exception as ex:
-        log(verbose,
-            "  EXCEPTION during discovering of new ids: {}\n".format(str(ex)))
+    except Exception:
+        logging.exception("Exception when discovering new ids")
     new_ids = list(set(discovered_ids) - set(known_ids))
-    log(verbose, "  Discovered {} new extensions (out of {})\n".format(
+    logging.info(2 * " " + "Discovered {} new extensions (out of {})".format(
         len(new_ids), len(discovered_ids)))
     return new_ids

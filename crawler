@@ -25,11 +25,12 @@ import datetime
 import time
 import getopt
 import sqlite3
+import logging
 from functools import reduce
 from ExtensionCrawler.discover import get_new_ids
 from ExtensionCrawler.archive import get_forum_ext_ids, get_existing_ids, update_extensions
-from ExtensionCrawler.util import log
-import ExtensionCrawler.config
+from ExtensionCrawler.config import *
+
 
 def write_log(dirname, fname, text):
     """Write text into the file with name fname in directory dirname."""
@@ -92,52 +93,44 @@ def log_failures_to_file(dirname, today, res):
     write_log(dirname, today + "-sql-not-updated.log", sql_success)
 
 
-def log_summary(verbose, res, stderr=False, runtime=0):
-    """Log brief result summary to log stream of stderr."""
-
-    def printlog(msg):
-        """Print log message."""
-        if stderr:
-            sys.stderr.write(msg)
-        else:
-            log(verbose, msg)
+def log_summary(res, runtime=0):
+    """Log brief result summary."""
 
     corrupt_tar_archives = list(filter(lambda x: x.corrupt_tar(), res))
 
-    printlog("\n")
-    printlog("Summary:\n")
-    printlog("    Updated {} out of {} extensions successfully\n".format(
+    logging.info("Summary:")
+    logging.info("    Updated {} out of {} extensions successfully".format(
         str(len(list(filter(lambda x: x.is_ok(), res)))), str(len(res))))
-    printlog("    Updated extensions:      {:8d}\n".format(
+    logging.info("    Updated extensions:      {:8d}".format(
         len(list(filter(lambda x: x.is_ok() and not x.not_modified(), res)))))
-    printlog("    Updated SQL databases:   {:8d}\n".format(
+    logging.info("    Updated SQL databases:   {:8d}".format(
         len(list(filter(lambda x: x.sql_success(), res)))))
-    printlog("    New extensions:          {:8d}\n".format(
+    logging.info("    New extensions:          {:8d}".format(
         len(list(filter(lambda x: x.is_new(), res)))))
-    printlog("    Not authorized:          {:8d}\n".format(
+    logging.info("    Not authorized:          {:8d}".format(
         len(list(filter(lambda x: x.not_authorized(), res)))))
-    printlog("    Raised Google DDOS:      {:8d}\n".format(
+    logging.info("    Raised Google DDOS:      {:8d}".format(
         len(list(filter(lambda x: x.raised_google_ddos(), res)))))
-    printlog("    Not modified archives:   {:8d}\n".format(
+    logging.info("    Not modified archives:   {:8d}".format(
         len(list(filter(lambda x: x.not_modified(), res)))))
-    printlog("    Extensions not in store: {:8d}\n".format(
+    logging.info("    Extensions not in store: {:8d}".format(
         len(list(filter(lambda x: x.not_in_store(), res)))))
-    printlog("    Unknown exception:       {:8d}\n".format(
+    logging.info("    Unknown exception:       {:8d}".format(
         len(list(filter(lambda x: x.has_exception(), res)))))
-    printlog("    Corrupt tar archives:    {:8d}\n".format(
-        len(corrupt_tar_archives)))
-    printlog("    SQL exception:           {:8d}\n".format(
+    logging.info(
+        "    Corrupt tar archives:    {:8d}".format(len(corrupt_tar_archives)))
+    logging.info("    SQL exception:           {:8d}".format(
         len(list(filter(lambda x: x.sql_exception(), res)))))
-    printlog("    Total runtime:            {}\n".format(
+    logging.info("    Total runtime:            {}".format(
         str(datetime.timedelta(seconds=int(runtime)))))
 
     if corrupt_tar_archives != []:
-        printlog("\n\n")
-        printlog("List of extensions with corrupted files/archives:\n")
+        logging.info("")
+        logging.info("List of extensions with corrupted files/archives:")
         list(
-            map(lambda x: printlog("    " + x.id + ": " + str(x.exception) + "\n"),
-                corrupt_tar_archives))
-        printlog("\n")
+            map(lambda x: logging.info("    " + x.id + ": " + str(x.exception), corrupt_tar_archives)
+                ))
+        logging.info("")
 
 
 def helpmsg():
@@ -149,26 +142,24 @@ def helpmsg():
     print("    -a=<DIR>  archive directory")
 
 
-def print_config(verbose, basedir, archive_dir, conf_dir, discover, parallel):
+def print_config(basedir, archive_dir, conf_dir, discover, parallel):
     """Print current configuration."""
-    log(verbose, "Configuration:\n")
-    log(verbose, "  Base dir:                         {}\n".format(basedir))
-    log(verbose,
-        "    Archive directory:              {}\n".format(archive_dir))
-    log(verbose, "    Configuration directory:        {}\n".format(conf_dir))
-    log(verbose, "  Discover new extensions:          {}\n".format(discover))
-    log(verbose, "  Max num. of concurrent downloads: {}\n".format(parallel))
-    log(verbose, "  SQLite 3 version:                 {}\n".format(
+    logging.info("Configuration:")
+    logging.info("  Base dir:                         {}".format(basedir))
+    logging.info("    Archive directory:              {}".format(archive_dir))
+    logging.info("    Configuration directory:        {}".format(conf_dir))
+    logging.info("  Discover new extensions:          {}".format(discover))
+    logging.info("  Max num. of concurrent downloads: {}".format(parallel))
+    logging.info("  SQLite 3 version:                 {}".format(
         sqlite3.sqlite_version))
-    log(verbose, "\n")
 
 
 def parse_args(argv):
     """Parse command line arguments. """
-    basedir = ExtensionCrawler.config.const_basedir()
-    parallel = ExtensionCrawler.config.const_parallel_downloads()
-    verbose = ExtensionCrawler.config.const_verbose()
-    discover = ExtensionCrawler.config.const_discover()
+    basedir = const_basedir()
+    parallel = const_parallel_downloads()
+    verbose = const_verbose()
+    discover = const_discover()
     try:
         opts, _ = getopt.getopt(argv, "hsda:p:", ["archive=", 'parallel='])
     except getopt.GetoptError:
@@ -191,8 +182,15 @@ def parse_args(argv):
 
 def main(argv):
     """Main function of the extension crawler."""
+
     today = datetime.datetime.now(datetime.timezone.utc).isoformat()
     basedir, parallel, verbose, discover = parse_args(argv)
+
+    if verbose:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.WARNING
+    logging.basicConfig(level=loglevel, format=const_log_format())
 
     archive_dir = os.path.join(basedir, "data")
     os.makedirs(archive_dir, exist_ok=True)
@@ -204,41 +202,38 @@ def main(argv):
 
     start_time = time.time()
 
-    print_config(verbose, basedir, archive_dir, conf_dir, discover, parallel)
+    print_config(basedir, archive_dir, conf_dir, discover, parallel)
 
-    forum_ext_ids = get_forum_ext_ids(conf_dir, verbose)
-    known_ids = list(
-        set(get_existing_ids(archive_dir, verbose)) | set(forum_ext_ids))
+    forum_ext_ids = get_forum_ext_ids(conf_dir)
+    known_ids = list(set(get_existing_ids(archive_dir)) | set(forum_ext_ids))
     discovered_ids = []
     if discover:
-        discovered_ids = get_new_ids(verbose, known_ids)
+        discovered_ids = get_new_ids(known_ids)
     ext_ids = list(set(discovered_ids) | set(known_ids))
 
     discovered_ids = None
     known_ids = None
 
-    res = update_extensions(archive_dir, verbose, parallel, forum_ext_ids,
-                            ext_ids)
+    res = update_extensions(archive_dir, parallel, forum_ext_ids, ext_ids)
 
     # We re-try (once) the extensions with unknown exceptions, as
     # they are often temporary
     has_exception = list(filter(lambda x: x.has_exception(), res))
     if has_exception != []:
-        log(verbose,
-            "  {} extensions with unknown exceptions, start another try ...\n".
+        logging.info(
+            "  {} extensions with unknown exceptions, start another try ...".
             format(str(len(has_exception))))
         has_exception_ids = list(map(lambda x: x.id, has_exception))
         forum_ext_ids_except = list(
             set(forum_ext_ids).intersection(set(has_exception_ids)))
         ext_ids_except = sorted(
             list(set(has_exception_ids) - set(forum_ext_ids_except)))
-        res_update = update_extensions(archive_dir, verbose, parallel,
+        res_update = update_extensions(archive_dir, parallel,
                                        forum_ext_ids_except, ext_ids_except)
         res = list(set(res) - set(has_exception)) + res_update
 
     end_time = time.time()
-    log_summary(verbose, res, False, end_time - start_time)
-    log_summary(verbose, res, True, end_time - start_time)
+    log_summary(res, end_time - start_time)
     log_failures_to_file(log_dir, today, res)
 
 

@@ -22,12 +22,13 @@ import sys
 import tarfile
 import time
 import tempfile
-import traceback
 import fnmatch
-from multiprocessing import Pool, Lock
+from multiprocessing import Pool
 from functools import partial
+import logging
 
 from ExtensionCrawler.archive import update_sqlite_incremental
+from ExtensionCrawler.config import *
 
 
 def help():
@@ -42,20 +43,6 @@ def help():
     print("    -N <MAXTASKID>      ")
 
 
-def guarded_stdout(string):
-    lock.acquire()
-    sys.stdout.write(string)
-    sys.stdout.flush()
-    lock.release()
-
-
-def guarded_stderr(string):
-    lock.acquire()
-    sys.stderr.write(string)
-    sys.stderr.flush()
-    lock.release()
-
-
 def process_id(dbbasedir, path):
     start = time.time()
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -63,7 +50,7 @@ def process_id(dbbasedir, path):
             t.extractall(tmpdir)
 
             extid = os.listdir(tmpdir)[0]
-            guarded_stdout("Processing {}\n".format(extid))
+            logging.info("Processing {}".format(extid))
             dbpath = os.path.join(dbbasedir, extid + ".sqlite")
             if os.path.exists(dbpath):
                 os.remove(dbpath)
@@ -71,12 +58,11 @@ def process_id(dbbasedir, path):
 
             for date in sorted(os.listdir(iddir)):
                 try:
-                    update_sqlite_incremental(dbpath, iddir, extid, date, True,
-                                              "")
+                    update_sqlite_incremental(dbpath, iddir, extid, date)
                 except Exception:
-                    guarded_stderr("Exception when handling {} on {}:\n{}\n".
-                                   format(extid, date, traceback.format_exc()))
-    guarded_stdout("Finished   {} in {}s\n".format(extid, time.time() - start))
+                    logging.exception("Exception when handling {} on {}".
+                                   format(extid, date))
+    logging.info("Finished   {} in {}s".format(extid, time.time() - start))
 
 
 def find(archive, pattern):
@@ -95,11 +81,6 @@ def find_from_file(archive, extidlistfile):
             for extid in extids:
                 if fnmatch.fnmatch(file, extid + ".tar"):
                     yield os.path.join(root, file)
-
-
-def init(l):
-    global lock
-    lock = l
 
 
 def parse_args(argv):
@@ -155,9 +136,11 @@ def parse_args(argv):
 
 
 def main(argv):
+    logging.basicConfig(level=logging.INFO, format=const_log_format())
+
     dbbasedir, paths, parallel = parse_args(argv)
 
-    with Pool(initializer=init, initargs=(Lock(), ), processes=parallel) as p:
+    with Pool(processes=parallel) as p:
         p.map(partial(process_id, dbbasedir), paths)
 
 
