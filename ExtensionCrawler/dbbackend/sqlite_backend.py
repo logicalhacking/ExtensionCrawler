@@ -148,10 +148,6 @@ class SqliteBackend:
         else:
             return None
 
-    def etag_already_in_db(self, etag):
-        return self.get_single_value(
-            "SELECT COUNT(crx_etag) FROM crx WHERE crx_etag=?", (etag, ))
-
     def insert(self, table, **kwargs):
         args = tuple(kwargs.values())
         self.con.execute("INSERT OR REPLACE INTO {}({}) VALUES ({})".format(

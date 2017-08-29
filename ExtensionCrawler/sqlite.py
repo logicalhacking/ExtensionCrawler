@@ -423,21 +423,19 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date, verbose,
     with backend as con:
         etag, etag_msg = get_etag(ext_id, datepath, con, verbose, indent2)
         txt = logmsg(verbose, txt, etag_msg)
-        etag_already_in_db = con.etag_already_in_db(etag)
 
         if etag:
-            if not etag_already_in_db:
-                try:
-                    crx_msg = parse_and_insert_crx(ext_id, date, datepath, con,
-                                                   verbose, indent2)
-                    txt = logmsg(verbose, txt, crx_msg)
-                except zipfile.BadZipfile as e:
-                    txt = logmsg(
-                        verbose, txt, indent2 +
-                        "* WARNING: the found crx file is not a zip file, exception: "
-                    )
-                    txt = logmsg(verbose, txt, str(e))
-                    txt = logmsg(verbose, txt, "\n")
+            try:
+                crx_msg = parse_and_insert_crx(ext_id, date, datepath, con,
+                                               verbose, indent2)
+                txt = logmsg(verbose, txt, crx_msg)
+            except zipfile.BadZipfile as e:
+                txt = logmsg(
+                    verbose, txt, indent2 +
+                    "* WARNING: the found crx file is not a zip file, exception: "
+                )
+                txt = logmsg(verbose, txt, str(e))
+                txt = logmsg(verbose, txt, "\n")
         else:
             crx_status = get_crx_status(datepath)
             if crx_status != 401 and crx_status != 204 and crx_status != 404:
