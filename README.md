@@ -7,8 +7,9 @@ extension from the Chrome Web store.
 * `crx-tool`: A tool for analyzing and extracting `*.crx` files
   (i.e., Chrome extensions). Calling `crx-tool.py <extension>.crx`
   will check the integrity of the extension.
-* `crx-extract`: A simple tool for extracint `*.crx` files from the
-   tar-based archive hierarchy. 
+* `crx-extract`: A simple tool for extracting `*.crx` files from the
+   tar-based archive hierarchy.
+* `crx-jsdecompose: Build a JavaScript inventory of a *.crx` file.\
 * `create-db`: A tool for creating/initializing the database files
   from already existing extension archives.
 
