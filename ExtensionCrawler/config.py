@@ -156,7 +156,7 @@ def const_mysql_config_file():
     return "~/.my.cnf"
 
 def const_mysql_maxtries():
-    return 20
+    return 3
 
 def const_mysql_try_wait():
-    return 30
+    return 2
