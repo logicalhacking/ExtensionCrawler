@@ -36,6 +36,7 @@ class DetectionType(Enum):
     URL = "known_url"
     MD5 = "md5"
     SHA1 = "sha1"
+    DEFAULT = "default"
 
 class FileClassification(Enum):
     """ Enumeration for file classification"""
@@ -170,7 +171,7 @@ def analyse_comment_known_libs(zipfile, js_file, js_info, comment):
             js_info['lib'] = ((js_file.filename).replace(
                 '.js', '')).replace('.min', '')
             js_info['ver'] = match.group(2)
-            js_info['detectMethod'] = DetectionType.FILENAME_FILECONTENT
+            js_info['detectMethod'] = DetectionType.COMMENTBLOCK
             js_info['type'] = FileClassification.LIKELY_LIBRARY
             libs.append(js_info)
     return libs
@@ -184,7 +185,7 @@ def analyse_comment_generic_libs(zipfile, js_file, js_info, comment):
             js_info['lib'] = ((js_file.filename).replace(
                 '.js', '')).replace('.min', '')
             js_info['ver'] = match.group(2)
-            js_info['detectMethod'] = DetectionType.FILENAME_FILECONTENT
+            js_info['detectMethod'] = DetectionType.COMMENTBLOCK
             js_info['type'] = FileClassification.LIKELY_LIBRARY
             libs.append(js_info)
     return libs
@@ -232,7 +233,7 @@ def decompose_js(zipfile):
                 # if no library could be detected, we report the JavaScript file as 'application'.
                 js_info['lib'] = None
                 js_info['ver'] = None
-                js_info['detectMethod'] = None
+                js_info['detectMethod'] = DetectionType.DEFAULT
                 js_info['type'] = FileClassification.APPLICATION
                 js_inventory.append(js_info)
             else:
