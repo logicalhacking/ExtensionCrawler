@@ -138,7 +138,7 @@ def const_verbose():
     return True
 
 def const_log_format():
-    return '%(process)s %(asctime)s %(message)s'
+    return '%(process)6s %(asctime)s %(message)s'
 
 def const_discover():
     """Default configuration of discovery mode"""

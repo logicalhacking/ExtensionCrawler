@@ -20,7 +20,7 @@ import MySQLdb
 import _mysql_exceptions
 import atexit
 import time
-from random import random
+from random import uniform
 from ExtensionCrawler.util import log_info, log_error, log_exception
 
 db = None
@@ -48,11 +48,11 @@ class MysqlBackend:
                 else:
                     log_exception(
                         """Exception on mysql connection attempt {} of {}, """
-                        """wating {}s before retrying...""".format(
+                        """wating {}s +/- 20% before retrying...""".format(
                             t + 1,
                             const_mysql_maxtries(),
                             const_mysql_try_wait()), 3, self.ext_id)
-                    time.sleep(const_mysql_try_wait() + random() * 1.0)
+                    time.sleep(const_mysql_try_wait() * uniform(0.8, 1.2))
 
     def __init__(self, ext_id, **kwargs):
         self.ext_id = ext_id
