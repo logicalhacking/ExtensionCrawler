@@ -28,18 +28,23 @@ from ExtensionCrawler.js_mincer import mince_js
 
 class DetectionType(Enum):
     """Enumeration for detection types."""
-    FILENAME = 1
-    FILECONTENT = 2
-    FILENAME_FILECONTENT = 3
-    URL = 4
-    HASH = 5
+    FILENAME = "filename"
+    COMMENTBLOCK = "comment_block"
+    CODEBLOCK = "code_block"
+    FILENAME_COMMENT = "filename_and_comment_block"
+    FILENAME_CODE = "filename_and_code_block"
+    URL = "known_url"
+    MD5 = "md5"
+    SHA1 = "sha1"
+    DEFAULT = "default"
 
 class FileClassification(Enum):
     """ Enumeration for file classification"""
-    LIBRARY = 1
-    LIKELY_LIBRARY = 2
-    APPLICATION = 3
-    EMPTY_FILE = 4
+    LIBRARY = "known_library"
+    LIKELY_LIBRARY = "likely_library"
+    APPLICATION = "likely_application"
+    EMPTY_FILE = "empty_file"
+    FILE_SIZE = "file_size"
 
 def load_lib_identifiers():
     """Initialize identifiers for known libraries from JSON file."""
@@ -83,40 +88,60 @@ def unknown_lib_identifiers():
 def init_jsinfo(zipfile, js_file):
     """Initialize jsinfo record."""
     data = ""
-    with zipfile.open(js_file) as js_file_obj:
-        data = js_file_obj.read()
+    if zipfile is not None:
+        with zipfile.open(js_file) as js_file_obj:
+            data = js_file_obj.read()
+            js_filename = os.path.basename(js_file.filename)
+            file_size = int(js_file.file_size)
+            path = js_file.filename
+    else:
+        with open(js_file, mode='rb') as js_file_obj:
+            data = js_file_obj.read()
+            js_filename = os.path.basename(js_file)
+            file_size = len(data)
+            path = js_file
+
     js_info = {
         'lib': None,
-        'ver': None,
-        'detectMethod': None,
+        'version': None,
+        'detectionMethod': None,
         'type': None,
         'evidenceStartPos': None,
         'evidenceEndPos': None,
         'evidenceText': None,
         'encoding': chardet.detect(data)['encoding'],
-        'jsFilename': os.path.basename(js_file.filename),
+        'jsFilename': js_filename,
         'md5': hashlib.md5(data).digest(),
         'sha1': hashlib.sha1(data).digest(),
-        'size': int(js_file.file_size),
-        'path': js_file.filename
+        'size': file_size,
+        'path': path
     }
     if js_info['size'] == 0:
+        js_info['detectionMethod'] = FileClassification.FILE_SIZE
         js_info['type'] = FileClassification.EMPTY_FILE
 
     return js_info
 
-def analyse_md5_checksum(zipfile, js_file, js_info):
+def analyse_checksum(zipfile, js_file, js_info):
     """Check for known md5 hashes (file content)."""
     json_data = load_lib_identifiers()
     for lib in json_data:
         for info in json_data[lib]:
-            if info == 'md5':
-                for md5 in json_data[lib]['md5']:
-                    if md5['hash'] == js_info['md5']:
+            if info == 'sha1':
+                for file in json_data[lib]['sha1']:
+                    if file['sha1'] == js_info['sha1']:
                         js_info['lib'] = lib
-                        js_info['ver'] = md5['version']
+                        js_info['version'] = file['version']
                         js_info['type'] = FileClassification.LIBRARY
-                        js_info['detectMethod'] = DetectionType.HASH
+                        js_info['detectionMethod'] = DetectionType.SHA1
+                        return [js_info]
+            if info == 'md5':
+                for file in json_data[lib]['md5']:
+                    if file['md5'] == js_info['md5']:
+                        js_info['lib'] = lib
+                        js_info['version'] = file['version']
+                        js_info['type'] = FileClassification.LIBRARY
+                        js_info['detectionMethod'] = DetectionType.MD5
                         return [js_info]
     return None
 
@@ -127,26 +152,35 @@ def analyse_known_filename(zipfile, js_file, js_info):
     libs = list()
     for lib, regex in load_lib_identifiers().items():
         if 'filename' in regex:
+            if zipfile is not None:
+                filename = js_file.filename
+            else:
+                filename = js_file
             filename_matched = re.search(regex['filename'],
-                                         js_file.filename, re.IGNORECASE)
+                                         filename, re.IGNORECASE)
             if filename_matched:
                 js_info['lib'] = lib
-                js_info['ver'] = filename_matched.group(2)
+                js_info['version'] = filename_matched.group(2)
                 js_info['type'] = FileClassification.LIBRARY
-                js_info['detectMethod'] = DetectionType.FILENAME
+                js_info['detectionMethod'] = DetectionType.FILENAME
                 libs.append(js_info)
     return libs
 
 def analyse_generic_filename(zipfile, js_file, js_info):
     """Check for generic file name patterns."""
     libs = list()
+    if zipfile is not None:
+        filename = js_file.filename
+    else:
+        filename = js_file
+
     unknown_filename_match = unknown_filename_identifier().search(
-        js_file.filename)
+        filename)
     if unknown_filename_match:
         js_info['lib'] = unknown_filename_match.group(1)
-        js_info['ver'] = unknown_filename_match.group(2)
+        js_info['version'] = unknown_filename_match.group(2)
         js_info['type'] = FileClassification.LIKELY_LIBRARY
-        js_info['detectMethod'] = DetectionType.FILENAME
+        js_info['detectionMethod'] = DetectionType.FILENAME
         libs.append(js_info)
     return libs
 
@@ -161,13 +195,18 @@ def analyse_filename(zipfile, js_file, js_info):
 def analyse_comment_known_libs(zipfile, js_file, js_info, comment):
     """Search for library specific identifiers in comment block."""
     libs = list()
+    if zipfile is not None:
+            filename = js_file.filename
+    else:
+        filename = js_file
+
     for unkregex in unknown_lib_identifiers():
         unkown_lib_matched = unkregex.finditer(comment.content)
         for match in unkown_lib_matched:
-            js_info['lib'] = ((js_file.filename).replace(
+            js_info['lib'] = ((filename).replace(
                 '.js', '')).replace('.min', '')
-            js_info['ver'] = match.group(2)
-            js_info['detectMethod'] = DetectionType.FILENAME_FILECONTENT
+            js_info['version'] = match.group(2)
+            js_info['detectionMethod'] = DetectionType.COMMENTBLOCK
             js_info['type'] = FileClassification.LIKELY_LIBRARY
             libs.append(js_info)
     return libs
@@ -175,35 +214,50 @@ def analyse_comment_known_libs(zipfile, js_file, js_info, comment):
 def analyse_comment_generic_libs(zipfile, js_file, js_info, comment):
     """Search for generic identifiers in comment block."""
     libs = list()
+    if zipfile is not None:
+            filename = js_file.filename
+    else:
+        filename = js_file
+
     for unkregex in unknown_lib_identifiers():
         unkown_lib_matched = unkregex.finditer(comment.content)
         for match in unkown_lib_matched:
-            js_info['lib'] = ((js_file.filename).replace(
+            js_info['lib'] = ((filename).replace(
                 '.js', '')).replace('.min', '')
-            js_info['ver'] = match.group(2)
-            js_info['detectMethod'] = DetectionType.FILENAME_FILECONTENT
+            js_info['version'] = match.group(2)
+            js_info['detectionMethod'] = DetectionType.COMMENTBLOCK
             js_info['type'] = FileClassification.LIKELY_LIBRARY
             libs.append(js_info)
     return libs
 
 def analyse_comment_blocks(zipfile, js_file, js_info):
     """Search for library identifiers in comment."""
-    libs = list()
+
+    def mince_js_fileobj(js_text_file_obj):
+        """Mince JavaScript file using a file object."""
+        libs = list()
+        for block in mince_js(js_text_file_obj, single_line_comments_block=True):
+            block_libs = list()
+            if block.is_comment():
+                block_libs = analyse_comment_known_libs(zipfile, js_file, js_info, block)
+                if block_libs is None:
+                    block_libs = analyse_comment_generic_libs(zipfile, js_file, js_info, block)
+            libs += block_libs
+            return libs
+
     try:
-        with zipfile.open(js_file) as js_file_obj:
-            with io.TextIOWrapper(js_file_obj, js_info['encoding']) as js_text_file_obj:
-                for block in mince_js(js_text_file_obj, single_line_comments_block=True):
-                    block_libs = list()
-                    if block.is_comment():
-                        block_libs = analyse_comment_known_libs(zipfile, js_file, js_info, block)
-                        if block_libs is None:
-                            block_libs = analyse_comment_generic_libs(zipfile, js_file, js_info, block)
-                    libs += block_libs
+        if zipfile is not None:
+            with zipfile.open(js_file) as js_file_obj:
+                with io.TextIOWrapper(js_file_obj, js_info['encoding']) as js_text_file_obj:
+                    libs=mince_js_fileobj(js_text_file_obj)
+        else:
+            with open(js_file) as js_text_file_obj:
+                    libs=mince_js_fileobj(js_text_file_obj)
     except:
         libs = list()
     return libs
 
-def decompose_js(zipfile):
+def decompose_js(file):
     """JavaScript decomposition analysis for extensions."""
     def remdups(lst):
         """Remove duplicates in a list."""
@@ -213,14 +267,21 @@ def decompose_js(zipfile):
                 res.append(sublist)
         return res
 
+    zipfile = None
     js_inventory = []
-    for js_file in list(filter(lambda x: x.filename.endswith(".js"), zipfile.infolist())):
+    if isinstance(file, str):
+        js_files = [file]
+    else:
+        zipfile = file
+        js_files = list(filter(lambda x: x.filename.endswith(".js"), zipfile.infolist()))
+
+    for js_file in js_files:
         js_info = init_jsinfo(zipfile, js_file)
 
         if js_info['type'] == FileClassification.EMPTY_FILE:
             js_inventory.append(js_info)
         else:
-            js_info_file = analyse_md5_checksum(zipfile, js_file, js_info)
+            js_info_file = analyse_checksum(zipfile, js_file, js_info)
             if not js_info_file:
                 js_info_file = analyse_filename(zipfile, js_file, js_info)
                 js_info_file += analyse_comment_blocks(zipfile, js_file, js_info)
@@ -228,8 +289,8 @@ def decompose_js(zipfile):
             if not js_info_file:
                 # if no library could be detected, we report the JavaScript file as 'application'.
                 js_info['lib'] = None
-                js_info['ver'] = None
-                js_info['detectMethod'] = None
+                js_info['version'] = None
+                js_info['detectionMethod'] = DetectionType.DEFAULT
                 js_info['type'] = FileClassification.APPLICATION
                 js_inventory.append(js_info)
             else:

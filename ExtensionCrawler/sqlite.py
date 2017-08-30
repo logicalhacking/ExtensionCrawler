@@ -256,19 +256,19 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                 con.insert(
                     "jsfile",
                     crx_etag=etag,
-                    detect_method=str(js_file_info['detectMethod']),
+                    detect_method=(js_file_info['detectionMethod']).value,
                     evidence_start_pos=str(js_file_info['evidenceStartPos']),
                     evidence_end_pos=str(js_file_info['evidenceEndPos']),
                     evidence_text=str(js_file_info['evidenceText']),
                     filename=js_file_info['jsFilename'],
-                    type=(js_file_info['type']).name,
+                    type=(js_file_info['type']).value,
                     lib=js_file_info['lib'],
                     path=js_file_info['path'],
                     encoding=js_file_info['encoding'],
                     md5=js_file_info['md5'],
                     sha1=js_file_info['sha1'],
                     size=js_file_info['size'],
-                    version=js_file_info['ver'])
+                    version=js_file_info['version'])
 
 
 def get(d, k):

@@ -161,6 +161,7 @@ def mince_js_fileobj(fileobj):
                             next_content = content[-1] + next_char
                             content = content[:-1]
                             cpos -= 1
+                            char = next_char
                         except StopIteration:
                             pass
                 elif is_string_literal_dq(state):
@@ -191,6 +192,7 @@ def mince_js_fileobj(fileobj):
                                 suc_state = JsBlockType.CODE_BLOCK
                             content = content + next_char
                             cpos += 1
+                            char = next_char
                         except StopIteration:
                             pass
 

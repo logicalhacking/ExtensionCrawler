@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) 2017 The University of Sheffield, UK
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+"""Tool for extracting crx file from a tar archive."""
+
+import sys
+import getopt
+import csv
+from collections import OrderedDict
+from zipfile import ZipFile
+from tabulate import tabulate
+from ExtensionCrawler.js_decomposer import decompose_js
+
+# Script should run with python 3.4 or 3.5
+assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
+
+
+def helpmsg():
+    """Print help message."""
+    print("crx-jsdecomose [OPTION] crx-file|js-file")
+    print("    -h        print this help text")
+    print("    -c=<FILE> cvs file (output)")
+    print("    -v        verbose")
+    print("    -s        silent")
+
+
+def main(argv):
+    """Main function of the extension crawler."""
+    verbose = False
+    silent = False
+    filename = None
+    csvfile = None
+    try:
+        opts, args = getopt.getopt(argv, "hvsc:", ["cvs="])
+    except getopt.GetoptError:
+        helpmsg()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            helpmsg()
+            sys.exit()
+        elif opt == '-v':
+            verbose = True
+        elif opt == '-s':
+            silent = True
+        elif opt in ('-c', "--cvs"):
+            csvfile = arg
+
+    if len(args) > 0:
+        filename = args[0]
+    else:
+        helpmsg()
+        sys.exit()
+
+    fieldnames = [
+        'jsFilename', 'path', 'size', 'md5', 'sha1', 'encoding', 'type',
+        'detectionMethod', 'lib', 'version', 'evidenceText', 'evidenceStartPos',
+        'evidenceEndPos'
+    ]
+
+    brief_fieldnames = [
+        'jsFilename', 'md5', 'type', 'detectionMethod', 'lib', 'version'
+    ]
+
+    if filename.endswith('.crx'):
+        with ZipFile(filename) as crxobj:
+            inventory = decompose_js(crxobj)
+    else:
+        inventory = decompose_js(filename)
+
+    if not silent:
+        if verbose:
+            print_fieldnames = fieldnames
+        else:
+            print_fieldnames = brief_fieldnames
+
+        print_inventory = []
+        for item in inventory:
+            tmp = {k: item[k] for k in print_fieldnames}
+            if 'type' in tmp:
+                tmp['type'] = tmp['type'].value
+            if 'detectionMethod' in tmp:
+                tmp['detectionMethod'] = tmp['detectionMethod'].value
+            print_inventory.append(
+                OrderedDict(
+                    sorted(
+                        tmp.items(),
+                        key=lambda t: print_fieldnames.index(t[0]))))
+        print(tabulate(print_inventory, headers='keys'))
+
+    if csvfile is not None:
+        with open(csvfile, 'w') as csvobj:
+            writer = csv.DictWriter(csvobj, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(inventory)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
