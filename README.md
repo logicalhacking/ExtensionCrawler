@@ -12,7 +12,7 @@ extension from the Chrome Web store.
 * `crx-jsinventory`: Build a JavaScript inventory of a `*.crx` file using a
                    JavaScript decomposition analysis.
 * `crx-jsstrings`: A tool for extracting code blocks, comment blocks, and
-*                string literals from JavaScript.
+                 string literals from JavaScript.
 * `create-db`: A tool for updating a remote MariaDB from already
    existing extension archives.
 
