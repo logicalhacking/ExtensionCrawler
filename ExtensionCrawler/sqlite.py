@@ -193,9 +193,9 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
 
 
 def parse_and_insert_crx(ext_id, date, datepath, con):
-    logging.info(16 * " " + "- parsing crx file")
     crx_path = next(iter(glob.glob(os.path.join(datepath, "*.crx"))), None)
     if crx_path:
+        logging.info(16 * " " + "- parsing crx file")
         filename = os.path.basename(crx_path)
 
         with ZipFile(crx_path) as f:
