@@ -10,4 +10,4 @@ set -o nounset
 
 printenv
 
-"$BASEDIR/ExtensionCrawler/create-db" -t 1 -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID "$BASEDIR/out"
+"$BASEDIR/ExtensionCrawler/create-db" -t 1 -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID "$BASEDIR/out" 2>&1 | bzip2 > "$BASEDIR/logs/$SGE_TASK_ID.log.bz2"
