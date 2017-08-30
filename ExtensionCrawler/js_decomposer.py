@@ -129,7 +129,7 @@ def analyse_checksum(zipfile, js_file, js_info):
         for info in json_data[lib]:
             if info == 'sha1':
                 for file in json_data[lib]['sha1']:
-                    if file['sha1'] == js_info['sha1']:
+                    if file['sha1'].lower() == js_info['sha1'].hex():
                         js_info['lib'] = lib
                         js_info['version'] = file['version']
                         js_info['type'] = FileClassification.LIBRARY
@@ -137,7 +137,7 @@ def analyse_checksum(zipfile, js_file, js_info):
                         return [js_info]
             if info == 'md5':
                 for file in json_data[lib]['md5']:
-                    if file['md5'] == js_info['md5']:
+                    if file['md5'].lower() == js_info['md5'].hex():
                         js_info['lib'] = lib
                         js_info['version'] = file['version']
                         js_info['type'] = FileClassification.LIBRARY
