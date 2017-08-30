@@ -36,18 +36,18 @@ def value_of(value, default):
         return default
 
 def log_debug(msg, indent_level=0, extid="-" * 32):
-    logging.debug(str(extid) + " " + 4 * indent_level * " " + msg)
+    logging.debug(str(extid) + " " + 4 * indent_level * " " + str(msg))
 
 def log_info(msg, indent_level=0, extid="-" * 32):
-    logging.info(str(extid) + " " + 4 * indent_level * " " + msg)
+    logging.info(str(extid) + " " + 4 * indent_level * " " + str(msg))
 
 def log_warning(msg, indent_level=0, extid="-" * 32):
-    logging.warning(str(extid) + " " + 4 * indent_level * " " + msg)
+    logging.warning(str(extid) + " " + 4 * indent_level * " " + str(msg))
 
 def log_error(msg, indent_level=0, extid="-" * 32):
-    logging.error(str(extid) + " " + 4 * indent_level * " " + msg)
+    logging.error(str(extid) + " " + 4 * indent_level * " " + str(msg))
 
 def log_exception(msg, indent_level=0, extid="-" * 32):
-    logging.error(str(extid) + " " + 4 * indent_level * " " + msg)
+    logging.error(str(extid) + " " + 4 * indent_level * " " + str(msg))
     for line in traceback.format_exc().splitlines():
         logging.error(str(extid) + " " + 4 * indent_level * " " + line)

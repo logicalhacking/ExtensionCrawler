@@ -52,7 +52,8 @@ def get_etag(ext_id, datepath, con):
                 if "ETag" in headers:
                     return headers["ETag"]
             except Exception:
-                log_warning("* WARNING: could not parse crx header file", 3, ext_id)
+                log_warning("* WARNING: could not parse crx header file", 3,
+                            ext_id)
 
     # Trying to look up previous etag in database
     linkpath = next(
@@ -62,8 +63,7 @@ def get_etag(ext_id, datepath, con):
             link = f.read()
             linked_date = link[3:].split("/")[0]
 
-            result = con.get_most_recent_etag(ext_id,
-                                              con.convert_date(linked_date))
+            result = con.get_etag(ext_id, con.convert_date(linked_date))
             if result is not None:
                 return result
 
@@ -350,8 +350,8 @@ def parse_and_insert_replies(ext_id, date, repliespath, con):
     with open(repliespath) as f:
         d = json.load(f)
         if not "searchResults" in d:
-            log_warning("* WARNING: there are no search results in {}".
-                            format(repliespath), 3, ext_id)
+            log_warning("* WARNING: there are no search results in {}".format(
+                repliespath), 3, ext_id)
             return
         results = []
         for result in d["searchResults"]:
@@ -411,15 +411,17 @@ def update_db_incremental(tmptardir, ext_id, date):
     datepath = os.path.join(tmptardir, date)
 
     # Don't forget to create a ~/.my.cnf file with the credentials
-    with MysqlBackend(ext_id, read_default_file=const_mysql_config_file()) as con:
+    with MysqlBackend(
+            ext_id, read_default_file=const_mysql_config_file()) as con:
         etag = get_etag(ext_id, datepath, con)
 
         if etag:
             try:
                 parse_and_insert_crx(ext_id, date, datepath, con)
             except zipfile.BadZipfile as e:
-                log_warning("* WARNING: the found crx file is not a zip file, exception: {}".
-                    format(str(e)), 2, ext_id)
+                log_warning(
+                    "* WARNING: the found crx file is not a zip file, exception: {}".
+                    format(str(e)), 3, ext_id)
         else:
             crx_status = get_crx_status(datepath)
             if crx_status != 401 and crx_status != 204 and crx_status != 404:
@@ -433,21 +435,24 @@ def update_db_incremental(tmptardir, ext_id, date):
             try:
                 parse_and_insert_review(ext_id, date, reviewpath, con)
             except json.decoder.JSONDecodeError as e:
-                log_warning("* Could not parse review file, exception: {}".
-                                format(str(e)), 3, ext_id)
+                log_warning(
+                    "* Could not parse review file, exception: {}".format(
+                        str(e)), 3, ext_id)
 
         supportpaths = glob.glob(os.path.join(datepath, "support*-*.text"))
         for supportpath in supportpaths:
             try:
                 parse_and_insert_support(ext_id, date, supportpath, con)
             except json.decoder.JSONDecodeError as e:
-                log_warning("* Could not parse support file, exception: {}".
-                    format(str(e)), 3, ext_id)
+                log_warning(
+                    "* Could not parse support file, exception: {}".format(
+                        str(e)), 3, ext_id)
 
         repliespaths = glob.glob(os.path.join(datepath, "*replies.text"))
         for repliespath in repliespaths:
             try:
                 parse_and_insert_replies(ext_id, date, repliespath, con)
             except json.decoder.JSONDecodeError as e:
-                log_warning("* Could not parse reply file, exception: {}".
-                                format(str(e)), 3, ext_id)
+                log_warning(
+                    "* Could not parse reply file, exception: {}".format(
+                        str(e)), 3, ext_id)

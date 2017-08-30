@@ -42,14 +42,15 @@ class MysqlBackend:
                 last_exception = e
                 if t + 1 == const_mysql_maxtries():
                     log_exception("MySQL connection eventually failed!", 3,
-                                self.ext_id)
+                                  self.ext_id)
                     raise last_exception
                 else:
                     log_exception(
                         """Exception on mysql connection attempt {} of {}, """
                         """wating {}s before retrying...""".format(
-                            t + 1, const_mysql_maxtries(), const_mysql_try_wait()),
-                        3, self.ext_id)
+                            t + 1,
+                            const_mysql_maxtries(),
+                            const_mysql_try_wait()), 3, self.ext_id)
                     time.sleep(const_mysql_try_wait())
 
     def __init__(self, ext_id, **kwargs):
@@ -95,10 +96,9 @@ class MysqlBackend:
     def insert(self, table, **kwargs):
         self.insertmany(table, [kwargs])
 
-    def get_most_recent_etag(self, extid, date):
+    def get_etag(self, extid, date):
         return self.get_single_value(
-            """SELECT crx_etag from extension e1 where extid=%s and date<%s and not exists """
-            """(select 1 from extension e2 where e2.extid=e1.extid and e2.date<e1.date)""",
+            """SELECT crx_etag from extension where extid=%s and date=%s""",
             (extid, date))
 
     def convert_date(self, date):
