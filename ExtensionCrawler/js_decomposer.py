@@ -97,7 +97,7 @@ def init_jsinfo(zipfile, js_file):
     else:
         with open(js_file, mode='rb') as js_file_obj:
             data = js_file_obj.read()
-            js_filename = os.path.basename(js_file),
+            js_filename = os.path.basename(js_file)
             file_size = len(data)
             path = js_file
 
