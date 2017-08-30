@@ -9,9 +9,13 @@ extension from the Chrome Web store.
   will check the integrity of the extension.
 * `crx-extract`: A simple tool for extracting `*.crx` files from the
    tar-based archive hierarchy.
-* `crx-jsdecompose: Build a JavaScript inventory of a *.crx` file.\
+* `crx-jsinventory`: Build a JavaScript inventory of a `*.crx` file using a
+                   JavaScript decomposition analysis.
+* `crx-jsstrings`: A tool for extracting code blocks, comment blocks, and
+*                string literals from JavaScript.
 * `create-db`: A tool for updating a remote MariaDB from already
    existing extension archives.
+>>>>>>> bde59c50401448e346032219ab2130a31b3d7ec8
 
 The utilities store the extensions in the following directory
 hierarchy:
