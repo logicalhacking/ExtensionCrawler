@@ -20,6 +20,8 @@
 
 from time import sleep
 from random import random
+import traceback
+import logging
 
 def google_dos_protection(maxrange=0.3):
     """Wait a random number of seconds (between 0.5 to 0.5+maxrange)
@@ -32,3 +34,20 @@ def value_of(value, default):
         return value
     else:
         return default
+
+def log_debug(msg, indent_level=0, extid="-" * 32):
+    logging.debug(str(extid) + " " + 4 * indent_level * " " + msg)
+
+def log_info(msg, indent_level=0, extid="-" * 32):
+    logging.info(str(extid) + " " + 4 * indent_level * " " + msg)
+
+def log_warning(msg, indent_level=0, extid="-" * 32):
+    logging.warning(str(extid) + " " + 4 * indent_level * " " + msg)
+
+def log_error(msg, indent_level=0, extid="-" * 32):
+    logging.error(str(extid) + " " + 4 * indent_level * " " + msg)
+
+def log_exception(msg, indent_level=0, extid="-" * 32):
+    logging.error(str(extid) + " " + 4 * indent_level * " " + msg)
+    for line in traceback.format_exc().splitlines():
+        logging.error(str(extid) + " " + 4 * indent_level * " " + line)

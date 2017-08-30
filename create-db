@@ -26,9 +26,11 @@ import fnmatch
 from multiprocessing import Pool
 from functools import partial
 import logging
+import datetime
 
 from ExtensionCrawler.archive import update_sqlite_incremental
 from ExtensionCrawler.config import *
+from ExtensionCrawler.util import log_info, log_warning, log_error, log_exception
 
 
 def help():
@@ -50,7 +52,7 @@ def process_id(dbbasedir, path):
             t.extractall(tmpdir)
 
             extid = os.listdir(tmpdir)[0]
-            logging.info("Processing {}".format(extid))
+            log_info("Start processing extension", 0, extid)
             dbpath = os.path.join(dbbasedir, extid + ".sqlite")
             if os.path.exists(dbpath):
                 os.remove(dbpath)
@@ -60,10 +62,9 @@ def process_id(dbbasedir, path):
                 try:
                     update_sqlite_incremental(dbpath, iddir, extid, date)
                 except Exception:
-                    logging.exception(
-                        "Exception when handling {} on {}".format(extid, date))
-    logging.info("Finished   {} in {}s".format(
-        extid, str(datetime.timedelta(seconds=time.time() - start))))
+                    log_exception("Exception when handling data from {}".format(date), 0, extid)
+    log_info("Finished extension in {}".format(
+        str(datetime.timedelta(seconds=int(time.time() - start)))), 0, extid)
 
 
 def find(archive, pattern):

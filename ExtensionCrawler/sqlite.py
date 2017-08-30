@@ -31,7 +31,6 @@ import json
 import os
 import glob
 import datetime
-import logging
 import hashlib
 
 
@@ -54,8 +53,7 @@ def get_etag(ext_id, datepath, con):
                 if "ETag" in headers:
                     return headers["ETag"]
             except Exception:
-                logging.warning(12 * " " +
-                                "* WARNING: could not parse crx header file")
+                log_warning("* WARNING: could not parse crx header file", 3, ext_id)
 
     # Trying to look up previous etag in database
     linkpath = next(
@@ -101,7 +99,7 @@ def get_crx_status(datepath):
 
 
 def parse_and_insert_overview(ext_id, date, datepath, con):
-    logging.info(12 * " " + "- parsing overview file")
+    log_debug("- parsing overview file", 3, ext_id)
     overview_path = os.path.join(datepath, "overview.html")
     if os.path.exists(overview_path):
         with open(overview_path) as overview_file:
@@ -195,7 +193,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
 def parse_and_insert_crx(ext_id, date, datepath, con):
     crx_path = next(iter(glob.glob(os.path.join(datepath, "*.crx"))), None)
     if crx_path:
-        logging.info(12 * " " + "- parsing crx file")
+        log_debug("- parsing crx file", 3, ext_id)
         filename = os.path.basename(crx_path)
 
         with ZipFile(crx_path) as f:
@@ -277,7 +275,7 @@ def get(d, k):
 
 
 def parse_and_insert_review(ext_id, date, reviewpath, con):
-    logging.info(12 * " " + "- parsing review file")
+    log_debug("- parsing review file", 3, ext_id)
     with open(reviewpath) as f:
         content = f.read()
         stripped = content[content.find('{"'):]
@@ -313,7 +311,7 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
 
 
 def parse_and_insert_support(ext_id, date, supportpath, con):
-    logging.info(12 * " " + "- parsing support file")
+    log_debug("- parsing support file", 3, ext_id)
     with open(supportpath) as f:
         content = f.read()
         stripped = content[content.find('{"'):]
@@ -349,12 +347,12 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
 
 
 def parse_and_insert_replies(ext_id, date, repliespath, con):
-    logging.info(12 * " " + "- parsing reply file")
+    log_debug("- parsing reply file", 3, ext_id)
     with open(repliespath) as f:
         d = json.load(f)
         if not "searchResults" in d:
-            logging.warning("* WARNING: there are no search results in {}".
-                            format(repliespath))
+            log_warning("* WARNING: there are no search results in {}".
+                            format(repliespath), 3, ext_id)
         results = []
         for result in d["searchResults"]:
             if "annotations" not in result:
@@ -389,7 +387,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con):
 
 
 def parse_and_insert_status(ext_id, date, datepath, con):
-    logging.info(12 * " " + "- parsing status file")
+    log_debug("- parsing status file", 3, ext_id)
     overview_status = get_overview_status(datepath)
     crx_status = get_crx_status(datepath)
 
@@ -409,12 +407,12 @@ def parse_and_insert_status(ext_id, date, datepath, con):
 
 
 def update_sqlite_incremental(db_path, tmptardir, ext_id, date):
-    logging.info(8 * " " + "* Updating db with data from from {}".format(date))
+    log_info("* Updating db with data from from {}".format(date), 2, ext_id)
     datepath = os.path.join(tmptardir, date)
 
     if const_use_mysql():
         # Don't forget to create a ~/.my.cnf file with the credentials
-        backend = MysqlBackend(read_default_file=const_mysql_config_file())
+        backend = MysqlBackend(ext_id, read_default_file=const_mysql_config_file())
     else:
         backend = SqliteBackend(db_path)
 
@@ -425,14 +423,12 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date):
             try:
                 parse_and_insert_crx(ext_id, date, datepath, con)
             except zipfile.BadZipfile as e:
-                logging.warning(
-                    12 * " " +
-                    "* WARNING: the found crx file is not a zip file, exception: {}".
-                    format(str(e)))
+                log_warning("* WARNING: the found crx file is not a zip file, exception: {}".
+                    format(str(e)), 2, ext_id)
         else:
             crx_status = get_crx_status(datepath)
             if crx_status != 401 and crx_status != 204 and crx_status != 404:
-                logging.warning(12 * " " + "* WARNING: could not find etag")
+                log_warning("* WARNING: could not find etag", 3, ext_id)
 
         parse_and_insert_overview(ext_id, date, datepath, con)
         parse_and_insert_status(ext_id, date, datepath, con)
@@ -442,24 +438,21 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date):
             try:
                 parse_and_insert_review(ext_id, date, reviewpath, con)
             except json.decoder.JSONDecodeError as e:
-                logging.warning(12 * " " +
-                                "* Could not parse review file, exception: {}".
-                                format(str(e)))
+                log_warning("* Could not parse review file, exception: {}".
+                                format(str(e)), 3, ext_id)
 
         supportpaths = glob.glob(os.path.join(datepath, "support*-*.text"))
         for supportpath in supportpaths:
             try:
                 parse_and_insert_support(ext_id, date, supportpath, con)
             except json.decoder.JSONDecodeError as e:
-                logging.warning(
-                    12 * " " + "* Could not parse support file, exception: {}".
-                    format(str(e)))
+                log_warning("* Could not parse support file, exception: {}".
+                    format(str(e)), 3, ext_id)
 
         repliespaths = glob.glob(os.path.join(datepath, "*replies.text"))
         for repliespath in repliespaths:
             try:
                 parse_and_insert_replies(ext_id, date, repliespath, con)
             except json.decoder.JSONDecodeError as e:
-                logging.warning(12 * " " +
-                                "* Could not parse reply file, exception: {}".
-                                format(str(e)))
+                log_warning("* Could not parse reply file, exception: {}".
+                                format(str(e)), 3, ext_id)

@@ -30,6 +30,7 @@ from functools import reduce
 from ExtensionCrawler.discover import get_new_ids
 from ExtensionCrawler.archive import get_forum_ext_ids, get_existing_ids, update_extensions
 from ExtensionCrawler.config import *
+from ExtensionCrawler.util import log_info
 
 
 def write_log(dirname, fname, text):
@@ -98,39 +99,39 @@ def log_summary(res, runtime=0):
 
     corrupt_tar_archives = list(filter(lambda x: x.corrupt_tar(), res))
 
-    logging.info("Summary:")
-    logging.info("    Updated {} out of {} extensions successfully".format(
+    log_info("Summary:")
+    log_info("    Updated {} out of {} extensions successfully".format(
         str(len(list(filter(lambda x: x.is_ok(), res)))), str(len(res))))
-    logging.info("    Updated extensions:      {:8d}".format(
+    log_info("    Updated extensions:      {:8d}".format(
         len(list(filter(lambda x: x.is_ok() and not x.not_modified(), res)))))
-    logging.info("    Updated SQL databases:   {:8d}".format(
+    log_info("    Updated SQL databases:   {:8d}".format(
         len(list(filter(lambda x: x.sql_success(), res)))))
-    logging.info("    New extensions:          {:8d}".format(
+    log_info("    New extensions:          {:8d}".format(
         len(list(filter(lambda x: x.is_new(), res)))))
-    logging.info("    Not authorized:          {:8d}".format(
+    log_info("    Not authorized:          {:8d}".format(
         len(list(filter(lambda x: x.not_authorized(), res)))))
-    logging.info("    Raised Google DDOS:      {:8d}".format(
+    log_info("    Raised Google DDOS:      {:8d}".format(
         len(list(filter(lambda x: x.raised_google_ddos(), res)))))
-    logging.info("    Not modified archives:   {:8d}".format(
+    log_info("    Not modified archives:   {:8d}".format(
         len(list(filter(lambda x: x.not_modified(), res)))))
-    logging.info("    Extensions not in store: {:8d}".format(
+    log_info("    Extensions not in store: {:8d}".format(
         len(list(filter(lambda x: x.not_in_store(), res)))))
-    logging.info("    Unknown exception:       {:8d}".format(
+    log_info("    Unknown exception:       {:8d}".format(
         len(list(filter(lambda x: x.has_exception(), res)))))
-    logging.info(
+    log_info(
         "    Corrupt tar archives:    {:8d}".format(len(corrupt_tar_archives)))
-    logging.info("    SQL exception:           {:8d}".format(
+    log_info("    SQL exception:           {:8d}".format(
         len(list(filter(lambda x: x.sql_exception(), res)))))
-    logging.info("    Total runtime:            {}".format(
+    log_info("    Total runtime:            {}".format(
         str(datetime.timedelta(seconds=int(runtime)))))
 
     if corrupt_tar_archives != []:
-        logging.info("")
-        logging.info("List of extensions with corrupted files/archives:")
+        log_info("")
+        log_info("List of extensions with corrupted files/archives:")
         list(
-            map(lambda x: logging.info("    " + x.id + ": " + str(x.exception), corrupt_tar_archives)
+            map(lambda x: log_info("    " + x.id + ": " + str(x.exception), corrupt_tar_archives)
                 ))
-        logging.info("")
+        log_info("")
 
 
 def helpmsg():
@@ -144,13 +145,13 @@ def helpmsg():
 
 def print_config(basedir, archive_dir, conf_dir, discover, parallel):
     """Print current configuration."""
-    logging.info("Configuration:")
-    logging.info("  Base dir:                         {}".format(basedir))
-    logging.info("    Archive directory:              {}".format(archive_dir))
-    logging.info("    Configuration directory:        {}".format(conf_dir))
-    logging.info("  Discover new extensions:          {}".format(discover))
-    logging.info("  Max num. of concurrent downloads: {}".format(parallel))
-    logging.info("  SQLite 3 version:                 {}".format(
+    log_info("Configuration:")
+    log_info("  Base dir:                         {}".format(basedir))
+    log_info("    Archive directory:              {}".format(archive_dir))
+    log_info("    Configuration directory:        {}".format(conf_dir))
+    log_info("  Discover new extensions:          {}".format(discover))
+    log_info("  Max num. of concurrent downloads: {}".format(parallel))
+    log_info("  SQLite 3 version:                 {}".format(
         sqlite3.sqlite_version))
 
 
@@ -220,7 +221,7 @@ def main(argv):
     # they are often temporary
     has_exception = list(filter(lambda x: x.has_exception(), res))
     if has_exception != []:
-        logging.info(
+        log_info(
             "  {} extensions with unknown exceptions, start another try ...".
             format(str(len(has_exception))))
         has_exception_ids = list(map(lambda x: x.id, has_exception))
