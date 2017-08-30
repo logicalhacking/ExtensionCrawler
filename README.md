@@ -9,7 +9,8 @@ extension from the Chrome Web store.
   will check the integrity of the extension.
 * `crx-extract`: A simple tool for extracting `*.crx` files from the
    tar-based archive hierarchy.
-* `crx-jsdecompose: Build a JavaScript inventory of a *.crx` file.\
+* `crx-jsinventory`: Build a JavaScript inventory of a `*.crx` file using a 
+                   JavaScript decomposition analysis.
 * `create-db`: A tool for creating/initializing the database files
   from already existing extension archives.
 

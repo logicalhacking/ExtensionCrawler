@@ -31,7 +31,7 @@ assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
 def helpmsg():
     """Print help message."""
-    print("crx-jsdecomose [OPTION] crx-file|js-file")
+    print("crx-jsinventory [OPTION] crx-file|js-file")
     print("    -h        print this help text")
     print("    -c=<FILE> cvs file (output)")
     print("    -v        verbose")
