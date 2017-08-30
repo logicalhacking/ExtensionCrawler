@@ -32,6 +32,7 @@ import os
 import glob
 import datetime
 import logging
+import hashlib
 
 
 def get_etag(ext_id, datepath, con):
@@ -187,6 +188,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
                         "category",
                         extid=ext_id,
                         date=con.convert_date(date),
+                        category_md5=hashlib.md5(category.encode()).digest(),
                         category=category)
 
 
@@ -235,6 +237,8 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                         con.insert(
                             "permission",
                             crx_etag=etag,
+                            permission_md5=hashlib.md5(
+                                str(permission).encode()).digest(),
                             permission=str(permission))
                 if "content_scripts" in manifest:
                     for csd in manifest["content_scripts"]:
@@ -243,6 +247,8 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                                 con.insert(
                                     "content_script_url",
                                     crx_etag=etag,
+                                    url_md5=hashlib.md5(
+                                        str(urlpattern).encode()).digest(),
                                     url=str(urlpattern))
 
             js_files = decompose_js(f)
@@ -258,6 +264,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                     type=(js_file_info['type']).name,
                     lib=js_file_info['lib'],
                     path=js_file_info['path'],
+                    encoding=js_file_info['encoding'],
                     md5=js_file_info['md5'],
                     sha1=js_file_info['sha1'],
                     size=js_file_info['size'],

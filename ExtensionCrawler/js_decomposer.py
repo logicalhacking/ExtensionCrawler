@@ -95,8 +95,8 @@ def init_jsinfo(zipfile, js_file):
         'evidenceText': None,
         'encoding': chardet.detect(data)['encoding'],
         'jsFilename': os.path.basename(js_file.filename),
-        'md5': hashlib.md5(data).hexdigest(),
-        'sha1': hashlib.sha1(data).hexdigest(),
+        'md5': hashlib.md5(data).digest(),
+        'sha1': hashlib.sha1(data).digest(),
         'size': int(js_file.file_size),
         'path': js_file.filename
     }
