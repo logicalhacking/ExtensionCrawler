@@ -15,7 +15,6 @@ extension from the Chrome Web store.
 *                string literals from JavaScript.
 * `create-db`: A tool for updating a remote MariaDB from already
    existing extension archives.
->>>>>>> bde59c50401448e346032219ab2130a31b3d7ec8
 
 The utilities store the extensions in the following directory
 hierarchy:
