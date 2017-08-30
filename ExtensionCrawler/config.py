@@ -154,13 +154,13 @@ def const_discover():
     return False
 
 def const_use_mysql():
-    return False
+    return True
 
 def const_mysql_config_file():
     return "~/.my.cnf"
 
 def const_mysql_maxtries():
-    return 3
+    return 30
 
 def const_mysql_try_wait():
-    return 2
+    return 10
