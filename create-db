@@ -60,9 +60,10 @@ def process_id(dbbasedir, path):
                 try:
                     update_sqlite_incremental(dbpath, iddir, extid, date)
                 except Exception:
-                    logging.exception("Exception when handling {} on {}".
-                                   format(extid, date))
-    logging.info("Finished   {} in {}s".format(extid, time.time() - start))
+                    logging.exception(
+                        "Exception when handling {} on {}".format(extid, date))
+    logging.info("Finished   {} in {}s".format(
+        extid, str(datetime.timedelta(seconds=time.time() - start))))
 
 
 def find(archive, pattern):

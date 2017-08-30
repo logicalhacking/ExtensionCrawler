@@ -487,7 +487,6 @@ def update_extension(archivedir, forums, ext_id):
             pass
 
     try:
-        logging.info(8 * " " + "* Updating db...")
         db_path = db_file(archivedir, ext_id)
         update_sqlite_incremental(db_path, tmptardir, ext_id, date)
         sql_success = True
