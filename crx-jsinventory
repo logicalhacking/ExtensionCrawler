@@ -95,6 +95,11 @@ def main(argv):
                 tmp['type'] = tmp['type'].value
             if 'detectionMethod' in tmp:
                 tmp['detectionMethod'] = tmp['detectionMethod'].value
+            if 'md5' in tmp:
+                tmp['md5'] = tmp['md5'].hex()
+            if 'sha1' in tmp:
+                tmp['sha1'] = tmp['sha1'].hex()
+            
             print_inventory.append(
                 OrderedDict(
                     sorted(
