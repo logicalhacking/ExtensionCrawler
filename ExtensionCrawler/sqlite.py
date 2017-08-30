@@ -353,6 +353,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con):
         if not "searchResults" in d:
             log_warning("* WARNING: there are no search results in {}".
                             format(repliespath), 3, ext_id)
+            return
         results = []
         for result in d["searchResults"]:
             if "annotations" not in result:
