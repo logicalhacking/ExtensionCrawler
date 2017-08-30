@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) 2017 The University of Sheffield, UK
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+"""Tool for extracting crx file from a tar archive."""
+
+import sys
+import io
+import re
+import getopt
+from zipfile import ZipFile
+import cchardet as chardet
+from ExtensionCrawler.js_mincer import mince_js, JsBlockType
+
+# Script should run with python 3.4 or 3.5
+assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
+
+
+def helpmsg():
+    """Print help message."""
+    print("crx-jsstrings [OPTION] [crx-file] js-file")
+    print("    -h        print this help text")
+    print("    -n        no comments")
+    print("    -s        strings")
+    print("    -g        group single line comments")
+    print("    -c        program code")
+    print("    -r regexp select only comments/code/strings where regexp matches")
+
+def print_block(comment, program, strings, regexp, block):
+    """Print code/comment blocks."""
+    rgx = None
+    if regexp is not None:
+        rgx = re.compile(regexp)
+    if comment and block.is_comment():
+        if regexp is None or rgx.match(block.content):
+            print(block)
+    elif block.is_code():
+        if program:
+            if regexp is None or rgx.match(block.content):
+                print(block)    
+        if strings:
+            for string in block.string_literals:
+                if regexp is None or rgx.match(string):
+                    print(string)
+
+
+
+def main(argv):
+    """Main function: JavaScript strings on steroids."""
+    comment = True
+    strings = False
+    group = False
+    program = False
+    regexp = None
+    filename = None
+    path = None
+
+    try:
+        opts, args = getopt.getopt(argv, "hcsnvr:",["--regesp"])
+    except getopt.GetoptError:
+        helpmsg()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            helpmsg()
+            sys.exit()
+        elif opt == '-n':
+            comment = False
+        elif opt == '-s':
+            strings = True
+        elif opt == '-g':
+            group = True
+        elif opt == '-c':
+            program = True
+        elif opt in ('-r', "--regexp"):
+            regexp = arg
+    if len(args) == 1 :
+        filename = args[0]
+    elif len(args) == 2:
+        filename = args[0]
+        path = args[1]
+    else:
+        helpmsg()
+        sys.exit()
+
+    if filename.endswith('.crx') and path is not None:
+        with ZipFile(filename) as crxobj:
+            with crxobj.open(path) as js_file:
+                data = js_file.read()
+                encoding =  chardet.detect(data)['encoding']
+                data = None
+            with crxobj.open(path) as js_file:
+                with io.TextIOWrapper(js_file, encoding) as js_text_file_obj:
+                    for block in mince_js(js_text_file_obj, single_line_comments_block=group):
+                         print_block(comment, program, strings, regexp, block)
+    elif filename.endswith('.crx') and path is None:
+        with ZipFile(filename) as crxobj:
+            js_files = list(filter(lambda x: x.filename.endswith(".js"), crxobj.infolist()))
+            for jsfile in js_files:
+                with crxobj.open(jsfile) as js_file_obj:
+                    data = js_file_obj.read()
+                    encoding =  chardet.detect(data)['encoding']
+                    data = None
+                with crxobj.open(jsfile) as js_file_obj:
+                    with io.TextIOWrapper(js_file_obj, encoding) as js_text_file_obj:
+                        for block in mince_js(js_text_file_obj, single_line_comments_block=group):
+                            print_block(comment, program, strings, regexp, block)
+    else:
+        for block in mince_js(filename, single_line_comments_block=group):
+            print_block(comment, program, strings, regexp, block)
+            
+if __name__ == "__main__":
+    main(sys.argv[1:])
