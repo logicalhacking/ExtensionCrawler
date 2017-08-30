@@ -44,6 +44,7 @@ class FileClassification(Enum):
     LIKELY_LIBRARY = "likely_library"
     APPLICATION = "likely_application"
     EMPTY_FILE = "empty_file"
+    FILE_SIZE = "file_size"
 
 def load_lib_identifiers():
     """Initialize identifiers for known libraries from JSON file."""
@@ -105,6 +106,7 @@ def init_jsinfo(zipfile, js_file):
         'path': js_file.filename
     }
     if js_info['size'] == 0:
+        js_info['detectionMethod'] = FileClassification.FILE_SIZE
         js_info['type'] = FileClassification.EMPTY_FILE
 
     return js_info
