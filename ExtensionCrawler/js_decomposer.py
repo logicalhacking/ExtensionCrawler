@@ -92,8 +92,8 @@ def init_jsinfo(zipfile, js_file):
         data = js_file_obj.read()
     js_info = {
         'lib': None,
-        'ver': None,
-        'detectMethod': None,
+        'version': None,
+        'detectionMethod': None,
         'type': None,
         'evidenceStartPos': None,
         'evidenceEndPos': None,
@@ -120,17 +120,17 @@ def analyse_checksum(zipfile, js_file, js_info):
                 for file in json_data[lib]['sha1']:
                     if file['sha1'] == js_info['sha1']:
                         js_info['lib'] = lib
-                        js_info['ver'] = file['version']
+                        js_info['version'] = file['version']
                         js_info['type'] = FileClassification.LIBRARY
-                        js_info['detectMethod'] = DetectionType.SHA1
+                        js_info['detectionMethod'] = DetectionType.SHA1
                         return [js_info]
             if info == 'md5':
                 for file in json_data[lib]['md5']:
                     if file['md5'] == js_info['md5']:
                         js_info['lib'] = lib
-                        js_info['ver'] = file['version']
+                        js_info['version'] = file['version']
                         js_info['type'] = FileClassification.LIBRARY
-                        js_info['detectMethod'] = DetectionType.MD5
+                        js_info['detectionMethod'] = DetectionType.MD5
                         return [js_info]
     return None
 
@@ -145,9 +145,9 @@ def analyse_known_filename(zipfile, js_file, js_info):
                                          js_file.filename, re.IGNORECASE)
             if filename_matched:
                 js_info['lib'] = lib
-                js_info['ver'] = filename_matched.group(2)
+                js_info['version'] = filename_matched.group(2)
                 js_info['type'] = FileClassification.LIBRARY
-                js_info['detectMethod'] = DetectionType.FILENAME
+                js_info['detectionMethod'] = DetectionType.FILENAME
                 libs.append(js_info)
     return libs
 
@@ -158,9 +158,9 @@ def analyse_generic_filename(zipfile, js_file, js_info):
         js_file.filename)
     if unknown_filename_match:
         js_info['lib'] = unknown_filename_match.group(1)
-        js_info['ver'] = unknown_filename_match.group(2)
+        js_info['version'] = unknown_filename_match.group(2)
         js_info['type'] = FileClassification.LIKELY_LIBRARY
-        js_info['detectMethod'] = DetectionType.FILENAME
+        js_info['detectionMethod'] = DetectionType.FILENAME
         libs.append(js_info)
     return libs
 
@@ -180,8 +180,8 @@ def analyse_comment_known_libs(zipfile, js_file, js_info, comment):
         for match in unkown_lib_matched:
             js_info['lib'] = ((js_file.filename).replace(
                 '.js', '')).replace('.min', '')
-            js_info['ver'] = match.group(2)
-            js_info['detectMethod'] = DetectionType.COMMENTBLOCK
+            js_info['version'] = match.group(2)
+            js_info['detectionMethod'] = DetectionType.COMMENTBLOCK
             js_info['type'] = FileClassification.LIKELY_LIBRARY
             libs.append(js_info)
     return libs
@@ -194,8 +194,8 @@ def analyse_comment_generic_libs(zipfile, js_file, js_info, comment):
         for match in unkown_lib_matched:
             js_info['lib'] = ((js_file.filename).replace(
                 '.js', '')).replace('.min', '')
-            js_info['ver'] = match.group(2)
-            js_info['detectMethod'] = DetectionType.COMMENTBLOCK
+            js_info['version'] = match.group(2)
+            js_info['detectionMethod'] = DetectionType.COMMENTBLOCK
             js_info['type'] = FileClassification.LIKELY_LIBRARY
             libs.append(js_info)
     return libs
@@ -242,8 +242,8 @@ def decompose_js(zipfile):
             if not js_info_file:
                 # if no library could be detected, we report the JavaScript file as 'application'.
                 js_info['lib'] = None
-                js_info['ver'] = None
-                js_info['detectMethod'] = DetectionType.DEFAULT
+                js_info['version'] = None
+                js_info['detectionMethod'] = DetectionType.DEFAULT
                 js_info['type'] = FileClassification.APPLICATION
                 js_inventory.append(js_info)
             else:

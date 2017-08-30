@@ -248,17 +248,18 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
             js_files = decompose_js(f)
             for js_file_info in js_files:
                 # TODO: Add: evidenceStartPos, evidenceEndPos, and EvidenceText, sha1
+                # TODO: md5, sha1, size, path, type, detect_method, crx_etag, filename should be non-null
                 con.insert(
                     "jsfile",
                     crx_etag=etag,
-                    detect_method=(js_file_info['detectMethod']).value,
+                    detect_method=(js_file_info['detectionMethod']).value,
                     filename=js_file_info['jsFilename'],
                     type=(js_file_info['type']).value,
                     lib=js_file_info['lib'],
                     path=js_file_info['path'],
                     md5=js_file_info['md5'],
                     size=js_file_info['size'],
-                    version=js_file_info['ver'])
+                    version=js_file_info['version'])
 
 
 def get(d, k):
