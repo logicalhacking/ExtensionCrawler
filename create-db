@@ -24,18 +24,16 @@ import time
 import tempfile
 import fnmatch
 from multiprocessing import Pool
-from functools import partial
 import logging
 import datetime
 
-from ExtensionCrawler.archive import update_sqlite_incremental
+from ExtensionCrawler.archive import update_db_incremental
 from ExtensionCrawler.config import *
 from ExtensionCrawler.util import log_info, log_warning, log_error, log_exception
 
 
 def help():
-    print("create-db [OPTION] DBBASEDIR")
-    print("    DBBASEDIR           directory for generated db files")
+    print("create-db [OPTION]")
     print("    -h                  print this help text")
     print("    -a <DIR>            archive directory")
     print("    -p <PREFIX>         three-letter-prefix")
@@ -45,7 +43,7 @@ def help():
     print("    -N <MAXTASKID>      ")
 
 
-def process_id(dbbasedir, path):
+def process_id(path):
     start = time.time()
     with tempfile.TemporaryDirectory() as tmpdir:
         with tarfile.open(path) as t:
@@ -53,18 +51,20 @@ def process_id(dbbasedir, path):
 
             extid = os.listdir(tmpdir)[0]
             log_info("Start processing extension", 0, extid)
-            dbpath = os.path.join(dbbasedir, extid + ".sqlite")
-            if os.path.exists(dbpath):
-                os.remove(dbpath)
             iddir = os.path.join(tmpdir, extid)
 
             for date in sorted(os.listdir(iddir)):
                 try:
-                    update_sqlite_incremental(dbpath, iddir, extid, date)
+                    update_db_incremental(iddir, extid, date)
                 except Exception:
-                    log_exception("Exception when handling data from {}".format(date), 0, extid)
-    log_info("Finished extension in {}".format(
-        str(datetime.timedelta(seconds=int(time.time() - start)))), 0, extid)
+                    log_exception(
+                        "Exception when handling data from {}".format(date), 0,
+                        extid)
+    log_info(
+        "Finished extension in {}".format(
+            str(datetime.timedelta(seconds=int(time.time() - start)))),
+        0,
+        extid)
 
 
 def find(archive, pattern):
@@ -118,13 +118,6 @@ def parse_args(argv):
         elif opt in ("-N", "--maxtaskid"):
             maxtaskid = int(arg)
 
-    if len(args) < 1:
-        help()
-        sys.exit(2)
-
-    dbbasedir = args[0]
-
-    paths += args[1:]
     if paths == []:
         paths = list(find(archive, "*"))
 
@@ -134,16 +127,16 @@ def parse_args(argv):
     else:
         paths = paths[(taskid - 1) * chunksize:taskid * chunksize]
 
-    return dbbasedir, paths, parallel
+    return paths, parallel
 
 
 def main(argv):
     logging.basicConfig(level=logging.INFO, format=const_log_format())
 
-    dbbasedir, paths, parallel = parse_args(argv)
+    paths, parallel = parse_args(argv)
 
     with Pool(processes=parallel) as p:
-        p.map(partial(process_id, dbbasedir), paths)
+        p.map(process_id, paths)
 
 
 if __name__ == "__main__":

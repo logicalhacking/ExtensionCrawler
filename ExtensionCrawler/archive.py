@@ -40,7 +40,7 @@ from ExtensionCrawler.config import (
     get_local_archive_dir, const_overview_url, const_support_url,
     const_support_payload, const_review_search_payload, const_review_url)
 from ExtensionCrawler.util import google_dos_protection, value_of, log_info, log_exception
-from ExtensionCrawler.sqlite import db_file, update_sqlite_incremental
+from ExtensionCrawler.db import update_db_incremental
 
 
 class Error(Exception):
@@ -485,11 +485,10 @@ def update_extension(archivedir, forums, ext_id):
             pass
 
     try:
-        db_path = db_file(archivedir, ext_id)
-        update_sqlite_incremental(db_path, tmptardir, ext_id, date)
+        update_db_incremental(tmptardir, ext_id, date)
         sql_success = True
     except Exception as e:
-        log_exception("* Exception during update of sqlite db", 3, ext_id)
+        log_exception("* Exception during update of db", 3, ext_id)
         sql_exception = e
 
         try:

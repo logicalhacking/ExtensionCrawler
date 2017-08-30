@@ -21,7 +21,6 @@ from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
 from ExtensionCrawler.js_decomposer import decompose_js, DetectionType, FileClassification
 
-from ExtensionCrawler.dbbackend.sqlite_backend import SqliteBackend
 from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
 
 import re
@@ -407,17 +406,12 @@ def parse_and_insert_status(ext_id, date, datepath, con):
         overview_exception=overview_exception)
 
 
-def update_sqlite_incremental(db_path, tmptardir, ext_id, date):
+def update_db_incremental(tmptardir, ext_id, date):
     log_info("* Updating db with data from from {}".format(date), 2, ext_id)
     datepath = os.path.join(tmptardir, date)
 
-    if const_use_mysql():
-        # Don't forget to create a ~/.my.cnf file with the credentials
-        backend = MysqlBackend(ext_id, read_default_file=const_mysql_config_file())
-    else:
-        backend = SqliteBackend(db_path)
-
-    with backend as con:
+    # Don't forget to create a ~/.my.cnf file with the credentials
+    with MysqlBackend(ext_id, read_default_file=const_mysql_config_file()) as con:
         etag = get_etag(ext_id, datepath, con)
 
         if etag:

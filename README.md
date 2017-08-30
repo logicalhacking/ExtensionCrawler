@@ -10,8 +10,8 @@ extension from the Chrome Web store.
 * `crx-extract`: A simple tool for extracting `*.crx` files from the
    tar-based archive hierarchy.
 * `crx-jsdecompose: Build a JavaScript inventory of a *.crx` file.\
-* `create-db`: A tool for creating/initializing the database files
-  from already existing extension archives.
+* `create-db`: A tool for updating a remote MariaDB from already
+   existing extension archives.
 
 The utilities store the extensions in the following directory
 hierarchy:
@@ -30,9 +30,12 @@ The crawler downloads the most recent extension (i.e., the `*.crx`
 file as well as the overview page. In addition, the `conf` directory
 may contain one file, called `forums.conf` that lists the ids of
 extensions for which the forums and support pages should be downloaded
-as well.  The `data` directory will contain the downloaded extensions
-as well as sqlite files containing the extracted meta data. The sqlite
-files can easily be re-generated using the `create-db` tool.
+as well. The `data` directory will contain the downloaded extensions.
+
+The `crawler` and `create-db` scripts will access and update a MariaDB.
+They will use the host, datebase, and credentials found in `~/.my.cnf`.
+Since they make use of various JSON features, it is recommended to use at
+least version 10.2.8 of MariaDB.
 
 All utilities are written in Python 3.x. The required modules are listed
 in the file `requirements.txt`.

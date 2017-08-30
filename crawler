@@ -24,7 +24,6 @@ import sys
 import datetime
 import time
 import getopt
-import sqlite3
 import logging
 from functools import reduce
 from ExtensionCrawler.discover import get_new_ids
@@ -151,8 +150,6 @@ def print_config(basedir, archive_dir, conf_dir, discover, parallel):
     log_info("    Configuration directory:        {}".format(conf_dir))
     log_info("  Discover new extensions:          {}".format(discover))
     log_info("  Max num. of concurrent downloads: {}".format(parallel))
-    log_info("  SQLite 3 version:                 {}".format(
-        sqlite3.sqlite_version))
 
 
 def parse_args(argv):
