@@ -21,7 +21,6 @@ from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
 from ExtensionCrawler.js_decomposer import decompose_js, DetectionType, FileClassification
 
-from ExtensionCrawler.dbbackend.sqlite_backend import SqliteBackend
 from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
 
 import re
@@ -31,7 +30,7 @@ import json
 import os
 import glob
 import datetime
-import logging
+import hashlib
 
 
 def get_etag(ext_id, datepath, con):
@@ -53,8 +52,8 @@ def get_etag(ext_id, datepath, con):
                 if "ETag" in headers:
                     return headers["ETag"]
             except Exception:
-                logging.warning(16 * " " +
-                                "* WARNING: could not parse crx header file")
+                log_warning("* WARNING: could not parse crx header file", 3,
+                            ext_id)
 
     # Trying to look up previous etag in database
     linkpath = next(
@@ -64,8 +63,7 @@ def get_etag(ext_id, datepath, con):
             link = f.read()
             linked_date = link[3:].split("/")[0]
 
-            result = con.get_most_recent_etag(ext_id,
-                                              con.convert_date(linked_date))
+            result = con.get_etag(ext_id, con.convert_date(linked_date))
             if result is not None:
                 return result
 
@@ -100,7 +98,7 @@ def get_crx_status(datepath):
 
 
 def parse_and_insert_overview(ext_id, date, datepath, con):
-    logging.info(16 * " " + "- parsing overview file")
+    log_debug("- parsing overview file", 3, ext_id)
     overview_path = os.path.join(datepath, "overview.html")
     if os.path.exists(overview_path):
         with open(overview_path) as overview_file:
@@ -187,13 +185,14 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
                         "category",
                         extid=ext_id,
                         date=con.convert_date(date),
+                        category_md5=hashlib.md5(category.encode()).digest(),
                         category=category)
 
 
 def parse_and_insert_crx(ext_id, date, datepath, con):
-    logging.info(16 * " " + "- parsing crx file")
     crx_path = next(iter(glob.glob(os.path.join(datepath, "*.crx"))), None)
     if crx_path:
+        log_debug("- parsing crx file", 3, ext_id)
         filename = os.path.basename(crx_path)
 
         with ZipFile(crx_path) as f:
@@ -235,6 +234,8 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                         con.insert(
                             "permission",
                             crx_etag=etag,
+                            permission_md5=hashlib.md5(
+                                str(permission).encode()).digest(),
                             permission=str(permission))
                 if "content_scripts" in manifest:
                     for csd in manifest["content_scripts"]:
@@ -243,21 +244,26 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                                 con.insert(
                                     "content_script_url",
                                     crx_etag=etag,
+                                    url_md5=hashlib.md5(
+                                        str(urlpattern).encode()).digest(),
                                     url=str(urlpattern))
 
             js_files = decompose_js(f)
             for js_file_info in js_files:
-                # TODO: Add: evidenceStartPos, evidenceEndPos, and EvidenceText, sha1
-                # TODO: md5, sha1, size, path, type, detect_method, crx_etag, filename should be non-null
                 con.insert(
                     "jsfile",
                     crx_etag=etag,
                     detect_method=(js_file_info['detectionMethod']).value,
+                    evidence_start_pos=str(js_file_info['evidenceStartPos']),
+                    evidence_end_pos=str(js_file_info['evidenceEndPos']),
+                    evidence_text=str(js_file_info['evidenceText']),
                     filename=js_file_info['jsFilename'],
                     type=(js_file_info['type']).value,
                     lib=js_file_info['lib'],
                     path=js_file_info['path'],
+                    encoding=js_file_info['encoding'],
                     md5=js_file_info['md5'],
+                    sha1=js_file_info['sha1'],
                     size=js_file_info['size'],
                     version=js_file_info['version'])
 
@@ -268,7 +274,7 @@ def get(d, k):
 
 
 def parse_and_insert_review(ext_id, date, reviewpath, con):
-    logging.info(16 * " " + "- parsing review file")
+    log_debug("- parsing review file", 3, ext_id)
     with open(reviewpath) as f:
         content = f.read()
         stripped = content[content.find('{"'):]
@@ -304,7 +310,7 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
 
 
 def parse_and_insert_support(ext_id, date, supportpath, con):
-    logging.info(16 * " " + "- parsing support file")
+    log_debug("- parsing support file", 3, ext_id)
     with open(supportpath) as f:
         content = f.read()
         stripped = content[content.find('{"'):]
@@ -340,12 +346,13 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
 
 
 def parse_and_insert_replies(ext_id, date, repliespath, con):
-    logging.info(16 * " " + "- parsing reply file")
+    log_debug("- parsing reply file", 3, ext_id)
     with open(repliespath) as f:
         d = json.load(f)
         if not "searchResults" in d:
-            logging.warning("* WARNING: there are no search results in {}".
-                            format(repliespath))
+            log_warning("* WARNING: there are no search results in {}".format(
+                repliespath), 3, ext_id)
+            return
         results = []
         for result in d["searchResults"]:
             if "annotations" not in result:
@@ -380,7 +387,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con):
 
 
 def parse_and_insert_status(ext_id, date, datepath, con):
-    logging.info(16 * " " + "- parsing status file")
+    log_debug("- parsing status file", 3, ext_id)
     overview_status = get_overview_status(datepath)
     crx_status = get_crx_status(datepath)
 
@@ -399,31 +406,26 @@ def parse_and_insert_status(ext_id, date, datepath, con):
         overview_exception=overview_exception)
 
 
-def update_sqlite_incremental(db_path, tmptardir, ext_id, date):
-    logging.info(12 * " " + "- parsing data from {}".format(date))
+def update_db_incremental(tmptardir, ext_id, date):
+    log_info("* Updating db with data from from {}".format(date), 2, ext_id)
     datepath = os.path.join(tmptardir, date)
 
-    if const_use_mysql():
-        # Don't forget to create a ~/.my.cnf file with the credentials
-        backend = MysqlBackend(read_default_file=const_mysql_config_file())
-    else:
-        backend = SqliteBackend(db_path)
-
-    with backend as con:
+    # Don't forget to create a ~/.my.cnf file with the credentials
+    with MysqlBackend(
+            ext_id, read_default_file=const_mysql_config_file()) as con:
         etag = get_etag(ext_id, datepath, con)
 
         if etag:
             try:
                 parse_and_insert_crx(ext_id, date, datepath, con)
             except zipfile.BadZipfile as e:
-                logging.warning(
-                    16 * " " +
+                log_warning(
                     "* WARNING: the found crx file is not a zip file, exception: {}".
-                    format(str(e)))
+                    format(str(e)), 3, ext_id)
         else:
             crx_status = get_crx_status(datepath)
             if crx_status != 401 and crx_status != 204 and crx_status != 404:
-                logging.warning(16 * " " + "* WARNING: could not find etag")
+                log_warning("* WARNING: could not find etag", 3, ext_id)
 
         parse_and_insert_overview(ext_id, date, datepath, con)
         parse_and_insert_status(ext_id, date, datepath, con)
@@ -433,24 +435,24 @@ def update_sqlite_incremental(db_path, tmptardir, ext_id, date):
             try:
                 parse_and_insert_review(ext_id, date, reviewpath, con)
             except json.decoder.JSONDecodeError as e:
-                logging.warning(16 * " " +
-                                "* Could not parse review file, exception: {}".
-                                format(str(e)))
+                log_warning(
+                    "* Could not parse review file, exception: {}".format(
+                        str(e)), 3, ext_id)
 
         supportpaths = glob.glob(os.path.join(datepath, "support*-*.text"))
         for supportpath in supportpaths:
             try:
                 parse_and_insert_support(ext_id, date, supportpath, con)
             except json.decoder.JSONDecodeError as e:
-                logging.warning(
-                    16 * " " + "* Could not parse support file, exception: {}".
-                    format(str(e)))
+                log_warning(
+                    "* Could not parse support file, exception: {}".format(
+                        str(e)), 3, ext_id)
 
         repliespaths = glob.glob(os.path.join(datepath, "*replies.text"))
         for repliespath in repliespaths:
             try:
                 parse_and_insert_replies(ext_id, date, repliespath, con)
             except json.decoder.JSONDecodeError as e:
-                logging.warning(16 * " " +
-                                "* Could not parse reply file, exception: {}".
-                                format(str(e)))
+                log_warning(
+                    "* Could not parse reply file, exception: {}".format(
+                        str(e)), 3, ext_id)

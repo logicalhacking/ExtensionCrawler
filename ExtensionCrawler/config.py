@@ -125,15 +125,6 @@ def archive_file(archivedir, ext_id):
         str(archivedir), get_local_archive_dir(ext_id), ext_id + ".tar")
 
 
-def db_file(archivedir, ext_id):
-    """DB (sqlite) file of an extension."""
-    return os.path.join(archivedir,
-                        get_local_archive_dir(ext_id), ext_id + ".sqlite")
-
-def jsloc_timeout():
-    """Maximum number of seconds for counting jsloc per extension."""
-    return 600
-
 def const_basedir():
     """Top-level directory for the extension crawler archive."""
     return "archive"
@@ -153,14 +144,11 @@ def const_discover():
     """Default configuration of discovery mode"""
     return False
 
-def const_use_mysql():
-    return False
-
 def const_mysql_config_file():
     return "~/.my.cnf"
 
 def const_mysql_maxtries():
-    return 3
+    return 30
 
 def const_mysql_try_wait():
-    return 2
+    return 10

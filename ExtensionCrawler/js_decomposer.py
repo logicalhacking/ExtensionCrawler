@@ -111,9 +111,9 @@ def init_jsinfo(zipfile, js_file):
         'evidenceText': None,
         'encoding': chardet.detect(data)['encoding'],
         'jsFilename': js_filename,
-        'md5': hashlib.md5(data).hexdigest(),
-        'sha1': hashlib.sha1(data).hexdigest(),
-        'size': file_size, 
+        'md5': hashlib.md5(data).digest(),
+        'sha1': hashlib.sha1(data).digest(),
+        'size': file_size,
         'path': path
     }
     if js_info['size'] == 0:
@@ -218,7 +218,7 @@ def analyse_comment_generic_libs(zipfile, js_file, js_info, comment):
             filename = js_file.filename
     else:
         filename = js_file
-    
+
     for unkregex in unknown_lib_identifiers():
         unkown_lib_matched = unkregex.finditer(comment.content)
         for match in unkown_lib_matched:
@@ -272,7 +272,7 @@ def decompose_js(file):
     if isinstance(file, str):
         js_files = [file]
     else:
-        zipfile = file 
+        zipfile = file
         js_files = list(filter(lambda x: x.filename.endswith(".js"), zipfile.infolist()))
 
     for js_file in js_files:

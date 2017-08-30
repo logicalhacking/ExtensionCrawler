@@ -23,7 +23,7 @@ import re
 from functools import reduce
 import requests
 import ExtensionCrawler.config
-import logging
+from ExtensionCrawler.util import log_info, log_exception
 
 
 def crawl_nearly_all_of_ext_ids():
@@ -45,24 +45,24 @@ def crawl_nearly_all_of_ext_ids():
         # The urls with a language parameter attached return a subset
         # of the ids that get returned by the plain urls, therefore we
         # skip urls with a language parameter
-        filter(is_generic_url, ([elem.text for elem in shard_elems])))
+        filter(is_generic_url, ([elem.text for elem in shard_elems])))[:1]
     shards = list(map(lambda u: requests.get(u, timeout=10).text, shard_urls))
 
     overview_urls = reduce(
         lambda x, y: x + y,
         map(lambda s: [elem.text for elem in get_inner_elems(s)], shards), [])
-    return [re.search("[a-z]{32}", url).group(0) for url in overview_urls]
+    return [re.search("[a-z]{32}", url).group(0) for url in overview_urls][:10]
 
 
 def get_new_ids(known_ids):
     """Discover new extension ids."""
-    logging.info("Discovering new ids ...")
+    log_info("Discovering new ids ...")
     discovered_ids = []
     try:
         discovered_ids = ExtensionCrawler.discover.crawl_nearly_all_of_ext_ids()
     except Exception:
-        logging.exception("Exception when discovering new ids")
+        log_exception("Exception when discovering new ids")
     new_ids = list(set(discovered_ids) - set(known_ids))
-    logging.info(2 * " " + "Discovered {} new extensions (out of {})".format(
-        len(new_ids), len(discovered_ids)))
+    log_info("Discovered {} new extensions (out of {})".format(
+        len(new_ids), len(discovered_ids)), 1)
     return new_ids

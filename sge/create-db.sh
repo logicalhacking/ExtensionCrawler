@@ -14,7 +14,7 @@ ssh sharc.shef.ac.uk mkdir -p $TARGETDIR/logs
 ssh sharc.shef.ac.uk mkdir -p $TARGETDIR/out
 
 echo "Pushing $BASEDIR to sharc.shef.ac.uk:$TARGETDIR/ExtensionCrawler ..."
-rsync -zr "$BASEDIR/" sharc.shef.ac.uk:"$TARGETDIR/ExtensionCrawler"
+rsync -zr --exclude "$BASEDIR/archive" "$BASEDIR/" sharc.shef.ac.uk:"$TARGETDIR/ExtensionCrawler"
 
 echo "Starting job ..."
 ssh sharc.shef.ac.uk \
