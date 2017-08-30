@@ -93,8 +93,8 @@ def main(argv):
             tmp = {k: item[k] for k in print_fieldnames}
             if 'type' in tmp:
                 tmp['type'] = tmp['type'].value
-            if 'detectMethod' in tmp:
-                tmp['detectMethod'] = tmp['detectMethod'].value
+            if 'detectionMethod' in tmp:
+                tmp['detectionMethod'] = tmp['detectionMethod'].value
             print_inventory.append(
                 OrderedDict(
                     sorted(
