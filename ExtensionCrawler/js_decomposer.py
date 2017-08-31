@@ -168,6 +168,7 @@ def analyse_known_filename(zipfile, js_file, js_info):
                 js_info['version'] = filename_matched.group(2)
                 js_info['type'] = FileClassification.LIBRARY
                 js_info['detectionMethod'] = DetectionType.FILENAME
+                js_info['detectionMethodDetails'] = regex['filename']
                 libs.append(js_info)
     return libs
 
@@ -212,6 +213,7 @@ def analyse_comment_known_libs(zipfile, js_file, js_info, comment):
                 '.js', '')).replace('.min', '')
             js_info['version'] = match.group(2)
             js_info['detectionMethod'] = DetectionType.COMMENTBLOCK
+            js_info['detectionMethodDetails'] = unkregex
             js_info['type'] = FileClassification.LIKELY_LIBRARY
             libs.append(js_info)
     return libs
@@ -231,6 +233,7 @@ def analyse_comment_generic_libs(zipfile, js_file, js_info, comment):
                 '.js', '')).replace('.min', '')
             js_info['version'] = match.group(2)
             js_info['detectionMethod'] = DetectionType.COMMENTBLOCK
+            js_info['detectionMethodDetails'] = unkregex
             js_info['type'] = FileClassification.LIKELY_LIBRARY
             libs.append(js_info)
     return libs
