@@ -105,6 +105,7 @@ def init_jsinfo(zipfile, js_file):
         'lib': None,
         'version': None,
         'detectionMethod': None,
+        'detectionMethodDetails': None,
         'type': None,
         'evidenceStartPos': None,
         'evidenceEndPos': None,
@@ -133,7 +134,9 @@ def analyse_checksum(zipfile, js_file, js_info):
                         js_info['lib'] = lib
                         js_info['version'] = file['version']
                         js_info['type'] = FileClassification.LIBRARY
-                        js_info['detectionMethod'] = DetectionType.SHA1
+                        js_info['detectionMethod'] = DetectionType.SHA1,
+                        if 'comment' in file:
+                            js_info['detectionMethodDetails'] = js_info['comment']
                         return [js_info]
             if info == 'md5':
                 for file in json_data[lib]['md5']:
@@ -142,6 +145,8 @@ def analyse_checksum(zipfile, js_file, js_info):
                         js_info['version'] = file['version']
                         js_info['type'] = FileClassification.LIBRARY
                         js_info['detectionMethod'] = DetectionType.MD5
+                        if 'comment' in file:
+                            js_info['detectionMethodDetails'] = js_info['comment']
                         return [js_info]
     return None
 

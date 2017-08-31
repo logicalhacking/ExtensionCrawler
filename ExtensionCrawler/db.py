@@ -254,6 +254,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                     "jsfile",
                     crx_etag=etag,
                     detect_method=(js_file_info['detectionMethod']).value,
+                    # TODO: detect_method=(js_file_info['detectionMethodDetails']), 
                     evidence_start_pos=str(js_file_info['evidenceStartPos']),
                     evidence_end_pos=str(js_file_info['evidenceEndPos']),
                     evidence_text=str(js_file_info['evidenceText']),
