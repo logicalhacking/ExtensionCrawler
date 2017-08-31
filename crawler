@@ -25,6 +25,7 @@ import datetime
 import time
 import getopt
 import logging
+import sys
 from functools import reduce
 from ExtensionCrawler.discover import get_new_ids
 from ExtensionCrawler.archive import get_forum_ext_ids, get_existing_ids, update_extensions
@@ -188,7 +189,12 @@ def main(argv):
         loglevel = logging.INFO
     else:
         loglevel = logging.WARNING
-    logging.basicConfig(level=loglevel, format=const_log_format())
+
+    logger = logging.getLogger()
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(logging.Formatter(const_log_format()))
+    logger.addHandler(ch)
+    logger.setLevel(loglevel)
 
     archive_dir = os.path.join(basedir, "data")
     os.makedirs(archive_dir, exist_ok=True)
