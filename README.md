@@ -45,11 +45,11 @@ in the file `requirements.txt`.
 
 ## Installation
 
-Clone and use pip to install as a package.
+Clone and use pip3 to install as a package.
 
 ```shell
 git clone git@logicalhacking.com:BrowserSecurity/ExtensionCrawler.git
-pip install --user -e ExtensionCrawler
+pip3 install --user -e ExtensionCrawler
 ```
 
 ## Team
