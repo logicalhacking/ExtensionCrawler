@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.5
 #
 # Copyright (C) 2016,2017 The University of Sheffield, UK
 #
@@ -145,7 +145,7 @@ def const_discover():
     return False
 
 def const_mysql_config_file():
-    return "~/.my.cnf"
+    return os.path.expanduser("~/.my.cnf")
 
 def const_mysql_maxtries():
     return 3
