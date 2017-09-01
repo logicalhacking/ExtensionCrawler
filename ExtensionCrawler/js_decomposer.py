@@ -202,7 +202,7 @@ def analyse_comment_known_libs(zipfile, js_file, js_info, comment):
     """Search for library specific identifiers in comment block."""
     libs = list()
     if zipfile is not None:
-            filename = js_file.filename
+        filename = js_file.filename
     else:
         filename = js_file
 
@@ -222,7 +222,7 @@ def analyse_comment_generic_libs(zipfile, js_file, js_info, comment):
     """Search for generic identifiers in comment block."""
     libs = list()
     if zipfile is not None:
-            filename = js_file.filename
+        filename = js_file.filename
     else:
         filename = js_file
 
@@ -257,10 +257,10 @@ def analyse_comment_blocks(zipfile, js_file, js_info):
         if zipfile is not None:
             with zipfile.open(js_file) as js_file_obj:
                 with io.TextIOWrapper(js_file_obj, js_info['encoding']) as js_text_file_obj:
-                    libs=mince_js_fileobj(js_text_file_obj)
+                    libs = mince_js_fileobj(js_text_file_obj)
         else:
             with open(js_file) as js_text_file_obj:
-                    libs=mince_js_fileobj(js_text_file_obj)
+                libs = mince_js_fileobj(js_text_file_obj)
     except:
         libs = list()
     return libs
