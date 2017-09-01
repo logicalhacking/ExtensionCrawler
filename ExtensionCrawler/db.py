@@ -414,7 +414,7 @@ def update_db_incremental(tmptardir, ext_id, date):
     # Don't forget to create a ~/.my.cnf file with the credentials
     with MysqlBackend(
             ext_id, read_default_file=const_mysql_config_file(),
-            charset='utf8') as con:
+            charset='utf8mb4') as con:
         etag = get_etag(ext_id, datepath, con)
 
         if etag:
