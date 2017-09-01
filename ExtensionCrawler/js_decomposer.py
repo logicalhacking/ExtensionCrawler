@@ -240,7 +240,6 @@ def analyse_comment_generic_libs(zipfile, js_file, js_info, comment):
 
 def analyse_comment_blocks(zipfile, js_file, js_info):
     """Search for library identifiers in comment."""
-
     def mince_js_fileobj(js_text_file_obj):
         """Mince JavaScript file using a file object."""
         libs = list()
@@ -250,9 +249,10 @@ def analyse_comment_blocks(zipfile, js_file, js_info):
                 block_libs = analyse_comment_known_libs(zipfile, js_file, js_info, block)
                 if block_libs is None:
                     block_libs = analyse_comment_generic_libs(zipfile, js_file, js_info, block)
-            libs += block_libs
-            return libs
-
+                if block_libs is not None:
+                    libs += block_libs
+        return libs
+    libs = []
     try:
         if zipfile is not None:
             with zipfile.open(js_file) as js_file_obj:
@@ -293,7 +293,6 @@ def decompose_js(file):
             if not js_info_file:
                 js_info_file = analyse_filename(zipfile, js_file, js_info)
                 js_info_file += analyse_comment_blocks(zipfile, js_file, js_info)
-
             if not js_info_file:
                 # if no library could be detected, we report the JavaScript file as 'application'.
                 js_info['lib'] = None
