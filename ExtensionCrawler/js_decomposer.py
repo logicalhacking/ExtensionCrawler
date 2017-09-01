@@ -205,17 +205,18 @@ def analyse_comment_known_libs(zipfile, js_file, js_info, comment):
         filename = js_file.filename
     else:
         filename = js_file
-
-    for unkregex in unknown_lib_identifiers():
-        unkown_lib_matched = unkregex.finditer(comment.content)
-        for match in unkown_lib_matched:
-            js_info['lib'] = ((filename).replace(
-                '.js', '')).replace('.min', '')
-            js_info['version'] = match.group(2)
-            js_info['detectionMethod'] = DetectionType.COMMENTBLOCK
-            js_info['detectionMethodDetails'] = unkregex
-            js_info['type'] = FileClassification.LIKELY_LIBRARY
-            libs.append(js_info)
+    for lib, regex in load_lib_identifiers().items():
+        if('filecontent' in regex):
+            for unkregex in regex['filecontent']:
+                unkown_lib_matched = unkregex.finditer(comment.content)
+                for match in unkown_lib_matched:
+                    js_info['lib'] = ((filename).replace(
+                        '.js', '')).replace('.min', '')
+                    js_info['version'] = match.group(2)
+                    js_info['detectionMethod'] = DetectionType.COMMENTBLOCK
+                    js_info['detectionMethodDetails'] = unkregex
+                    js_info['type'] = FileClassification.LIBRARY
+                    libs.append(js_info)
     return libs
 
 def analyse_comment_generic_libs(zipfile, js_file, js_info, comment):
@@ -229,7 +230,7 @@ def analyse_comment_generic_libs(zipfile, js_file, js_info, comment):
     for unkregex in unknown_lib_identifiers():
         unkown_lib_matched = unkregex.finditer(comment.content)
         for match in unkown_lib_matched:
-            js_info['lib'] = ((filename).replace(
+            js_info['lib'] = ((os.path.basename(filename)).replace(
                 '.js', '')).replace('.min', '')
             js_info['version'] = match.group(2)
             js_info['detectionMethod'] = DetectionType.COMMENTBLOCK
