@@ -25,12 +25,12 @@ import datetime
 import time
 import getopt
 import logging
-import sys
+import itertools
 from functools import reduce
 from ExtensionCrawler.discover import get_new_ids
 from ExtensionCrawler.archive import get_forum_ext_ids, get_existing_ids, update_extensions
 from ExtensionCrawler.config import *
-from ExtensionCrawler.util import log_info
+from ExtensionCrawler.util import log_info, log_exception
 
 
 def write_log(dirname, fname, text):
@@ -137,10 +137,11 @@ def log_summary(res, runtime=0):
 def helpmsg():
     """Print help message."""
     print("crawler [OPTION]")
-    print("    -h        print this help text")
-    print("    -s        silent (no log messages)")
-    print("    -d        disover new extensions")
-    print("    -a=<DIR>  archive directory")
+    print("    -h                  print this help text")
+    print("    -s                  silent (no log messages)")
+    print("    -d                  discover new extensions")
+    print("    --max-discover <N>  discover at most N new extensions")
+    print("    -a=<DIR>            archive directory")
 
 
 def print_config(basedir, archive_dir, conf_dir, discover, parallel):
@@ -159,8 +160,10 @@ def parse_args(argv):
     parallel = const_parallel_downloads()
     verbose = const_verbose()
     discover = const_discover()
+    max_discover = None
     try:
-        opts, _ = getopt.getopt(argv, "hsda:p:", ["archive=", 'parallel='])
+        opts, _ = getopt.getopt(argv, "hsda:p:",
+                                ["archive=", 'parallel=', 'max-discover='])
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -176,14 +179,17 @@ def parse_args(argv):
             verbose = False
         elif opt == '-d':
             discover = True
-    return basedir, parallel, verbose, discover
+        elif opt == '--max-discover':
+            discover = True
+            max_discover = int(arg)
+    return basedir, parallel, verbose, discover, max_discover
 
 
 def main(argv):
     """Main function of the extension crawler."""
 
     today = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    basedir, parallel, verbose, discover = parse_args(argv)
+    basedir, parallel, verbose, discover, max_discover = parse_args(argv)
 
     if verbose:
         loglevel = logging.INFO
@@ -212,7 +218,14 @@ def main(argv):
     known_ids = list(set(get_existing_ids(archive_dir)) | set(forum_ext_ids))
     discovered_ids = []
     if discover:
-        discovered_ids = get_new_ids(known_ids)
+        log_info("Discovering new ids {}...".format("(at most {}) ".format(
+            max_discover) if max_discover is not None else ""))
+        try:
+            discovered_ids = list(itertools.islice(get_new_ids(known_ids), max_discover))
+        except Exception:
+            log_exception("Exception when discovering new ids")
+        log_info("Discovered {} new extensions".format(len(discovered_ids)), 1)
+
     ext_ids = list(set(discovered_ids) | set(known_ids))
 
     discovered_ids = None
