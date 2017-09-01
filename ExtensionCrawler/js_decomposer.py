@@ -129,24 +129,24 @@ def analyse_checksum(zipfile, js_file, js_info):
     for lib in json_data:
         for info in json_data[lib]:
             if info == 'sha1':
-                for file in json_data[lib]['sha1']:
-                    if file['sha1'].lower() == js_info['sha1'].hex():
+                for lib_file in json_data[lib]['sha1']:
+                    if lib_file['sha1'].lower() == js_info['sha1'].hex():
                         js_info['lib'] = lib
-                        js_info['version'] = file['version']
+                        js_info['version'] = lib_file['version']
                         js_info['type'] = FileClassification.LIBRARY
                         js_info['detectionMethod'] = DetectionType.SHA1,
-                        if 'comment' in file:
-                            js_info['detectionMethodDetails'] = js_info['comment']
+                        if 'comment' in lib_file:
+                            js_info['detectionMethodDetails'] = lib_file['comment']
                         return [js_info]
             if info == 'md5':
-                for file in json_data[lib]['md5']:
-                    if file['md5'].lower() == js_info['md5'].hex():
+                for lib_file in json_data[lib]['md5']:
+                    if lib_file['md5'].lower() == js_info['md5'].hex():
                         js_info['lib'] = lib
-                        js_info['version'] = file['version']
+                        js_info['version'] = lib_file['version']
                         js_info['type'] = FileClassification.LIBRARY
                         js_info['detectionMethod'] = DetectionType.MD5
-                        if 'comment' in file:
-                            js_info['detectionMethodDetails'] = js_info['comment']
+                        if 'comment' in lib_file:
+                            js_info['detectionMethodDetails'] = lib_file['comment']
                         return [js_info]
     return None
 
