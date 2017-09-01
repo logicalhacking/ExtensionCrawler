@@ -183,7 +183,8 @@ def analyse_generic_filename(zipfile, js_file, js_info):
     unknown_filename_match = unknown_filename_identifier().search(
         filename)
     if unknown_filename_match:
-        js_info['lib'] = unknown_filename_match.group(1)
+        js_info['lib'] = os.path.basename(unknown_filename_match.group(1)).replace(
+                        '.js', '').replace('.min', '')
         js_info['version'] = unknown_filename_match.group(2)
         js_info['type'] = FileClassification.LIKELY_LIBRARY
         js_info['detectionMethod'] = DetectionType.FILENAME
@@ -210,8 +211,7 @@ def analyse_comment_known_libs(zipfile, js_file, js_info, comment):
             for unkregex in regex['filecontent']:
                 unkown_lib_matched = unkregex.finditer(comment.content)
                 for match in unkown_lib_matched:
-                    js_info['lib'] = ((filename).replace(
-                        '.js', '')).replace('.min', '')
+                    js_info['lib'] = lib
                     js_info['version'] = match.group(2)
                     js_info['detectionMethod'] = DetectionType.COMMENTBLOCK
                     js_info['detectionMethodDetails'] = unkregex
