@@ -145,7 +145,7 @@ def const_discover():
     return False
 
 def const_mysql_config_file():
-    return "~/.my.cnf"
+    return os.path.expanduser("~/.my.cnf")
 
 def const_mysql_maxtries():
     return 3
