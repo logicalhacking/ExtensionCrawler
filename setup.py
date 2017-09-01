@@ -5,5 +5,5 @@ setup(
     description='A collection of utilities for downloading and analyzing browser extension from the Chrome Web store.',
     author='Achim D. Brucker, Michael Herzberg',
     license='GPL 3.0',
-    install_requires=['tabulate', 'requests', 'pycrypto', 'beautifulsoup3', 'python_dateutil', 'mysqlclient', 'cchardet']
+    install_requires=['tabulate', 'requests', 'pycrypto', 'beautifulsoup4', 'python_dateutil', 'mysqlclient', 'cchardet']
 )
