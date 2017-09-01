@@ -49,7 +49,7 @@ Clone and use pip to install as a package.
 
 ```shell
 git clone git@logicalhacking.com:BrowserSecurity/ExtensionCrawler.git
-pip install -e ExtensionCrawler
+pip install --user -e ExtensionCrawler
 ```
 
 ## Team
