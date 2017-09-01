@@ -254,7 +254,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                     "jsfile",
                     crx_etag=etag,
                     detect_method=(js_file_info['detectionMethod']).value,
-                    # TODO: detect_method=(js_file_info['detectionMethodDetails']), 
+                    # TODO: detect_method=(js_file_info['detectionMethodDetails']),
                     evidence_start_pos=str(js_file_info['evidenceStartPos']),
                     evidence_end_pos=str(js_file_info['evidenceEndPos']),
                     evidence_text=str(js_file_info['evidenceText']),
@@ -413,7 +413,8 @@ def update_db_incremental(tmptardir, ext_id, date):
 
     # Don't forget to create a ~/.my.cnf file with the credentials
     with MysqlBackend(
-            ext_id, read_default_file=const_mysql_config_file()) as con:
+            ext_id, read_default_file=const_mysql_config_file(),
+            charset='utf8') as con:
         etag = get_etag(ext_id, datepath, con)
 
         if etag:

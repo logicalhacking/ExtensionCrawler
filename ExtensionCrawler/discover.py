@@ -45,13 +45,13 @@ def crawl_nearly_all_of_ext_ids():
         # The urls with a language parameter attached return a subset
         # of the ids that get returned by the plain urls, therefore we
         # skip urls with a language parameter
-        filter(is_generic_url, ([elem.text for elem in shard_elems])))[:1]
+        filter(is_generic_url, ([elem.text for elem in shard_elems])))
     shards = list(map(lambda u: requests.get(u, timeout=10).text, shard_urls))
 
     overview_urls = reduce(
         lambda x, y: x + y,
         map(lambda s: [elem.text for elem in get_inner_elems(s)], shards), [])
-    return [re.search("[a-z]{32}", url).group(0) for url in overview_urls][:10]
+    return [re.search("[a-z]{32}", url).group(0) for url in overview_urls]
 
 
 def get_new_ids(known_ids):
