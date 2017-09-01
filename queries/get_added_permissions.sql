@@ -11,11 +11,13 @@ from (
   from (
     select crx_etag,extid,min(date) as md
     from extension
+    where crx_etag is not null
     group by crx_etag
   ) crx_first_date1
   inner join (
     select extid,min(date) as md
     from extension
+    where crx_etag is not null
     group by crx_etag
   ) crx_first_date2
     on crx_first_date1.extid=crx_first_date2.extid
@@ -33,4 +35,6 @@ where permission not in (
   select permission
   from extension natural join permission
   where extid=extension_info.extid and date=some_date_with_previous_version
-);
+)
+order by extension_info.extid, extension_info.name, permission;
+
