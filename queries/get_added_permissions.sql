@@ -1,4 +1,4 @@
-select extension_info.extid, extension_info.name, permission
+select extension_info.downloads, extension_info.extid, extension_info.name, permission
 from (
   -- We generate a table containing every crx_etag that we crawled within the
   -- last day and is an update, and a random date where we encountered the its
@@ -31,10 +31,18 @@ from (
     on crx_most_recent_and_prev.extid=extension_info.extid
     and extension_info.date=most_recent_update
     and extension_info.crx_etag=crx_most_recent_and_prev.crx_etag
-where permission not in (
+where
+  permission in (
+    "<all_url>",
+    "http://*/*",
+    "https://*/*",
+    "webRequest",
+    "webRequestBlocking"
+  )
+and permission not in (
   select permission
   from extension natural join permission
   where extid=extension_info.extid and date=some_date_with_previous_version
 )
-order by extension_info.extid, extension_info.name, permission;
+order by extension_info.downloads desc;
 
