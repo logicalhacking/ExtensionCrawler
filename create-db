@@ -22,6 +22,7 @@ import sys
 import tarfile
 import time
 import tempfile
+from functools import partial
 import fnmatch
 from multiprocessing import Pool
 import logging
@@ -38,12 +39,14 @@ def help():
     print("    -a <DIR>            archive directory")
     print("    -p <PREFIX>         three-letter-prefix")
     print("    -e <EXTIDFILELIST>  file with extension ids")
+    print("    --from-date <DATE>  only process information gathered after this date")
+    print("                        (compared lexographically)")
     print("    -t <THREADS>        number of parallel threads")
     print("    -n <TASKID>         process chunk n where n in [1,N]")
     print("    -N <MAXTASKID>      ")
 
 
-def process_id(path):
+def process_id(from_date, path):
     start = time.time()
     with tempfile.TemporaryDirectory() as tmpdir:
         with tarfile.open(path) as t:
@@ -54,6 +57,9 @@ def process_id(path):
             iddir = os.path.join(tmpdir, extid)
 
             for date in sorted(os.listdir(iddir)):
+                if from_date is not None and date < from_date:
+                    log_info("* Skipping {}".format(date), 2, extid)
+                    continue
                 try:
                     update_db_incremental(iddir, extid, date)
                 except Exception:
@@ -90,19 +96,20 @@ def parse_args(argv):
     parallel = 8
     taskid = 1
     maxtaskid = 1
+    from_date = None
 
     paths = []
 
     try:
         opts, args = getopt.getopt(argv, "ha:p:e:t:n:N:", [
             "archive=", "prefix=", "extidlistfile=", "threads=", "taskid=",
-            "maxtaskid="
+            "maxtaskid=", "from-date=", "help"
         ])
     except getopt.GetoptError:
         help()
         sys.exit(2)
     for opt, arg in opts:
-        if opt == '-h':
+        if opt in ("-h", "--help"):
             help()
             sys.exit()
         elif opt in ("-a", "--archive"):
@@ -117,6 +124,8 @@ def parse_args(argv):
             taskid = int(arg)
         elif opt in ("-N", "--maxtaskid"):
             maxtaskid = int(arg)
+        elif opt in ("--from-date"):
+            from_date = arg
 
     if paths == []:
         paths = list(find(archive, "*"))
@@ -127,16 +136,16 @@ def parse_args(argv):
     else:
         paths = paths[(taskid - 1) * chunksize:taskid * chunksize]
 
-    return paths, parallel
+    return paths, parallel, from_date
 
 
 def main(argv):
     logging.basicConfig(level=logging.INFO, format=const_log_format())
 
-    paths, parallel = parse_args(argv)
+    paths, parallel, from_date = parse_args(argv)
 
     with Pool(processes=parallel) as p:
-        p.map(process_id, paths)
+        p.map(partial(process_id, from_date), paths)
 
 
 if __name__ == "__main__":

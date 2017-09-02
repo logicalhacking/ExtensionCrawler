@@ -1,4 +1,4 @@
-select extension_info.downloads, extension_info.extid, extension_info.name, permission, crx_most_recent_and_prev.crx_etag as updated_crx
+select extension_info.downloads, extension_info.extid, extension_info.name, url, crx_most_recent_and_prev.crx_etag as updated_crx
 from (
   -- We generate a table containing every crx_etag that we crawled within the
   -- last day and is an update, and a random date where we encountered the its
@@ -29,24 +29,23 @@ from (
     TIMESTAMPDIFF(DAY, crx_first_date1.md,  TIMESTAMPADD(HOUR,HOUR(UTC_TIME),UTC_DATE)) = 0
   group by crx_first_date1.crx_etag
 ) crx_most_recent_and_prev
-  inner join permission
-    on crx_most_recent_and_prev.crx_etag=permission.crx_etag
+  inner join content_script_url
+    on crx_most_recent_and_prev.crx_etag=content_script_url.crx_etag
   inner join extension extension_info
     on crx_most_recent_and_prev.extid=extension_info.extid
     and extension_info.date=most_recent_update
     and extension_info.crx_etag=crx_most_recent_and_prev.crx_etag
 where
-  permission in (
-    "<all_url>",
+  url in (
     "http://*/*",
     "https://*/*",
-    "webRequest",
-    "webRequestBlocking"
+    "*://*/*",
+    "<all_urls>"
   )
 and
-permission not in (
-  select permission
-  from extension natural join permission
+url not in (
+  select url
+  from extension natural join content_script_url
   where extid=extension_info.extid and date=last_date_with_previous_version
 )
 order by extension_info.downloads desc;
