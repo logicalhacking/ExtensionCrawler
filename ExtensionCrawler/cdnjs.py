@@ -43,11 +43,14 @@ def get_jsfile_url(lib, version, jsfile):
     return "https://cdnjs.cloudflare.com/ajax/libs/{}/{}/{}".format(
         lib, version, jsfile)
 
+
 def get_local_libs(archive):
     """Get list of locally available libraries."""
     dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
-    return (list(map(lambda f: re.sub(".json$", "", os.path.basename(f)),
-                     glob.glob(os.path.join(dirname, "*.json")))))
+    return (list(
+        map(lambda f: re.sub(".json$", "", os.path.basename(f)),
+            glob.glob(os.path.join(dirname, "*.json")))))
+
 
 def update_lib(verbose, force, archive, lib):
     """Update information for a JavaScript library."""
@@ -76,7 +79,8 @@ def update_lib(verbose, force, archive, lib):
         if not force and version in local_versions:
             if verbose:
                 print("    Updating from local record.")
-            old_record = next(x for x in local_lib_json['assets'] if x['version'] == lib_ver['version'])
+            old_record = next(x for x in local_lib_json['assets']
+                              if x['version'] == lib_ver['version'])
             files_with_hashes = old_record['files']
         else:
             if verbose:
@@ -84,7 +88,7 @@ def update_lib(verbose, force, archive, lib):
             for jsfile in lib_ver['files']:
                 jsfile_url = get_jsfile_url(name, version, jsfile)
                 if verbose:
-                    print("        "+jsfile_url)
+                    print("        " + jsfile_url)
                 res_jsfile = requests.get(jsfile_url)
                 data = res_jsfile.content
                 files_with_hashes.append({
@@ -103,6 +107,7 @@ def update_lib(verbose, force, archive, lib):
         print("    Saving", str(output))
     with open(output, "w") as json_file:
         json.dump(cdnjs_lib_json, json_file)
+
 
 def build_sha1_map_of_lib(archive, lib):
     """Build dictionary with file information using the sha1 hash as key."""
@@ -125,6 +130,7 @@ def build_sha1_map_of_lib(archive, lib):
             }
     return sha1_map
 
+
 def build_sha1_map(archive):
     """Build file information dictionary using the sha1 hash as key"""
     sha1_map = None
@@ -135,6 +141,7 @@ def build_sha1_map(archive):
         else:
             sha1_map = lib_map
     return sha1_map
+
 
 def delete_orphaned(archive, local_libs, cdnjs_current_libs):
     """Delete all orphaned local libaries."""
