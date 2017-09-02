@@ -2,9 +2,6 @@
 set -o nounset
 set -o errexit
 
-EXTRAARGS=${EXTRAARGS:-}
-echo "Using extra args: $EXTRAARGS"
-
 NRJOBS=${NRJOBS:-256}
 echo "Using $NRJOBS jobs"
 
@@ -26,11 +23,11 @@ echo "Starting job ..."
 ssh sharc.shef.ac.uk \
   ARCHIVE=\"$ARCHIVE\" \
   BASEDIR=\"$TARGETDIR\" \
-  EXTRAARGS=\"$EXTRAARGS\" \
   MAX_SGE_TASK_ID=\"$NRJOBS\" \
   qsub \
   -V \
   -t 1-$NRJOBS \
   -j yes \
   -o "$TARGETDIR/logs" \
-  "$TARGETDIR/ExtensionCrawler/sge/create-db.sge"
+  "$TARGETDIR/ExtensionCrawler/sge/create-db.sge" \
+  $@
