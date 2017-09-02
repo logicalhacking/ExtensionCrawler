@@ -1,0 +1,125 @@
+#!/usr/bin/env python3.5
+#
+# Copyright (C) 2016,2017 The University of Sheffield, UK
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+""" Tool for obtaining md5/sha1/sha256 hashes for all files available 
+    at CDNJS.com."""
+
+import datetime
+import getopt
+import hashlib
+import json
+import os
+import sys
+
+import requests
+
+# Script should run with python 3.4 or 3.5
+assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
+
+
+def get_jsfile_url(lib, version, jsfile):
+    return "https://cdnjs.cloudflare.com/ajax/libs/{}/{}/{}".format(
+        lib, version, jsfile)
+
+
+def update_lib(archive, lib):
+    name = lib['name']
+    lib_res = requests.get(cdnjs_all_libs_url + "/" + lib['name'])
+    lib_db = lib_res.json()
+    with open("json/lib/" + name + ".orig.json", "w") as jsonFile:
+        json.dump(lib_db, jsonFile)
+
+    for lib_ver in lib_db['assets']:
+        version = lib_ver['version']
+        files_with_hashes = []
+        for jsfile in lib_ver['files']:
+            jsfile_url = get_jsfile_url(name, version, jsfile)
+            print(jsfile_url)
+            res_jsfile = requests.get(jsfile_url)
+            data = res_jsfile.content
+            files_with_hashes.append({
+                'filename': jsfile,
+                'md5': hashlib.md5(data).hexdigest(),
+                'sha1': hashlib.sha1(data).hexdigest(),
+                'sha256': hashlib.sha256(data).hexdigest(),
+                'url': jsfile_url,
+                'date': datetime.datetime.utcnow().isoformat(),
+                'size': len(data)
+            })
+        lib_ver['files'] = files_with_hashes
+        with open(
+                os.path.join(archive, "fileinfo", "cdnjs", "lib",
+                             name + ".json"), "w") as jsonFile:
+            json.dump(lib_db, jsonFile)
+
+
+def update_jslib_archive(archive):
+    cdnjs_all_libs_url = "https://api.cdnjs.com/libraries"
+    res = requests.get(cdnjs_all_libs_url)
+    lib_catalog = res.json()['results']
+    with open(
+            os.path.join(archive, "fileinfo", "cdnjs", "cdnjs-libraries.json"),
+            "w") as jsonFile:
+        json.dump(res.json(), jsonFile)
+
+    for lib in lib_catalog:
+        update_lib(archive, lib)
+
+
+def helpmsg():
+    """Print help message."""
+    print("cdnjs-crawler [OPTION]")
+    print("    -h        print this help text")
+    print("    -s        silent (no log messages)")
+    print(
+        "    -f        force full download (instead of update of existing json files)"
+    )
+    print("    -c        delete outdated (no longer available) libraries")
+    print("    -a=<DIR>  archive directory")
+
+
+def main(argv):
+    """Main function of the extension crawler."""
+    basedir = "archive"
+    verbose = True
+    force = False
+    clean = False
+
+    try:
+        opts, args = getopt.getopt(argv, "hsed:a:o:w",
+                                   ["date=", "archive=", "output="])
+    except getopt.GetoptError:
+        helpmsg()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            helpmsg()
+            sys.exit()
+        elif opt in ("-a", "--archive"):
+            basedir = arg
+        elif opt == '-s':
+            verbose = False
+        elif opt == '-f':
+            force = True
+        elif opt == '-c':
+            clean = True
+
+    update_jslib_archive(basedir)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
