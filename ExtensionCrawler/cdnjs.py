@@ -109,10 +109,11 @@ def update_lib(verbose, force, archive, lib):
         json.dump(cdnjs_lib_json, json_file)
 
 
-def build_sha1_map_of_lib(archive, lib):
-    """Build dictionary with file information using the sha1 hash as key."""
+
+def build_hash_map_of_lib(hashalg, archive, lib):
+    """Build dictionary with file information using the file hash as key."""
     dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
-    sha1_map = {}
+    hash_map = {}
     try:
         with open(os.path.join(dirname, lib + ".json"), "r") as json_file:
             local_lib_json = json.load(json_file)
@@ -121,27 +122,41 @@ def build_sha1_map_of_lib(archive, lib):
     for lib_ver in local_lib_json['assets']:
         version = lib_ver['version']
         for jsfile in lib_ver['files']:
-            sha1 = jsfile['sha1']
-            sha1_map[sha1] = {
+            hashvalue = jsfile[hashalg]
+            hash_map[hashvalue] = {
                 'library': lib,
                 'version': version,
                 'file': jsfile['filename'],
                 'date': jsfile['date']
             }
-    return sha1_map
+    return hash_map
 
+def build_sha1_map_of_lib(archive, lib):
+    """Build dictionary with file information using the file sha1 as key."""
+    return build_hash_map_of_lib("sha1", archive, lib)
+
+def build_md5_map_of_lib(archive, lib):
+    """Build dictionary with file information using the file md5 as key."""
+    return build_hash_map_of_lib("md5", archive, lib)
+
+def build_hash_map(hashalg, archive):
+    """Build file information dictionary using the file hash as key"""
+    hash_map = None
+    for lib in get_local_libs(archive):
+        lib_map = build_hash_map_of_lib(hashalg, archive, lib)
+        if lib_map is not None and hash_map is not None:
+            hash_map.update(lib_map)
+        else:
+            hash_map = lib_map
+    return hash_map
 
 def build_sha1_map(archive):
     """Build file information dictionary using the sha1 hash as key"""
-    sha1_map = None
-    for lib in get_local_libs(archive):
-        lib_map = build_sha1_map_of_lib(archive, lib)
-        if lib_map is not None and sha1_map is not None:
-            sha1_map.update(lib_map)
-        else:
-            sha1_map = lib_map
-    return sha1_map
+    return build_hash_map("sha1", archive)
 
+def build_md5_map(archive):
+    """Build file information dictionary using the md5 hash as key"""
+    return build_hash_map("md5", archive)
 
 def delete_orphaned(archive, local_libs, cdnjs_current_libs):
     """Delete all orphaned local libaries."""
