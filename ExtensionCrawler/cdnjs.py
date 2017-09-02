@@ -109,7 +109,6 @@ def update_lib(verbose, force, archive, lib):
         json.dump(cdnjs_lib_json, json_file)
 
 
-
 def build_hash_map_of_lib(hashalg, archive, lib):
     """Build dictionary with file information using the file hash as key."""
     dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
@@ -131,13 +130,16 @@ def build_hash_map_of_lib(hashalg, archive, lib):
             }
     return hash_map
 
+
 def build_sha1_map_of_lib(archive, lib):
     """Build dictionary with file information using the file sha1 as key."""
     return build_hash_map_of_lib("sha1", archive, lib)
 
+
 def build_md5_map_of_lib(archive, lib):
     """Build dictionary with file information using the file md5 as key."""
     return build_hash_map_of_lib("md5", archive, lib)
+
 
 def build_hash_map(hashalg, archive):
     """Build file information dictionary using the file hash as key"""
@@ -150,13 +152,30 @@ def build_hash_map(hashalg, archive):
             hash_map = lib_map
     return hash_map
 
+
 def build_sha1_map(archive):
     """Build file information dictionary using the sha1 hash as key"""
     return build_hash_map("sha1", archive)
 
+
 def build_md5_map(archive):
     """Build file information dictionary using the md5 hash as key"""
     return build_hash_map("md5", archive)
+
+
+def update_md5_map_file(archive):
+    """Update file containing md5 information for all files."""
+    with open(os.path.join(archive, "fileinfo", "cdnjs-md5.json"),
+              "w") as json_file:
+        json.dump(build_md5_map(archive), json_file)
+
+
+def update_sha1_map_file(archive):
+    """Update file containing sha1 information for all files."""
+    with open(os.path.join(archive, "fileinfo", "cdnjs-sha1.json"),
+              "w") as json_file:
+        json.dump(build_sha1_map(archive), json_file)
+
 
 def delete_orphaned(archive, local_libs, cdnjs_current_libs):
     """Delete all orphaned local libaries."""

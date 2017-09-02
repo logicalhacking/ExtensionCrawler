@@ -21,7 +21,7 @@
 import getopt
 import sys
 
-from ExtensionCrawler.cdnjs import update_jslib_archive, delete_orphaned
+from ExtensionCrawler.cdnjs import update_jslib_archive, delete_orphaned, update_md5_map_file, update_sha1_map_file
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
@@ -63,6 +63,8 @@ def main(argv):
             clean = True
 
     update_jslib_archive(verbose, force, clean, basedir)
+    update_sha1_map_file(basedir)
+    update_md5_map_file(basedir)
 
 
 if __name__ == "__main__":
