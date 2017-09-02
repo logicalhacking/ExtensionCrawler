@@ -81,6 +81,8 @@ def update_lib(verbose, force, archive, lib):
             print("    Updating from remote record.")
             for jsfile in lib_ver['files']:
                 jsfile_url = get_jsfile_url(name, version, jsfile)
+                if verbose:
+                    print("        "+jsfile_url)
                 res_jsfile = requests.get(jsfile_url)
                 data = res_jsfile.content
                 files_with_hashes.append({
