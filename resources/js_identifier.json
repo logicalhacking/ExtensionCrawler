@@ -3,7 +3,7 @@
         "filename": "(jquery)-([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
         "filecontent": [
             "(jquery) JavaScript Library v?([0-9][0-9.a-z_\\\\-]+)",
-            "(jquery) v?([0-9][0-9.a-z_\\\\-]+)",
+            "(jquery) v?([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
             "Id: (jquery)\\.js,\\s?v\\s?([0-9][0-9.a-z_\\\\-]+)",
             "(jQuery).*[f|m]=.?v?([0-9][0-9.a-z_\\\\-]+).",
             "[^a-z.](jQuery)\\:?[ ]?\"?v([0-9][0-9.a-z_\\\\-]+)"
@@ -58,8 +58,8 @@
                 "comment": ""
             },
             {
-				"sha1": "e3dbb65f2b541d842b50d37304b0102a2d5f2387",
-				"md5": "33cabfa15c1060aaa3d207c653afb1ee",
+                "sha1": "e3dbb65f2b541d842b50d37304b0102a2d5f2387",
+                "md5": "33cabfa15c1060aaa3d207c653afb1ee",
                 "version": "2.2.3",
                 "minified": "yes",
                 "comment": ""
@@ -228,30 +228,153 @@
         ]
     },
     "jquery-ui": {
-        "filename": "(jquery.ui).([0-9]+[.a-z_\\\\-][0-9a-z]+[.a-z_\\\\-][0-9a-z]+).([custom.min|min]+)?\\.js",
+        "filename": "(jquery.ui).([0-9]+[.a-z_\\\\-][0-9a-z]+[.a-z_\\\\-][0-9a-z]+).([custom.min|min]+)?",
         "filecontent": [
             "(jQuery UI)(?: -)? v?([0-9][0-9.a-z_\\\\-]+)"
+        ]
+    },
+    "jquery-ui-widget": {
+        "filecontent": [
+            "(jQuery UI Widget)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)"
         ]
     },
     "jquery-ui-dialog": {
         "filecontent": [
             "(jQuery UI Dialog)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
-            "\"?(ui\\.dialog)\"?,.version:.([0-9][0-9.a-z_\\\\-]+).",
-            ".widget.\\s?.(ui\\.dialog).(?:.*[\n\r]+){1,2}.*version:\\s?.([0-9.]+)."
+            ".widget.\\s?.(ui\\.dialog).(?:.*[\n\r]+){1,2}.*version:\\s?.([0-9.]+).",
+            ".(ui\\.dialog).,\\{version:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-position": {
+        "filecontent": [
+            "(jQuery UI Position)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)"
+        ]
+    },
+    "jquery-ui-effects": {
+        "filecontent": [
+            "(jQuery UI Effects)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            "\\.(effects),\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-color": {
+        "filecontent": [
+            "(jQuery Color Animations)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)"
+        ]
+    },
+    "jquery-ui-accordion": {
+        "filecontent": [
+            "(jQuery UI Accordion)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.accordion).,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-menu": {
+        "filecontent": [
+            "(jQuery UI Menu)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.menu).,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
         ]
     },
     "jquery-ui-autocomplete": {
         "filecontent": [
             "(jQuery UI Autocomplete)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
-            "\"?(ui\\.autocomplete)\"?,.version:.([0-9][0-9.a-z_\\\\-]+).",
-            ".widget.\\s?.(ui\\.autocomplete).(?:.*[\n\r]+){1,2}.*version:\\s?.([0-9.]+)."
+            ".widget.\\s?.(ui\\.autocomplete).(?:.*[\n\r]+){1,2}.*version:\\s?.([0-9.]+).",
+            ".(ui\\.autocomplete).,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-controlgroup": {
+        "filecontent": [
+            "(jQuery UI Controlgroup)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.controlgroup).,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-checkboxradio": {
+        "filecontent": [
+            "(jQuery UI Checkboxradio)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.checkboxradio).,\\[.\\.ui.formResetMixin,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-button": {
+        "filecontent": [
+            "(jQuery UI Button)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.button).,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-datepicker": {
+        "filecontent": [
+            "(jQuery UI Datepicker)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            "(datepicker)\\:{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-mouse": {
+        "filecontent": [
+            "(jQuery UI Mouse)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.mouse).,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-draggable": {
+        "filecontent": [
+            "(jQuery UI Draggable)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.draggable).,.\\.ui\\.mouse,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-resizable": {
+        "filecontent": [
+            "(jQuery UI Resizable)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.resizable).,.\\.ui\\.mouse,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-droppable": {
+        "filecontent": [
+            "(jQuery UI Droppable)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.droppable).,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-progressbar": {
+        "filecontent": [
+            "(jQuery UI Progressbar)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.progressbar).,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-selectable": {
+        "filecontent": [
+            "(jQuery UI Selectable)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.selectable).,.\\.ui\\.mouse,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-selectmenu": {
+        "filecontent": [
+            "(jQuery UI Selectmenu)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.selectmenu).,\\[.\\.ui.formResetMixin,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-slider": {
+        "filecontent": [
+            "(jQuery UI Slider)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.slider).,.\\.ui\\.mouse,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-sortable": {
+        "filecontent": [
+            "(jQuery UI Sortable)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.sortable).,.\\.ui\\.mouse,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-spinner": {
+        "filecontent": [
+            "(jQuery UI Spinner)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.spinner).,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
+        ]
+    },
+    "jquery-ui-tabs": {
+        "filecontent": [
+            "(jQuery UI Tabs)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
+            ".(ui\\.tabs).,\\{version\\:.([0-9][0-9.a-z_\\\\-]+)."
         ]
     },
     "jquery-ui-tooltip": {
         "filecontent": [
             "(jQuery UI Tooltip)\\s?-?\\s?v?([0-9][0-9.a-z_\\\\-]+)",
-            "\"?(ui\\.tooltip)\"?,.version:.([0-9][0-9.a-z_\\\\-]+).",
-            ".widget.\\s?.(ui\\.tooltip).(?:.*[\n\r]+){1,2}.*version:\\s?.([0-9.]+)."
+            ".widget.\\s?.(ui\\.tooltip).(?:.*[\n\r]+){1,2}.*version:\\s?.([0-9.]+).",
+            ".(ui\\.tooltip).,\\{version:.([0-9][0-9.a-z_\\\\-]+)."
         ]
     },
     "jquery.prettyPhoto": {
@@ -469,12 +592,12 @@
     "ui-bootstrap-tpls": {
         "filename": "(ui[-_]bootstrap[-_]tpls)(?:.)*[-_]([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
         "filecontent": [
-            "(ui-bootstrap)(?:.*[\r\n]){1,6}.*Version\\:?\\s?v?([0-9][0-9.a-z_\\\\-]+)"
+            "(ui-bootstrap)(?:.*[\n\r]+){1,6}.*Version\\:?\\s?v?([0-9][0-9.a-z_\\\\-]+)"
         ]
     },
     "package": {
         "filecontent": [
-            "(Package)\\.describe(?:.*[\r\n]){1,50}.*version\\:\\s?.([0-9][0-9.a-z_\\\\-]+)."
+            "(Package)\\.describe(?:.*[\n\r]+){1,50}.*version\\:\\s?.([0-9][0-9.a-z_\\\\-]+)."
         ]
     },
     "require.js": {
@@ -485,7 +608,7 @@
     },
     "require-json": {
         "filecontent": [
-            "(RequireJS).*JSON(?:.*[\r\n]){1,7}.*Version\\:?\\s?([0-9][0-9.a-z_\\\\-]+)"
+            "(RequireJS).*JSON(?:.*[\n\r]+){1,7}.*Version\\:?\\s?([0-9][0-9.a-z_\\\\-]+)"
         ]
     },
     "d3js": {
@@ -493,10 +616,10 @@
             "https\\://(d3js)\\.org\\s+Version\\:*\\s+v?([0-9][0-9.a-z_\\\\-]+)"
         ]
     },
-    "UnderscoreJS": {
+    "underscore.js": {
         "filecontent": [
             "(Underscore[\\.js]*) v?([0-9]{1,2}[\\.|\\-|\\_][0-9a-z]{1,2}[\\.|\\-|\\_][0-9a-z\\-\\_]*)",
-            "(Underscore[\\.js]*)(?:.*[\n\r]+){1,60}.*\\_\\.VERSION\\s?\\=\\s?.([0-9][0-9.a-z_\\\\-]+)."
+            "(\\_)\\.VERSION\\s?=\\s?.([0-9][0-9.a-z_\\\\-]+)."
         ],
         "md5": [
             {
@@ -545,7 +668,7 @@
     },
     "string.js": {
         "filecontent": [
-            "(string\\.js)(?:.*[\r\n]){1,50}.*VERSION\\s?\\=\\s?.([0-9][0-9.a-z_\\\\-]+)."
+            "(string\\.js)(?:.*[\n\r]+){1,10}.*VERSION\\s?\\=\\s?.([0-9][0-9.a-z_\\\\-]+)."
         ]
     },
     "mousewheel": {
