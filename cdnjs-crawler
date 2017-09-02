@@ -31,24 +31,27 @@ import requests
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
 
+def get_cdnjs_all_libs_url():
+    return "https://api.cdnjs.com/libraries"
+
+
 def get_jsfile_url(lib, version, jsfile):
     return "https://cdnjs.cloudflare.com/ajax/libs/{}/{}/{}".format(
         lib, version, jsfile)
 
 
-def update_lib(archive, lib):
+def update_lib(verbose, archive, lib):
     name = lib['name']
-    lib_res = requests.get(cdnjs_all_libs_url + "/" + lib['name'])
+    lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'])
     lib_db = lib_res.json()
-    with open("json/lib/" + name + ".orig.json", "w") as jsonFile:
-        json.dump(lib_db, jsonFile)
 
     for lib_ver in lib_db['assets']:
         version = lib_ver['version']
         files_with_hashes = []
         for jsfile in lib_ver['files']:
             jsfile_url = get_jsfile_url(name, version, jsfile)
-            print(jsfile_url)
+            if verbose:
+                print(jsfile_url)
             res_jsfile = requests.get(jsfile_url)
             data = res_jsfile.content
             files_with_hashes.append({
@@ -61,23 +64,24 @@ def update_lib(archive, lib):
                 'size': len(data)
             })
         lib_ver['files'] = files_with_hashes
-        with open(
-                os.path.join(archive, "fileinfo", "cdnjs", "lib",
-                             name + ".json"), "w") as jsonFile:
+        dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
+        os.makedirs(str(dirname), exist_ok=True)
+        with open(os.path.join(dirname, name + ".json"), "w") as jsonFile:
             json.dump(lib_db, jsonFile)
 
 
-def update_jslib_archive(archive):
-    cdnjs_all_libs_url = "https://api.cdnjs.com/libraries"
+def update_jslib_archive(verbose, archive):
+    cdnjs_all_libs_url = get_cdnjs_all_libs_url()
     res = requests.get(cdnjs_all_libs_url)
     lib_catalog = res.json()['results']
-    with open(
-            os.path.join(archive, "fileinfo", "cdnjs", "cdnjs-libraries.json"),
-            "w") as jsonFile:
+    dirname = os.path.join(archive, "fileinfo", "cdnjs")
+    os.makedirs(str(dirname), exist_ok=True)
+
+    with open(os.path.join(dirname, "cdnjs-libraries.json"), "w") as jsonFile:
         json.dump(res.json(), jsonFile)
 
     for lib in lib_catalog:
-        update_lib(archive, lib)
+        update_lib(verbose, archive, lib)
 
 
 def helpmsg():
@@ -85,9 +89,7 @@ def helpmsg():
     print("cdnjs-crawler [OPTION]")
     print("    -h        print this help text")
     print("    -s        silent (no log messages)")
-    print(
-        "    -f        force full download (instead of update of existing json files)"
-    )
+    print("    -f        force full download (default: update of json files)")
     print("    -c        delete outdated (no longer available) libraries")
     print("    -a=<DIR>  archive directory")
 
@@ -118,7 +120,7 @@ def main(argv):
         elif opt == '-c':
             clean = True
 
-    update_jslib_archive(basedir)
+    update_jslib_archive(verbose, basedir)
 
 
 if __name__ == "__main__":
