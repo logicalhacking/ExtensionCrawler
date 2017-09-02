@@ -46,8 +46,8 @@ def get_jsfile_url(lib, version, jsfile):
 def get_local_libs(archive):
     """Get list of locally available libraries."""
     dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
-    return (list(map(lambda f: re.sub(".json$", "", os.path.basename(f),
-                                      glob.glob(os.path.join(dirname, "*.json"))))))
+    return (list(map(lambda f: re.sub(".json$", "", os.path.basename(f)),
+                     glob.glob(os.path.join(dirname, "*.json")))))
 
 def update_lib(verbose, force, archive, lib):
     """Update information for a JavaScript library."""
@@ -98,11 +98,43 @@ def update_lib(verbose, force, archive, lib):
                 })
 
         lib_ver['files'] = files_with_hashes
-        output = os.path.join(dirname, name + ".json")
-        if verbose:
-            print("    Saving", str(output))
-        with open(output, "w") as json_file:
-            json.dump(cdnjs_lib_json, json_file)
+    output = os.path.join(dirname, name + ".json")
+    if verbose:
+        print("    Saving", str(output))
+    with open(output, "w") as json_file:
+        json.dump(cdnjs_lib_json, json_file)
+
+def build_sha1_map_of_lib(archive, lib):
+    """Build dictionary with file information using the sha1 hash as key."""
+    dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
+    sha1_map = {}
+    try:
+        with open(os.path.join(dirname, lib + ".json"), "r") as json_file:
+            local_lib_json = json.load(json_file)
+    except IOError:
+        return None
+    for lib_ver in local_lib_json['assets']:
+        version = lib_ver['version']
+        for jsfile in lib_ver['files']:
+            sha1 = jsfile['sha1']
+            sha1_map[sha1] = {
+                'library': lib,
+                'version': version,
+                'file': jsfile['filename'],
+                'date': jsfile['date']
+            }
+    return sha1_map
+
+def build_sha1_map(archive):
+    """Build file information dictionary using the sha1 hash as key"""
+    sha1_map = None
+    for lib in get_local_libs(archive):
+        lib_map = build_sha1_map_of_lib(archive, lib)
+        if lib_map is not None and sha1_map is not None:
+            sha1_map.update(lib_map)
+        else:
+            sha1_map = lib_map
+    return sha1_map
 
 def delete_orphaned(archive, local_libs, cdnjs_current_libs):
     """Delete all orphaned local libaries."""
@@ -128,5 +160,5 @@ def update_jslib_archive(verbose, force, clean, archive):
         print("Found", str(len(cdnjs_lib_catalog)), "different libraries")
     for lib in cdnjs_lib_catalog:
         if verbose:
-            print("Starting to update", lib)
+            print("Starting to update", lib['name'])
         update_lib(verbose, force, archive, lib)
