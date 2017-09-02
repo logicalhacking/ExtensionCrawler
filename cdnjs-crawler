@@ -15,73 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-""" Tool for obtaining md5/sha1/sha256 hashes for all files available 
+""" Tool for obtaining md5/sha1/sha256 hashes for all files available
     at CDNJS.com."""
 
-import datetime
 import getopt
-import hashlib
-import json
-import os
 import sys
 
-import requests
+from ExtensionCrawler.cdnjs import update_jslib_archive
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
-
-
-def get_cdnjs_all_libs_url():
-    return "https://api.cdnjs.com/libraries"
-
-
-def get_jsfile_url(lib, version, jsfile):
-    return "https://cdnjs.cloudflare.com/ajax/libs/{}/{}/{}".format(
-        lib, version, jsfile)
-
-
-def update_lib(verbose, archive, lib):
-    name = lib['name']
-    lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'])
-    lib_db = lib_res.json()
-
-    for lib_ver in lib_db['assets']:
-        version = lib_ver['version']
-        files_with_hashes = []
-        for jsfile in lib_ver['files']:
-            jsfile_url = get_jsfile_url(name, version, jsfile)
-            if verbose:
-                print(jsfile_url)
-            res_jsfile = requests.get(jsfile_url)
-            data = res_jsfile.content
-            files_with_hashes.append({
-                'filename': jsfile,
-                'md5': hashlib.md5(data).hexdigest(),
-                'sha1': hashlib.sha1(data).hexdigest(),
-                'sha256': hashlib.sha256(data).hexdigest(),
-                'url': jsfile_url,
-                'date': datetime.datetime.utcnow().isoformat(),
-                'size': len(data)
-            })
-        lib_ver['files'] = files_with_hashes
-        dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
-        os.makedirs(str(dirname), exist_ok=True)
-        with open(os.path.join(dirname, name + ".json"), "w") as jsonFile:
-            json.dump(lib_db, jsonFile)
-
-
-def update_jslib_archive(verbose, archive):
-    cdnjs_all_libs_url = get_cdnjs_all_libs_url()
-    res = requests.get(cdnjs_all_libs_url)
-    lib_catalog = res.json()['results']
-    dirname = os.path.join(archive, "fileinfo", "cdnjs")
-    os.makedirs(str(dirname), exist_ok=True)
-
-    with open(os.path.join(dirname, "cdnjs-libraries.json"), "w") as jsonFile:
-        json.dump(res.json(), jsonFile)
-
-    for lib in lib_catalog:
-        update_lib(verbose, archive, lib)
 
 
 def helpmsg():
@@ -100,7 +43,6 @@ def main(argv):
     verbose = True
     force = False
     clean = False
-
     try:
         opts, args = getopt.getopt(argv, "hsed:a:o:w",
                                    ["date=", "archive=", "output="])
@@ -119,7 +61,6 @@ def main(argv):
             force = True
         elif opt == '-c':
             clean = True
-
     update_jslib_archive(verbose, basedir)
 
 

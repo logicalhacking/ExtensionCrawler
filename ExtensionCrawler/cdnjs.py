@@ -1,0 +1,88 @@
+#!/usr/bin/env python3.5
+#
+# Copyright (C) 2016,2017 The University of Sheffield, UK
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+""" Module for obtaining md5/sha1/sha256 hashes for all files available
+    at CDNJS.com."""
+
+import datetime
+import hashlib
+import json
+import os
+import sys
+
+import requests
+
+# Script should run with python 3.4 or 3.5
+assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
+
+
+def get_cdnjs_all_libs_url():
+    """URL for obtaining list of all available libraries, see https://cdnjs.com/api for details."""
+    return "https://api.cdnjs.com/libraries"
+
+
+def get_jsfile_url(lib, version, jsfile):
+    """URL for obtaining detailed list of all available files/versionf of
+       a JavaScript library, see https://cdnjs.com/api for details."""
+    return "https://cdnjs.cloudflare.com/ajax/libs/{}/{}/{}".format(
+        lib, version, jsfile)
+
+
+def update_lib(verbose, archive, lib):
+    """Update information for a JavaScript library."""
+    name = lib['name']
+    lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'])
+    lib_db = lib_res.json()
+
+    for lib_ver in lib_db['assets']:
+        version = lib_ver['version']
+        files_with_hashes = []
+        for jsfile in lib_ver['files']:
+            jsfile_url = get_jsfile_url(name, version, jsfile)
+            if verbose:
+                print(jsfile_url)
+            res_jsfile = requests.get(jsfile_url)
+            data = res_jsfile.content
+            files_with_hashes.append({
+                'filename': jsfile,
+                'md5': hashlib.md5(data).hexdigest(),
+                'sha1': hashlib.sha1(data).hexdigest(),
+                'sha256': hashlib.sha256(data).hexdigest(),
+                'url': jsfile_url,
+                'date': datetime.datetime.utcnow().isoformat(),
+                'size': len(data)
+            })
+        lib_ver['files'] = files_with_hashes
+        dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
+        os.makedirs(str(dirname), exist_ok=True)
+        with open(os.path.join(dirname, name + ".json"), "w") as json_file:
+            json.dump(lib_db, json_file)
+
+
+def update_jslib_archive(verbose, archive):
+    """Update information for all available JavaScript libraries."""
+    cdnjs_all_libs_url = get_cdnjs_all_libs_url()
+    res = requests.get(cdnjs_all_libs_url)
+    lib_catalog = res.json()['results']
+    dirname = os.path.join(archive, "fileinfo", "cdnjs")
+    os.makedirs(str(dirname), exist_ok=True)
+
+    with open(os.path.join(dirname, "cdnjs-libraries.json"), "w") as json_file:
+        json.dump(res.json(), json_file)
+
+    for lib in lib_catalog:
+        update_lib(verbose, archive, lib)
