@@ -30,4 +30,4 @@ ssh sharc.shef.ac.uk \
   -j yes \
   -o "$TARGETDIR/logs" \
   "$TARGETDIR/ExtensionCrawler/sge/create-db.sge" \
-  $@
+  $*
