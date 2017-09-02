@@ -21,7 +21,7 @@
 import getopt
 import sys
 
-from ExtensionCrawler.cdnjs import update_jslib_archive
+from ExtensionCrawler.cdnjs import update_jslib_archive, delete_orphaned
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
@@ -61,7 +61,8 @@ def main(argv):
             force = True
         elif opt == '-c':
             clean = True
-    update_jslib_archive(verbose, basedir)
+
+    update_jslib_archive(verbose, force, clean, basedir)
 
 
 if __name__ == "__main__":

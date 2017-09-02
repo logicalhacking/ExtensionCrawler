@@ -22,6 +22,8 @@ import datetime
 import hashlib
 import json
 import os
+import glob
+import re
 import sys
 
 import requests
@@ -42,7 +44,7 @@ def get_jsfile_url(lib, version, jsfile):
         lib, version, jsfile)
 
 
-def update_lib(verbose, archive, lib):
+def update_lib(verbose, force, archive, lib):
     """Update information for a JavaScript library."""
     name = lib['name']
     lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'])
@@ -73,16 +75,32 @@ def update_lib(verbose, archive, lib):
             json.dump(lib_db, json_file)
 
 
-def update_jslib_archive(verbose, archive):
+def get_local_libs(archive):
+    """Get list of locally available libraries."""
+    dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
+    return (list(map(lambda f: re.sub(".json$", "",os.path.basename(f),
+            glob.glob(os.path.join(dirname, "*.json"))))))
+
+
+def delete_orphaned(archive, local_libs, cdnjs_current_libs):
+    """Delete all orphaned local libaries."""
+    dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
+    for lib in local_libs:
+        if not lib in cdnjs_current_libs:
+            os.remove(os.path.join(dirname, lib + ".json"))
+
+
+def update_jslib_archive(verbose, force, clean, archive):
     """Update information for all available JavaScript libraries."""
     cdnjs_all_libs_url = get_cdnjs_all_libs_url()
     res = requests.get(cdnjs_all_libs_url)
-    lib_catalog = res.json()['results']
+    cdnjs_lib_catalog = res.json()['results']
+    if clean:
+        local_lib_catalog = get_local_libs(archive)
+        delete_orphaned(archive, local_lib_catalog, cdnjs_lib_catalog)
     dirname = os.path.join(archive, "fileinfo", "cdnjs")
     os.makedirs(str(dirname), exist_ok=True)
-
     with open(os.path.join(dirname, "cdnjs-libraries.json"), "w") as json_file:
         json.dump(res.json(), json_file)
-
-    for lib in lib_catalog:
-        update_lib(verbose, archive, lib)
+    for lib in cdnjs_lib_catalog:
+        update_lib(verbose, force, archive, lib)
