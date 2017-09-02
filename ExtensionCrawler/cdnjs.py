@@ -43,44 +43,59 @@ def get_jsfile_url(lib, version, jsfile):
     return "https://cdnjs.cloudflare.com/ajax/libs/{}/{}/{}".format(
         lib, version, jsfile)
 
+def get_local_libs(archive):
+    """Get list of locally available libraries."""
+    dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
+    return (list(map(lambda f: re.sub(".json$", "", os.path.basename(f),
+                                      glob.glob(os.path.join(dirname, "*.json"))))))
 
 def update_lib(verbose, force, archive, lib):
     """Update information for a JavaScript library."""
     name = lib['name']
     lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'])
-    lib_db = lib_res.json()
-
-    for lib_ver in lib_db['assets']:
-        version = lib_ver['version']
-        files_with_hashes = []
-        for jsfile in lib_ver['files']:
-            jsfile_url = get_jsfile_url(name, version, jsfile)
-            if verbose:
-                print(jsfile_url)
-            res_jsfile = requests.get(jsfile_url)
-            data = res_jsfile.content
-            files_with_hashes.append({
-                'filename': jsfile,
-                'md5': hashlib.md5(data).hexdigest(),
-                'sha1': hashlib.sha1(data).hexdigest(),
-                'sha256': hashlib.sha256(data).hexdigest(),
-                'url': jsfile_url,
-                'date': datetime.datetime.utcnow().isoformat(),
-                'size': len(data)
-            })
-        lib_ver['files'] = files_with_hashes
-        dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
-        os.makedirs(str(dirname), exist_ok=True)
-        with open(os.path.join(dirname, name + ".json"), "w") as json_file:
-            json.dump(lib_db, json_file)
-
-
-def get_local_libs(archive):
-    """Get list of locally available libraries."""
+    cdnjs_lib_json = lib_res.json()
     dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
-    return (list(map(lambda f: re.sub(".json$", "",os.path.basename(f),
-            glob.glob(os.path.join(dirname, "*.json"))))))
+    os.makedirs(str(dirname), exist_ok=True)
 
+    try:
+        with open(os.path.join(dirname, name + ".json"), "r") as json_file:
+            local_lib_json = json.load(json_file)
+    except IOError:
+        local_lib_json = None
+
+    local_versions = []
+    if local_lib_json is not None:
+        for lib_ver in local_lib_json['assets']:
+            local_versions.append(lib_ver['version'])
+
+    for lib_ver in cdnjs_lib_json['assets']:
+        version = lib_ver['version']
+        if verbose:
+            print("Checking", lib['name'], version)
+        files_with_hashes = []
+        if not force and version in local_versions:
+            print("    Updating from local record.")
+            old_record = next(x for x in local_lib_json['assets'] if x['version'] == lib_ver['version'])
+            files_with_hashes = old_record['files']
+        else:
+            print("    Updating from remote record.")
+            for jsfile in lib_ver['files']:
+                jsfile_url = get_jsfile_url(name, version, jsfile)
+                res_jsfile = requests.get(jsfile_url)
+                data = res_jsfile.content
+                files_with_hashes.append({
+                    'filename': jsfile,
+                    'md5': hashlib.md5(data).hexdigest(),
+                    'sha1': hashlib.sha1(data).hexdigest(),
+                    'sha256': hashlib.sha256(data).hexdigest(),
+                    'url': jsfile_url,
+                    'date': datetime.datetime.utcnow().isoformat(),
+                    'size': len(data)
+                })
+
+        lib_ver['files'] = files_with_hashes
+        with open(os.path.join(dirname, name + ".json"), "w") as json_file:
+            json.dump(cdnjs_lib_json, json_file)
 
 def delete_orphaned(archive, local_libs, cdnjs_current_libs):
     """Delete all orphaned local libaries."""
