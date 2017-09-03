@@ -60,6 +60,9 @@ def update_lib(verbose, force, archive, lib):
     """Update information for a JavaScript library."""
     name = lib['name']
     lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'])
+    if not lib_res.status_code == 200:
+        logging.error("  Cannot access (status codce: " + str(lib_res.status_code) + ") " + str(lib_res.url))
+        return 
     cdnjs_lib_json = lib_res.json()
     dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
     os.makedirs(str(dirname), exist_ok=True)
@@ -69,6 +72,10 @@ def update_lib(verbose, force, archive, lib):
             local_lib_json = json.load(json_file)
     except IOError:
         local_lib_json = None
+    except json.decoder.JSONDecodeError:
+        local_lib_json = None
+        logging.warning("  JSON file (" + os.path.join(dirname, name + ".json")+") defect, re-downloading.")        
+        os.rename(os.path.join(dirname, name + ".json"), os.path.join(dirname, name + ".backup.json"))
 
     local_versions = []
     if local_lib_json is not None:
