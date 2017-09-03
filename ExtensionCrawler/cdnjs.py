@@ -19,12 +19,14 @@
     at CDNJS.com."""
 
 import datetime
+import glob
 import hashlib
 import json
 import os
-import glob
 import re
 import sys
+from functools import partial
+from multiprocessing import Pool
 
 import requests
 
@@ -199,7 +201,6 @@ def update_jslib_archive(verbose, force, clean, archive):
         json.dump(res.json(), json_file)
     if verbose:
         print("Found", str(len(cdnjs_lib_catalog)), "different libraries")
-    for lib in cdnjs_lib_catalog:
-        if verbose:
-            print("Starting to update", lib['name'])
-        update_lib(verbose, force, archive, lib)
+    
+    with Pool(16) as p:
+        p.map(partial(update_lib, verbose, force, archive), cdnjs_lib_catalog)
