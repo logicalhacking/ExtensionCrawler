@@ -121,15 +121,18 @@ def update_lib(verbose, force, archive, lib):
 
         lib_ver['files'] = files_with_hashes
 
-    outphased = []
-    for lib_ver in local_lib_json['assets']:
-        version = lib_ver['version']
-        if not version in cdnjs_versions:
-            logging.warning("Found outphased versions for " + name + " " + str(
-                version) + " , preserving from archive.")
-            outphased.append(lib_ver)
-    if outphased:
-        cdnjs_lib_json['assets'] = cdnjs_lib_json['assets'] + outphased
+    if local_lib_json is not None:
+        outphased = []
+        for lib_ver in local_lib_json['assets']:
+            version = lib_ver['version']
+            if not version in cdnjs_versions:
+                logging.warning("Found outphased versions for " + name + " " + str(
+                    version) + " , preserving from archive.")
+                if not 'outphased' in lib_ver:
+                    lib_ver['outphased'] = datetime.datetime.utcnow().isoformat()
+                outphased.append(lib_ver)
+        if outphased:
+            cdnjs_lib_json['assets'] = cdnjs_lib_json['assets'] + outphased
 
     output = os.path.join(dirname, name + ".json")
     if verbose:
