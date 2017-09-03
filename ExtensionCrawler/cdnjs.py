@@ -58,10 +58,21 @@ def get_local_libs(archive):
 def update_lib(verbose, force, archive, lib):
     """Update information for a JavaScript library."""
     name = lib['name']
-    lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'], timeout=10)
+    try:
+        lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'],
+                               timeout=10)
+    except Exception as e:
+        logging.error("Exception during download of library overview for " +
+                      name + "from " + get_cdnjs_all_libs_url() + "/" +
+                      lib['name'] + ":")
+        logging.error(str(e))
+        return
+
     if not lib_res.status_code == 200:
-        logging.error("  Cannot access (status codce: " + str(
-            lib_res.status_code) + ") " + str(lib_res.url))
+        logging.error("  Cannot access overview for " + name +
+                      "(status codce: " + str(
+                          lib_res.status_code) + ") " + str(lib_res.url))
+        logging.error(str(lib_res.content))
         return
     cdnjs_lib_json = lib_res.json()
     dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
@@ -107,7 +118,21 @@ def update_lib(verbose, force, archive, lib):
                 jsfile_url = get_jsfile_url(name, version, jsfile)
                 if verbose:
                     logging.info("        " + jsfile_url)
-                res_jsfile = requests.get(jsfile_url, timeout=10)
+                try:
+                    res_jsfile = requests.get(jsfile_url, timeout=10)
+                except Exception as e:
+                    logging.error("Exception during download of assets of " +
+                                  name + " from " + jsfile_url + ":")
+                    logging.error(str(e))
+                    return
+                if not res_jsfile.status_code == 200:
+                    logging.error("Cannot access assests of " + name +
+                                  "(status codce: " + str(
+                                      res_jsfile.status_code) + ") " + str(
+                                          res_jsfile.url))
+                    logging.error(str(res_jsfile.content))
+                    return
+
                 data = res_jsfile.content
                 files_with_hashes.append({
                     'filename': jsfile,
@@ -126,10 +151,11 @@ def update_lib(verbose, force, archive, lib):
         for lib_ver in local_lib_json['assets']:
             version = lib_ver['version']
             if not version in cdnjs_versions:
-                logging.warning("Found outphased versions for " + name + " " + str(
-                    version) + " , preserving from archive.")
+                logging.warning("Found outphased versions for " + name + " " +
+                                str(version) + " , preserving from archive.")
                 if not 'outphased' in lib_ver:
-                    lib_ver['outphased'] = datetime.datetime.utcnow().isoformat()
+                    lib_ver['outphased'] = datetime.datetime.utcnow(
+                    ).isoformat()
                 outphased.append(lib_ver)
         if outphased:
             cdnjs_lib_json['assets'] = cdnjs_lib_json['assets'] + outphased
@@ -222,7 +248,20 @@ def delete_orphaned(archive, local_libs, cdnjs_current_libs):
 def update_jslib_archive(verbose, force, clean, archive):
     """Update information for all available JavaScript libraries."""
     cdnjs_all_libs_url = get_cdnjs_all_libs_url()
-    res = requests.get(cdnjs_all_libs_url, timeout=10)
+    try:
+        res = requests.get(cdnjs_all_libs_url, timeout=10)
+    except Exception as e:
+        logging.error("Exception during download of library overview from " +
+                      cdnjs_all_libs_url + ":")
+        logging.error(str(e))
+        sys.exit(1)
+
+    if not res.status_code == 200:
+        logging.error("Could not obtain library overview (http status code: " +
+                      str(res.status_code) + ")")
+        logging.error(str(res.content))
+        sys.exit(1)
+
     cdnjs_lib_catalog = res.json()['results']
     if clean:
         local_lib_catalog = get_local_libs(archive)
