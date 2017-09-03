@@ -19,9 +19,12 @@
     at CDNJS.com."""
 
 import getopt
+import logging
 import sys
 
-from ExtensionCrawler.cdnjs import update_jslib_archive, delete_orphaned, update_md5_map_file, update_sha1_map_file
+from ExtensionCrawler.cdnjs import (update_jslib_archive, update_md5_map_file,
+                                    update_sha1_map_file)
+from ExtensionCrawler.config import const_log_format
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
@@ -61,6 +64,17 @@ def main(argv):
             force = True
         elif opt == '-c':
             clean = True
+
+    if verbose:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.WARNING
+
+    logger = logging.getLogger()
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(logging.Formatter(const_log_format()))
+    logger.addHandler(ch)
+    logger.setLevel(loglevel)
 
     update_jslib_archive(verbose, force, clean, basedir)
     update_sha1_map_file(basedir)

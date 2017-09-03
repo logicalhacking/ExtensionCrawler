@@ -22,6 +22,7 @@ import datetime
 import glob
 import hashlib
 import json
+import logging
 import os
 import re
 import sys
@@ -29,6 +30,7 @@ from functools import partial
 from multiprocessing import Pool
 
 import requests
+
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
@@ -76,21 +78,21 @@ def update_lib(verbose, force, archive, lib):
     for lib_ver in cdnjs_lib_json['assets']:
         version = lib_ver['version']
         if verbose:
-            print("  Checking", lib['name'], version)
+            logging.info("  Checking "+str(lib['name'])+" "+str(version))
         files_with_hashes = []
         if not force and version in local_versions:
             if verbose:
-                print("    Updating from local record.")
+                logging.info("    Updating from local record.")
             old_record = next(x for x in local_lib_json['assets']
                               if x['version'] == lib_ver['version'])
             files_with_hashes = old_record['files']
         else:
             if verbose:
-                print("    Updating from remote record.")
+                logging.info("    Updating from remote record.")
             for jsfile in lib_ver['files']:
                 jsfile_url = get_jsfile_url(name, version, jsfile)
                 if verbose:
-                    print("        " + jsfile_url)
+                    logging.info("        " + jsfile_url)
                 res_jsfile = requests.get(jsfile_url)
                 data = res_jsfile.content
                 files_with_hashes.append({
@@ -106,7 +108,7 @@ def update_lib(verbose, force, archive, lib):
         lib_ver['files'] = files_with_hashes
     output = os.path.join(dirname, name + ".json")
     if verbose:
-        print("    Saving", str(output))
+        logging.info("    Saving "+str(output))
     with open(output, "w") as json_file:
         json.dump(cdnjs_lib_json, json_file)
 
@@ -200,7 +202,7 @@ def update_jslib_archive(verbose, force, clean, archive):
     with open(os.path.join(dirname, "cdnjs-libraries.json"), "w") as json_file:
         json.dump(res.json(), json_file)
     if verbose:
-        print("Found", str(len(cdnjs_lib_catalog)), "different libraries")
+        logging.info("Found "+str(len(cdnjs_lib_catalog))+" different libraries")
     
     with Pool(16) as p:
         p.map(partial(update_lib, verbose, force, archive), cdnjs_lib_catalog)
