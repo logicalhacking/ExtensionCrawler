@@ -58,7 +58,7 @@ def get_local_libs(archive):
 def update_lib(verbose, force, archive, lib):
     """Update information for a JavaScript library."""
     name = lib['name']
-    lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'])
+    lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'], timeout=10)
     if not lib_res.status_code == 200:
         logging.error("  Cannot access (status codce: " + str(
             lib_res.status_code) + ") " + str(lib_res.url))
@@ -107,7 +107,7 @@ def update_lib(verbose, force, archive, lib):
                 jsfile_url = get_jsfile_url(name, version, jsfile)
                 if verbose:
                     logging.info("        " + jsfile_url)
-                res_jsfile = requests.get(jsfile_url)
+                res_jsfile = requests.get(jsfile_url, timeout=10)
                 data = res_jsfile.content
                 files_with_hashes.append({
                     'filename': jsfile,
@@ -222,7 +222,7 @@ def delete_orphaned(archive, local_libs, cdnjs_current_libs):
 def update_jslib_archive(verbose, force, clean, archive):
     """Update information for all available JavaScript libraries."""
     cdnjs_all_libs_url = get_cdnjs_all_libs_url()
-    res = requests.get(cdnjs_all_libs_url)
+    res = requests.get(cdnjs_all_libs_url, timeout=10)
     cdnjs_lib_catalog = res.json()['results']
     if clean:
         local_lib_catalog = get_local_libs(archive)
