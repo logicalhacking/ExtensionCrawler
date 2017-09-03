@@ -101,7 +101,7 @@ def update_lib(verbose, force, archive, lib):
                     'sha1': hashlib.sha1(data).hexdigest(),
                     'sha256': hashlib.sha256(data).hexdigest(),
                     'url': jsfile_url,
-                    'date': datetime.datetime.utcnow().isoformat(),
+                    'first_seen': datetime.datetime.utcnow().isoformat(),
                     'size': len(data)
                 })
 
@@ -130,7 +130,7 @@ def build_hash_map_of_lib(hashalg, archive, lib):
                 'library': lib,
                 'version': version,
                 'file': jsfile['filename'],
-                'date': jsfile['date']
+                'first_seen': jsfile['first_seen']
             }
     return hash_map
 
