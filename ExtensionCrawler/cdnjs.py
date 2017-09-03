@@ -55,7 +55,7 @@ def get_local_libs(archive):
             glob.glob(os.path.join(dirname, "*.json")))))
 
 
-def update_lib(verbose, force, archive, lib):
+def update_lib(force, archive, lib):
     """Update information for a JavaScript library."""
     name = lib['name']
     try:
@@ -102,22 +102,19 @@ def update_lib(verbose, force, archive, lib):
 
     for lib_ver in cdnjs_lib_json['assets']:
         version = lib_ver['version']
-        if verbose:
-            logging.info("  Checking " + str(lib['name']) + " " + str(version))
+        logging.info("  Checking " + str(lib['name']) + " " + str(version))
         files_with_hashes = []
         if not force and version in local_versions:
-            if verbose:
-                logging.info("    Updating from local record.")
+            logging.info("    Updating from local record.")
             old_record = next(x for x in local_lib_json['assets']
                               if x['version'] == lib_ver['version'])
             files_with_hashes = old_record['files']
         else:
-            if verbose:
-                logging.info("    Updating from remote record.")
+            logging.warning("    Updating from remote record (" + name + " " +
+                            version + ").")
             for jsfile in lib_ver['files']:
                 jsfile_url = get_jsfile_url(name, version, jsfile)
-                if verbose:
-                    logging.info("        " + jsfile_url)
+                logging.info("        " + jsfile_url)
                 try:
                     res_jsfile = requests.get(jsfile_url, timeout=10)
                 except Exception as e:
@@ -161,8 +158,7 @@ def update_lib(verbose, force, archive, lib):
             cdnjs_lib_json['assets'] = cdnjs_lib_json['assets'] + outphased
 
     output = os.path.join(dirname, name + ".json")
-    if verbose:
-        logging.info("    Saving " + str(output))
+    logging.info("    Saving " + str(output))
     with open(output, "w") as json_file:
         json.dump(cdnjs_lib_json, json_file)
 
@@ -245,7 +241,7 @@ def delete_orphaned(archive, local_libs, cdnjs_current_libs):
             os.remove(os.path.join(dirname, lib + ".json"))
 
 
-def update_jslib_archive(verbose, force, clean, archive):
+def update_jslib_archive(force, clean, archive):
     """Update information for all available JavaScript libraries."""
     cdnjs_all_libs_url = get_cdnjs_all_libs_url()
     try:
@@ -270,9 +266,8 @@ def update_jslib_archive(verbose, force, clean, archive):
     os.makedirs(str(dirname), exist_ok=True)
     with open(os.path.join(dirname, "cdnjs-libraries.json"), "w") as json_file:
         json.dump(res.json(), json_file)
-    if verbose:
-        logging.info("Found " + str(len(cdnjs_lib_catalog)) +
-                     " different libraries")
+    logging.info("Found " + str(len(cdnjs_lib_catalog)) +
+                 " different libraries")
 
-    with Pool(16) as p:
-        p.map(partial(update_lib, verbose, force, archive), cdnjs_lib_catalog)
+    with Pool(32) as p:
+        p.map(partial(update_lib, force, archive), cdnjs_lib_catalog)

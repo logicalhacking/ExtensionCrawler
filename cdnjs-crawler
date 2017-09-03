@@ -76,7 +76,7 @@ def main(argv):
     logger.addHandler(ch)
     logger.setLevel(loglevel)
 
-    update_jslib_archive(verbose, force, clean, basedir)
+    update_jslib_archive(force, clean, basedir)
     update_sha1_map_file(basedir)
     update_md5_map_file(basedir)
 
