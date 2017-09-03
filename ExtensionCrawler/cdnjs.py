@@ -31,7 +31,6 @@ from multiprocessing import Pool
 
 import requests
 
-
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
@@ -61,8 +60,9 @@ def update_lib(verbose, force, archive, lib):
     name = lib['name']
     lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'])
     if not lib_res.status_code == 200:
-        logging.error("  Cannot access (status codce: " + str(lib_res.status_code) + ") " + str(lib_res.url))
-        return 
+        logging.error("  Cannot access (status codce: " + str(
+            lib_res.status_code) + ") " + str(lib_res.url))
+        return
     cdnjs_lib_json = lib_res.json()
     dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
     os.makedirs(str(dirname), exist_ok=True)
@@ -74,18 +74,25 @@ def update_lib(verbose, force, archive, lib):
         local_lib_json = None
     except json.decoder.JSONDecodeError:
         local_lib_json = None
-        logging.warning("  JSON file (" + os.path.join(dirname, name + ".json")+") defect, re-downloading.")        
-        os.rename(os.path.join(dirname, name + ".json"), os.path.join(dirname, name + ".backup.json"))
+        logging.warning("  JSON file (" + os.path.join(dirname, name + ".json")
+                        + ") defect, re-downloading.")
+        os.rename(
+            os.path.join(dirname, name + ".json"),
+            os.path.join(dirname, name + ".backup.json"))
 
     local_versions = []
     if local_lib_json is not None:
         for lib_ver in local_lib_json['assets']:
             local_versions.append(lib_ver['version'])
 
+    cdnjs_versions = []
+    for lib_ver in cdnjs_lib_json['assets']:
+        cdnjs_versions.append(lib_ver['version'])
+
     for lib_ver in cdnjs_lib_json['assets']:
         version = lib_ver['version']
         if verbose:
-            logging.info("  Checking "+str(lib['name'])+" "+str(version))
+            logging.info("  Checking " + str(lib['name']) + " " + str(version))
         files_with_hashes = []
         if not force and version in local_versions:
             if verbose:
@@ -113,9 +120,20 @@ def update_lib(verbose, force, archive, lib):
                 })
 
         lib_ver['files'] = files_with_hashes
+
+    outphased = []
+    for lib_ver in local_lib_json['assets']:
+        version = lib_ver['version']
+        if not version in cdnjs_versions:
+            logging.warning("Found outphased versions for " + name + " " + str(
+                version) + " , preserving from archive.")
+            outphased.append(lib_ver)
+    if outphased:
+        cdnjs_lib_json['assets'] = cdnjs_lib_json['assets'] + outphased
+
     output = os.path.join(dirname, name + ".json")
     if verbose:
-        logging.info("    Saving "+str(output))
+        logging.info("    Saving " + str(output))
     with open(output, "w") as json_file:
         json.dump(cdnjs_lib_json, json_file)
 
@@ -209,7 +227,8 @@ def update_jslib_archive(verbose, force, clean, archive):
     with open(os.path.join(dirname, "cdnjs-libraries.json"), "w") as json_file:
         json.dump(res.json(), json_file)
     if verbose:
-        logging.info("Found "+str(len(cdnjs_lib_catalog))+" different libraries")
-    
+        logging.info("Found " + str(len(cdnjs_lib_catalog)) +
+                     " different libraries")
+
     with Pool(16) as p:
         p.map(partial(update_lib, verbose, force, archive), cdnjs_lib_catalog)
