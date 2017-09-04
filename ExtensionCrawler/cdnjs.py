@@ -122,24 +122,37 @@ def update_lib(force, archive, lib):
                                   name + " from " + jsfile_url + ":")
                     logging.error(str(e))
                     return
-                if not res_jsfile.status_code == 200:
-                    logging.error("Cannot access assests of " + name +
-                                  "(status codce: " + str(
+
+                if res_jsfile.status_code == 403 or res_jsfile.status_code == 404:
+                    logging.warning("Access denied: cannot access assests of " + name +
+                                  " (status code: " + str(
+                                      res_jsfile.status_code) + ") " + str(
+                                          res_jsfile.url))
+                    files_with_hashes.append({
+                        'filename': jsfile,
+                        'url': jsfile_url,
+                        'first_seen': datetime.datetime.utcnow().isoformat(),
+                        'http_status_code': res_jsfile.status_code
+                    })
+                elif res_jsfile.status_code == 200:
+                    data = res_jsfile.content
+                    files_with_hashes.append({
+                        'filename': jsfile,
+                        'md5': hashlib.md5(data).hexdigest(),
+                        'sha1': hashlib.sha1(data).hexdigest(),
+                        'sha256': hashlib.sha256(data).hexdigest(),
+                        'url': jsfile_url,
+                        'first_seen': datetime.datetime.utcnow().isoformat(),
+                        'size': len(data),
+                        'http_status_code': res_jsfile.status_code
+                    })
+                else:
+                    logging.error("Unknown error: cannot access assests of " + name +
+                                  " (status code: " + str(
                                       res_jsfile.status_code) + ") " + str(
                                           res_jsfile.url))
                     logging.error(str(res_jsfile.content))
                     return
-
-                data = res_jsfile.content
-                files_with_hashes.append({
-                    'filename': jsfile,
-                    'md5': hashlib.md5(data).hexdigest(),
-                    'sha1': hashlib.sha1(data).hexdigest(),
-                    'sha256': hashlib.sha256(data).hexdigest(),
-                    'url': jsfile_url,
-                    'first_seen': datetime.datetime.utcnow().isoformat(),
-                    'size': len(data)
-                })
 
         lib_ver['files'] = files_with_hashes
 
