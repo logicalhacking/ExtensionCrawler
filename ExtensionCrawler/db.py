@@ -458,3 +458,4 @@ def update_db_incremental(tmptardir, ext_id, date):
                 log_warning(
                     "* Could not parse reply file, exception: {}".format(
                         str(e)), 3, ext_id)
+        con.commit()

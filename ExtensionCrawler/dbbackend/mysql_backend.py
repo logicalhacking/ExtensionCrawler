@@ -36,14 +36,24 @@ atexit.register(close_db)
 
 class MysqlBackend:
     def retry(self, f):
+        global db
         for t in range(const_mysql_maxtries()):
             try:
                 return f()
             except _mysql_exceptions.OperationalError as e:
                 last_exception = e
                 if t + 1 == const_mysql_maxtries():
-                    log_exception("MySQL connection eventually failed!", 3,
+                    log_error("MySQL connection eventually failed, closing connection!", 3,
                                   self.ext_id)
+                    try:
+                        if self.cursor is not None:
+                            self.cursor.close()
+                            self.cursor = None
+                        if db is not None:
+                            db.close()
+                            db = None
+                    except Exception as e2:
+                        log_error("Surpressed exception: {}".format(str(e2)), 3, self.ext_id)
                     raise last_exception
                 else:
                     log_exception(
@@ -61,14 +71,21 @@ class MysqlBackend:
     def __enter__(self):
         global db
         if db is None:
-            db = self.retry(lambda: MySQLdb.connect(**self.dbargs))
-        self.cursor = self.retry(lambda: db.cursor())
+            db = MySQLdb.connect(**self.dbargs)
+        self.cursor = db.cursor()
 
         return self
 
     def __exit__(self, *args):
-        self.retry(lambda: db.commit())
-        self.retry(lambda: self.cursor.close())
+        try:
+            if self.cursor is not None:
+                self.cursor.close()
+                self.cursor = None
+        except Exception as e:
+            log_error("Surpressed exception: {}".format(str(e)), 3, self.ext_id)
+
+    def commit(self):
+        db.commit()
 
     def get_single_value(self, query, args):
         self.retry(lambda: self.cursor.execute(query, args))
