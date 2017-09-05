@@ -193,10 +193,11 @@ def build_hash_map_of_lib(hashalg, archive, lib):
                 'library': lib,
                 'version': version,
                 'file': jsfile['filename'],
-                'first_seen': jsfile['first_seen']
             }
             if 'outphased' in jsfile:
                 (hash_map[hashvalue])['outphased'] = jsfile['outphased']
+            if 'first_seen' in jsfile:
+                (hash_map[hashvalue])['first_seen'] = jsfile['first_seen']
     return hash_map
 
 
