@@ -6,3 +6,5 @@ requests==2.18.1
 pycrypto==2.6.1
 beautifulsoup4==4.6.0
 python_dateutil==2.6.1
+GitPython==2.1.5
+
