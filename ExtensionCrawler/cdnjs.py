@@ -59,8 +59,8 @@ def update_lib(force, archive, lib):
     """Update information for a JavaScript library."""
     name = lib['name']
     try:
-        lib_res = requests.get(get_cdnjs_all_libs_url() + "/" + lib['name'],
-                               timeout=10)
+        lib_res = requests.get(
+            get_cdnjs_all_libs_url() + "/" + lib['name'], timeout=10)
     except Exception as e:
         logging.error("Exception during download of library overview for " +
                       name + "from " + get_cdnjs_all_libs_url() + "/" +
@@ -70,8 +70,8 @@ def update_lib(force, archive, lib):
 
     if not lib_res.status_code == 200:
         logging.error("  Cannot access overview for " + name +
-                      "(status codce: " + str(
-                          lib_res.status_code) + ") " + str(lib_res.url))
+                      "(status codce: " + str(lib_res.status_code) + ") " +
+                      str(lib_res.url))
         logging.error(str(lib_res.content))
         return
     cdnjs_lib_json = lib_res.json()
@@ -124,33 +124,45 @@ def update_lib(force, archive, lib):
                     return
 
                 if res_jsfile.status_code == 403 or res_jsfile.status_code == 404:
-                    logging.warning("Access denied: cannot access assests of " + name +
-                                  " (status code: " + str(
-                                      res_jsfile.status_code) + ") " + str(
-                                          res_jsfile.url))
+                    logging.warning("Access denied: cannot access assests of "
+                                    + name + " (status code: " +
+                                    str(res_jsfile.status_code) + ") " +
+                                    str(res_jsfile.url))
                     files_with_hashes.append({
-                        'filename': jsfile,
-                        'url': jsfile_url,
-                        'first_seen': datetime.datetime.utcnow().isoformat(),
-                        'http_status_code': res_jsfile.status_code
+                        'filename':
+                        jsfile,
+                        'url':
+                        jsfile_url,
+                        'first_seen':
+                        datetime.datetime.utcnow().isoformat(),
+                        'http_status_code':
+                        res_jsfile.status_code
                     })
                 elif res_jsfile.status_code == 200:
                     data = res_jsfile.content
                     files_with_hashes.append({
-                        'filename': jsfile,
-                        'md5': hashlib.md5(data).hexdigest(),
-                        'sha1': hashlib.sha1(data).hexdigest(),
-                        'sha256': hashlib.sha256(data).hexdigest(),
-                        'url': jsfile_url,
-                        'first_seen': datetime.datetime.utcnow().isoformat(),
-                        'size': len(data),
-                        'http_status_code': res_jsfile.status_code
+                        'filename':
+                        jsfile,
+                        'md5':
+                        hashlib.md5(data).hexdigest(),
+                        'sha1':
+                        hashlib.sha1(data).hexdigest(),
+                        'sha256':
+                        hashlib.sha256(data).hexdigest(),
+                        'url':
+                        jsfile_url,
+                        'first_seen':
+                        datetime.datetime.utcnow().isoformat(),
+                        'size':
+                        len(data),
+                        'http_status_code':
+                        res_jsfile.status_code
                     })
                 else:
-                    logging.error("Unknown error: cannot access assests of " + name +
-                                  " (status code: " + str(
-                                      res_jsfile.status_code) + ") " + str(
-                                          res_jsfile.url))
+                    logging.error("Unknown error: cannot access assests of " +
+                                  name + " (status code: " +
+                                  str(res_jsfile.status_code) + ") " +
+                                  str(res_jsfile.url))
                     logging.error(str(res_jsfile.content))
                     return
 
@@ -164,8 +176,8 @@ def update_lib(force, archive, lib):
                 logging.warning("Found outphased versions for " + name + " " +
                                 str(version) + " , preserving from archive.")
                 if not 'outphased' in lib_ver:
-                    lib_ver['outphased'] = datetime.datetime.utcnow(
-                    ).isoformat()
+                    lib_ver[
+                        'outphased'] = datetime.datetime.utcnow().isoformat()
                 outphased.append(lib_ver)
         if outphased:
             cdnjs_lib_json['assets'] = cdnjs_lib_json['assets'] + outphased
