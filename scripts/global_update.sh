@@ -3,7 +3,7 @@
 # 15 01 * * * (cd ~/ExtensionCrawler; ((git fetch ; git checkout production; git pull) &> /dev/null))
 # 07 02 * * * ~/ExtensionCrawler/scripts/global_update.sh
 
-ARCHIVE=${1:-/srv/Shared/BrowserExtensions/}
+ARCHIVE=${1:-/srv/Shared/BrowserExtensions/archive}
 CRAWLERHOME=${2:-~/ExtensionCrawler}
 LOGPREFIX=$ARCHIVE/log/`date --iso-8601=ns`
 LOG=$LOGPREFIX-global.log 
