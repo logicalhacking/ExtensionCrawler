@@ -127,7 +127,12 @@ def archive_file(archivedir, ext_id):
 
 def const_basedir():
     """Top-level directory for the extension crawler archive."""
-    return "archive"
+    if "EXTENSION_ARCHIVE" in os.environ:
+        return os.environ.get("EXTENSION_ARCHIVE")
+    else:
+        return "archive"
+
+
 
 def const_parallel_downloads():
     """Number of parallel downloads."""

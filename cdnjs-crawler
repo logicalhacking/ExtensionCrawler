@@ -24,7 +24,7 @@ import sys
 
 from ExtensionCrawler.cdnjs import (update_jslib_archive, update_md5_map_file,
                                     update_sha1_map_file)
-from ExtensionCrawler.config import const_log_format
+from ExtensionCrawler.config import (const_log_format, const_basedir)
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
@@ -42,7 +42,7 @@ def helpmsg():
 
 def main(argv):
     """Main function of the extension crawler."""
-    basedir = "archive"
+    basedir = const_basedir()
     verbose = True
     force = False
     clean = False

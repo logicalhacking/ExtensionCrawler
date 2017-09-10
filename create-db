@@ -92,7 +92,7 @@ def find_from_file(archive, extidlistfile):
 
 
 def parse_args(argv):
-    archive = "archive"
+    archive = const_basedir()
     parallel = 8
     taskid = 1
     maxtaskid = 1
