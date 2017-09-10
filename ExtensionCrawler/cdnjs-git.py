@@ -106,8 +106,8 @@ def get_file_identifiers(path):
 def path_to_list(path):
     """Convert a path (string) to a list of folders/files."""
     plist = []
-    while(True):
-        (head,tail) = os.path.split(path)
+    while (True):
+        (head, tail) = os.path.split(path)
         if head == '':
             if tail == '':
                 break
@@ -123,16 +123,18 @@ def path_to_list(path):
                 path = head
     return list(reversed(plist))
 
+
 def get_file_libinfo(gitobj, libfile):
     """Compute file idenfifiers and library information of libfile."""
     try:
         file_info = get_file_identifiers(libfile)
         plist = path_to_list(libfile)
         idx = plist.index("libs")
-        file_info['library'] = plist[idx+1]
-        file_info['version'] = plist[idx+2]
+        file_info['library'] = plist[idx + 1]
+        file_info['version'] = plist[idx + 2]
         file_info['add_date'] = get_add_date(gitobj, libfile)
-        package = os.path.join(reduce(os.path.join, plist[:idx+1]), "package.json")
+        package = os.path.join(
+            reduce(os.path.join, plist[:idx + 1]), "package.json")
         return file_info
     except Exception:
         return None
