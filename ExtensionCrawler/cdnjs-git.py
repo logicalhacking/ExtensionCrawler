@@ -18,12 +18,14 @@
 """ Module for obtaining md5/sha1/sha256 hashes for all files available
     at CDNJS.com by mining the cdnjs git repository."""
 
-import os
 import hashlib
+import mimetypes
+import os
 
 import cchardet as chardet
 import dateutil.parser
 import git
+import magic
 
 from ExtensionCrawler.js_mincer import mince_js
 
@@ -66,18 +68,35 @@ def get_file_identifiers(path):
     """Get basic file identifiers (size, hashes, normalized hashes, etc.)."""
     with open(path, 'rb') as fileobj:
         data = fileobj.read()
-    encoding = chardet.detect(data)['encoding']
-    normalized_data = normalize_file(path, encoding)
-    return ({
+
+    file_identifier = {
         'filename': os.path.basename(path),
         'path': path,
         'md5': hashlib.md5(data).digest(),
         'sha1': hashlib.sha1(data).digest(),
         'sha256': hashlib.sha256(data).digest(),
-        'normalized_md5': hashlib.md5(normalized_data).digest(),
-        'normalized_sha1': hashlib.sha1(normalized_data).digest(),
-        'normalized_sha256': hashlib.sha256(normalized_data).digest(),
         'size': len(data),
+        'mimetype': mimetypes.guess_type(path),
+        'description': magic.from_file(path),
         'encoding': chardet.detect(data)['encoding'],
-        'comment': ""
-    })
+    }
+
+    try:
+        normalized_data = normalize_file(path, file_identifier['encoding'])
+    except Exception:
+        normalized_data = None
+
+    if normalized_data is None:
+        file_identifier['normalized_md5'] = None
+        file_identifier['normalized_sha1'] = None
+        file_identifier['normalized_sha256'] = None
+    else:
+        normalized_data = normalize_file(path, file_identifier['encoding'])
+        file_identifier['normalized_md5'] = hashlib.md5(
+            normalized_data).digest()
+        file_identifier['normalized_sha1'] = hashlib.sha1(
+            normalized_data).digest()
+        file_identifier['normalized_sha256'] = hashlib.sha256(
+            normalized_data).digest()
+
+    return file_identifier
