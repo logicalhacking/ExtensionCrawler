@@ -18,6 +18,7 @@
 """ Module for obtaining md5/sha1/sha256 hashes for all files available
     at CDNJS.com by mining the cdnjs git repository."""
 
+import os
 import hashlib
 
 import cchardet as chardet
@@ -52,13 +53,31 @@ def pull_get_list_changed_files(gitrepo):
 
 def normalize_file(path, encoding):
     """Compute normalized code blocks of a JavaScript file"""
-    code_blocks = []
+    txt = ""
     with open(path, encoding=encoding) as fileobj:
         for block in mince_js(fileobj):
             if block.is_code():
-                block_content = ""
                 for line in block.content.splitlines():
-                    block_content += line.strip()
-                code_blocks.append(block_content.encode)
-    return code_blocks
+                    txt += line.strip()
+    return txt.encode()
 
+
+def get_file_identifiers(path):
+    """Get basic file identifiers (size, hashes, normalized hashes, etc.)."""
+    with open(path, 'rb') as fileobj:
+        data = fileobj.read()
+    encoding = chardet.detect(data)['encoding']
+    normalized_data = normalize_file(path, encoding)
+    return ({
+        'filename': os.path.basename(path),
+        'path': path,
+        'md5': hashlib.md5(data).digest(),
+        'sha1': hashlib.sha1(data).digest(),
+        'sha256': hashlib.sha256(data).digest(),
+        'normalized_md5': hashlib.md5(normalized_data).digest(),
+        'normalized_sha1': hashlib.sha1(normalized_data).digest(),
+        'normalized_sha256': hashlib.sha256(normalized_data).digest(),
+        'size': len(data),
+        'encoding': chardet.detect(data)['encoding'],
+        'comment': ""
+    })
