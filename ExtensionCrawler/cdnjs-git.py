@@ -32,10 +32,13 @@ def get_add_date(gitobj, filename):
         return None
 
 
-def pull(gitrepo):
+def pull_get_list_changed_files(gitrepo):
     """Pull new updates from remote origin."""
-    try:
-        cdnjs_origin = gitrepo.remotes.origin
-        return cdnjs_origin.pull()
-    except Exception:
-        return None
+    files = []
+    cdnjs_origin = gitrepo.remotes.origin
+    fetch_info = cdnjs_origin.pull()
+    for fi in fetch_info:
+        for diff in fi.commit.diff(fi.old_commit):
+            if not diff.a_blob.path in files:
+                files.append(diff.a_blob.path)
+    return files
