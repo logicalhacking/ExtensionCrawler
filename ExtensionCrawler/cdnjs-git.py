@@ -21,6 +21,7 @@
 import hashlib
 import mimetypes
 import os
+from functools import reduce
 
 import cchardet as chardet
 import dateutil.parser
@@ -100,3 +101,38 @@ def get_file_identifiers(path):
             normalized_data).digest()
 
     return file_identifier
+
+
+def path_to_list(path):
+    """Convert a path (string) to a list of folders/files."""
+    plist = []
+    while(True):
+        (head,tail) = os.path.split(path)
+        if head == '':
+            if tail == '':
+                break
+            else:
+                plist.append(tail)
+                break
+        else:
+            if tail == '':
+                plist.append(head)
+                break
+            else:
+                plist.append(tail)
+                path = head
+    return list(reversed(plist))
+
+def get_file_libinfo(gitobj, libfile):
+    """Compute file idenfifiers and library information of libfile."""
+    try:
+        file_info = get_file_identifiers(libfile)
+        plist = path_to_list(libfile)
+        idx = plist.index("libs")
+        file_info['library'] = plist[idx+1]
+        file_info['version'] = plist[idx+2]
+        file_info['add_date'] = get_add_date(gitobj, libfile)
+        package = os.path.join(reduce(os.path.join, plist[:idx+1]), "package.json")
+        return file_info
+    except Exception:
+        return None
