@@ -5,7 +5,7 @@ set -o errexit
 NRJOBS=${NRJOBS:-256}
 echo "Using $NRJOBS jobs"
 
-ARCHIVE=${ARCHIVE:-$(ssh sharc.shef.ac.uk find /shared/brucker_research1/Shared/BrowserExtensions/.snapshot -maxdepth 1 -name \"D*\" | sort -r | head -n1)}
+ARCHIVE=${ARCHIVE:-$(ssh sharc.shef.ac.uk find /shared/brucker_research1/Shared/BrowserExtensions/archive/.snapshot -maxdepth 1 -name \"D*\" | sort -r | head -n1)}
 echo "Using archive: $ARCHIVE"
 
 TARGETDIR="${TARGETDIR:-/data/\$USER}/grepper-$(date +%Y%m%d-%H%M%S)"
