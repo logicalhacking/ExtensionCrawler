@@ -18,8 +18,13 @@
 """ Module for obtaining md5/sha1/sha256 hashes for all files available
     at CDNJS.com by mining the cdnjs git repository."""
 
-import git
+import hashlib
+
+import cchardet as chardet
 import dateutil.parser
+import git
+
+from ExtensionCrawler.js_mincer import mince_js
 
 
 def get_add_date(gitobj, filename):
@@ -37,8 +42,23 @@ def pull_get_list_changed_files(gitrepo):
     files = []
     cdnjs_origin = gitrepo.remotes.origin
     fetch_info = cdnjs_origin.pull()
-    for fi in fetch_info:
-        for diff in fi.commit.diff(fi.old_commit):
+    for single_fetch_info in fetch_info:
+        for diff in single_fetch_info.commit.diff(
+                single_fetch_info.old_commit):
             if not diff.a_blob.path in files:
                 files.append(diff.a_blob.path)
     return files
+
+
+def normalize_file(path, encoding):
+    """Compute normalized code blocks of a JavaScript file"""
+    code_blocks = []
+    with open(path, encoding=encoding) as fileobj:
+        for block in mince_js(fileobj):
+            if block.is_code():
+                block_content = ""
+                for line in block.content.splitlines():
+                    block_content += line.strip()
+                code_blocks.append(block_content.encode)
+    return code_blocks
+
