@@ -104,22 +104,27 @@ def get_file_identifiers(path):
 
     data_identifier = get_data_identifiers(data)
 
+    dec_data_identifier = {
+        'md5': None,
+        'sha1': None,
+        'sha256': None,
+        'size': None,
+        'description': None,
+        'encoding': None,
+        'normalized_md5': None,
+        'normalized_sha1': None,
+        'normalized_sha256': None
+    }
     if data_identifier['description'].startswith('gzip'):
-        with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
-            dec_data = dec.decompress(data, 30 * data_identifier['size'])
-        dec_data_identifier = get_data_identifiers(dec_data)
-    else:
-        dec_data_identifier = {
-            'md5': None,
-            'sha1': None,
-            'sha256': None,
-            'size': None,
-            'description': None,
-            'encoding': None,
-            'normalized_md5': None,
-            'normalized_sha1': None,
-            'normalized_sha256': None
-        }
+        try:
+            with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
+                dec_data = dec.decompress(data, 100 * data_identifier['size'])
+            dec_data_identifier = get_data_identifiers(dec_data)
+        except Exception as e:
+            dec_data_identifier[
+                'description'] = "Exception during compression (likely zip-bomb:" + str(
+                    e)
+
     data = None
     dec_data = None
 
