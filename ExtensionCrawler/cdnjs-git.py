@@ -22,6 +22,7 @@ import hashlib
 import mimetypes
 import os
 from functools import reduce
+import zlib
 
 import cchardet as chardet
 import dateutil.parser
@@ -64,7 +65,6 @@ def normalize_file(path, encoding):
                     txt += line.strip()
     return txt.encode()
 
-
 def get_file_identifiers(path):
     """Get basic file identifiers (size, hashes, normalized hashes, etc.)."""
     with open(path, 'rb') as fileobj:
@@ -78,7 +78,7 @@ def get_file_identifiers(path):
         'sha256': hashlib.sha256(data).digest(),
         'size': len(data),
         'mimetype': mimetypes.guess_type(path),
-        'description': magic.from_file(path),
+        'description': magic.from_buffer(data),
         'encoding': chardet.detect(data)['encoding'],
     }
 
