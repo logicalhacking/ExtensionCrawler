@@ -21,8 +21,8 @@
 import hashlib
 import mimetypes
 import os
-from functools import reduce
 import zlib
+from functools import reduce
 from io import StringIO
 
 import cchardet as chardet
@@ -66,6 +66,7 @@ def normalize_jsdata(str_data):
                     txt += line.strip()
     return txt.encode()
 
+
 def get_data_identifiers(data):
     """Get basic data identifiers (size, hashes, normalized hashes, etc.)."""
     data_identifier = {
@@ -77,7 +78,8 @@ def get_data_identifiers(data):
         'encoding': chardet.detect(data)['encoding'],
     }
     try:
-        normalized_data = normalize_jsdata(data.decode(data_identifier['encoding']))
+        normalized_data = normalize_jsdata(
+            data.decode(data_identifier['encoding']))
     except Exception:
         normalized_data = None
 
@@ -94,16 +96,17 @@ def get_data_identifiers(data):
             normalized_data).digest()
     return data_identifier
 
+
 def get_file_identifiers(path):
     """Get basic file identifiers (path, filename, etc.) and data identifiers."""
     with open(path, 'rb') as fileobj:
         data = fileobj.read()
 
     data_identifier = get_data_identifiers(data)
- 
+
     if data_identifier['description'].startswith('gzip'):
         with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
-            dec_data = dec.decompress(data, 30*data_identifier['size'])
+            dec_data = dec.decompress(data, 30 * data_identifier['size'])
         dec_data_identifier = get_data_identifiers(dec_data)
     else:
         dec_data_identifier = {
@@ -119,7 +122,7 @@ def get_file_identifiers(path):
         }
     data = None
     dec_data = None
- 
+
     file_identifier = {
         'filename': os.path.basename(path),
         'path': path,
@@ -150,7 +153,7 @@ def get_file_identifiers(path):
 def path_to_list(path):
     """Convert a path (string) to a list of folders/files."""
     plist = []
-    while (True):
+    while True:
         (head, tail) = os.path.split(path)
         if head == '':
             if tail == '':
