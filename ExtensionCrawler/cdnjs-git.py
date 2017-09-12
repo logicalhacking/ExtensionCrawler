@@ -100,7 +100,26 @@ def get_file_identifiers(path):
         data = fileobj.read()
 
     data_identifier = get_data_identifiers(data)
-
+ 
+    if data_identifier['description'].startswith('gzip'):
+        with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
+            dec_data = dec.decompress(data, 30*data_identifier['size'])
+        dec_data_identifier = get_data_identifiers(dec_data)
+    else:
+        dec_data_identifier = {
+            'md5': None,
+            'sha1': None,
+            'sha256': None,
+            'size': None,
+            'description': None,
+            'encoding': None,
+            'normalized_md5': None,
+            'normalized_sha1': None,
+            'normalized_sha256': None
+        }
+    data = None
+    dec_data = None
+ 
     file_identifier = {
         'filename': os.path.basename(path),
         'path': path,
@@ -113,7 +132,16 @@ def get_file_identifiers(path):
         'encoding': data_identifier['encoding'],
         'normalized_md5': data_identifier['normalized_md5'],
         'normalized_sha1': data_identifier['normalized_sha1'],
-        'normalized_sha256': data_identifier['normalized_sha256']
+        'normalized_sha256': data_identifier['normalized_sha256'],
+        'dec_md5': dec_data_identifier['md5'],
+        'dec_sha1': dec_data_identifier['sha1'],
+        'dec_sha256': dec_data_identifier['sha256'],
+        'dec_size': dec_data_identifier['size'],
+        'dec_description': dec_data_identifier['description'],
+        'dec_encoding': dec_data_identifier['encoding'],
+        'dec_normalized_md5': dec_data_identifier['normalized_md5'],
+        'dec_normalized_sha1': dec_data_identifier['normalized_sha1'],
+        'dec_normalized_sha256': dec_data_identifier['normalized_sha256']
     }
 
     return file_identifier
