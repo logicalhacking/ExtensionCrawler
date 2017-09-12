@@ -23,6 +23,7 @@ import mimetypes
 import os
 from functools import reduce
 import zlib
+from io import StringIO
 
 import cchardet as chardet
 import dateutil.parser
@@ -55,11 +56,11 @@ def pull_get_list_changed_files(gitrepo):
     return files
 
 
-def normalize_file(path, encoding):
+def normalize_jsdata(str_data):
     """Compute normalized code blocks of a JavaScript file"""
     txt = ""
-    with open(path, encoding=encoding) as fileobj:
-        for block in mince_js(fileobj):
+    with StringIO(str_data) as str_obj:
+        for block in mince_js(str_obj):
             if block.is_code():
                 for line in block.content.splitlines():
                     txt += line.strip()
@@ -83,7 +84,7 @@ def get_file_identifiers(path):
     }
 
     try:
-        normalized_data = normalize_file(path, file_identifier['encoding'])
+        normalized_data = normalize_jsdata(data.decode(file_identifier['encoding']))
     except Exception:
         normalized_data = None
 
@@ -92,7 +93,6 @@ def get_file_identifiers(path):
         file_identifier['normalized_sha1'] = None
         file_identifier['normalized_sha256'] = None
     else:
-        normalized_data = normalize_file(path, file_identifier['encoding'])
         file_identifier['normalized_md5'] = hashlib.md5(
             normalized_data).digest()
         file_identifier['normalized_sha1'] = hashlib.sha1(
