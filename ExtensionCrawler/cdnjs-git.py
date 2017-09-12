@@ -66,39 +66,55 @@ def normalize_jsdata(str_data):
                     txt += line.strip()
     return txt.encode()
 
-def get_file_identifiers(path):
-    """Get basic file identifiers (size, hashes, normalized hashes, etc.)."""
-    with open(path, 'rb') as fileobj:
-        data = fileobj.read()
-
-    file_identifier = {
-        'filename': os.path.basename(path),
-        'path': path,
+def get_data_identifiers(data):
+    """Get basic data identifiers (size, hashes, normalized hashes, etc.)."""
+    data_identifier = {
         'md5': hashlib.md5(data).digest(),
         'sha1': hashlib.sha1(data).digest(),
         'sha256': hashlib.sha256(data).digest(),
         'size': len(data),
-        'mimetype': mimetypes.guess_type(path),
         'description': magic.from_buffer(data),
         'encoding': chardet.detect(data)['encoding'],
     }
-
     try:
-        normalized_data = normalize_jsdata(data.decode(file_identifier['encoding']))
+        normalized_data = normalize_jsdata(data.decode(data_identifier['encoding']))
     except Exception:
         normalized_data = None
 
     if normalized_data is None:
-        file_identifier['normalized_md5'] = None
-        file_identifier['normalized_sha1'] = None
-        file_identifier['normalized_sha256'] = None
+        data_identifier['normalized_md5'] = None
+        data_identifier['normalized_sha1'] = None
+        data_identifier['normalized_sha256'] = None
     else:
-        file_identifier['normalized_md5'] = hashlib.md5(
+        data_identifier['normalized_md5'] = hashlib.md5(
             normalized_data).digest()
-        file_identifier['normalized_sha1'] = hashlib.sha1(
+        data_identifier['normalized_sha1'] = hashlib.sha1(
             normalized_data).digest()
-        file_identifier['normalized_sha256'] = hashlib.sha256(
+        data_identifier['normalized_sha256'] = hashlib.sha256(
             normalized_data).digest()
+    return data_identifier
+
+def get_file_identifiers(path):
+    """Get basic file identifiers (path, filename, etc.) and data identifiers."""
+    with open(path, 'rb') as fileobj:
+        data = fileobj.read()
+
+    data_identifier = get_data_identifiers(data)
+
+    file_identifier = {
+        'filename': os.path.basename(path),
+        'path': path,
+        'mimetype': mimetypes.guess_type(path),
+        'md5': data_identifier['md5'],
+        'sha1': data_identifier['sha1'],
+        'sha256': data_identifier['sha256'],
+        'size': data_identifier['size'],
+        'description': data_identifier['description'],
+        'encoding': data_identifier['encoding'],
+        'normalized_md5': data_identifier['normalized_md5'],
+        'normalized_sha1': data_identifier['normalized_sha1'],
+        'normalized_sha256': data_identifier['normalized_sha256']
+    }
 
     return file_identifier
 
