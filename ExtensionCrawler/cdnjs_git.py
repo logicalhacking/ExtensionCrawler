@@ -216,7 +216,7 @@ def get_all_lib_files(cdnjs_git_path):
         if not os.path.basename(fname) in ["package.json", ".gitkeep"]:
             if not os.path.isdir(fname):
                 files.append(fname)
-    logging.info("Found " + len(files) + " files")
+    logging.info("Found " + str(len(files) + " files")
     return files
 
 
