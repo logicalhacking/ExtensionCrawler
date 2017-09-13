@@ -19,6 +19,7 @@
     at CDNJS.com by mining the cdnjs git repository."""
 
 import hashlib
+import logging
 import mimetypes
 import os
 import zlib
@@ -178,6 +179,7 @@ def path_to_list(path):
 
 def get_file_libinfo(gitobj, libfile):
     """Compute file idenfifiers and library information of libfile."""
+    logging.info("Computing file info for " + libfile)
     try:
         file_info = get_file_identifiers(libfile)
         plist = path_to_list(libfile)
@@ -194,21 +196,25 @@ def get_file_libinfo(gitobj, libfile):
 
 def pull_get_updated_lib_files(cdnjs_repo):
     """Pull repository and determine updated libraries."""
+    logging.info("Building file list (only updates)")
     files = []
     for update in pull_get_list_changed_files(cdnjs_repo):
         if not (os.path.basename(update) in ["package.json", ".gitkeep"]):
             if update.startswith("ajax"):
                 files.append(update)
+    logging.info("Found " + len(files) + " files")
     return files
 
 def get_all_lib_files(cdnjs_git_path):
     """Return all libraries stored in cdnjs git repo."""
+    logging.info("Building file list (complete repository)")
     files = []
     for dirpath, dirs, files in os.walk(os.path.join(cdnjs_git_path, "ajax")):
         for filename in files:
             if filename != "package.json" and filename != ".gitkeep":
                 fname = os.path.join(dirpath, filename)
                 files.append(fname)
+    logging.info("Found " + len(files) + " files")
     return files
 
 def update_database(cdnjs_git, files):
@@ -217,7 +223,8 @@ def update_database(cdnjs_git, files):
     for fname in files:
         file_info = get_file_libinfo(cdnjs_git, fname)
         if not file_info is None:
-            print("TODO: Updating data base: " + fname)
+            ## TODO
+            logging.info("Updating database")
 
 def pull_and_update_db(cdnjs_git_path):
     """Pull repo and update database."""
