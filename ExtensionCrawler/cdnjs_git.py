@@ -67,12 +67,14 @@ def pull_get_list_changed_files(gitrepo):
 def normalize_jsdata(str_data):
     """Compute normalized code blocks of a JavaScript file"""
     txt = ""
+    loc = 0
     with StringIO(str_data) as str_obj:
         for block in mince_js(str_obj):
             if block.is_code():
                 for line in block.content.splitlines():
                     txt += line.strip()
-    return txt.encode()
+                    loc += 1
+    return txt.encode(), loc
 
 
 def get_data_identifiers(data):
@@ -82,20 +84,23 @@ def get_data_identifiers(data):
         'sha1': hashlib.sha1(data).digest(),
         'sha256': hashlib.sha256(data).digest(),
         'size': len(data),
+        'loc': len(data.splitlines()),
         'description': magic.from_buffer(data),
         'encoding': chardet.detect(data)['encoding'],
     }
     try:
-        normalized_data = normalize_jsdata(
+        normalized_data, normalized_loc = normalize_jsdata(
             data.decode(data_identifier['encoding']))
     except Exception:
         normalized_data = None
 
     if normalized_data is None:
+        data_identifier['normalized_loc'] = None
         data_identifier['normalized_md5'] = None
         data_identifier['normalized_sha1'] = None
         data_identifier['normalized_sha256'] = None
     else:
+        data_identifier['normalized_loc'] = normalized_loc
         data_identifier['normalized_md5'] = hashlib.md5(
             normalized_data).digest()
         data_identifier['normalized_sha1'] = hashlib.sha1(
@@ -112,8 +117,10 @@ def get_file_identifiers(path):
         'sha1': None,
         'sha256': None,
         'size': None,
+        'loc': None,
         'description': None,
         'encoding': None,
+        'normalized_loc': None,
         'normalized_md5': None,
         'normalized_sha1': None,
         'normalized_sha256': None
@@ -145,8 +152,10 @@ def get_file_identifiers(path):
         'sha1': data_identifier['sha1'],
         'sha256': data_identifier['sha256'],
         'size': data_identifier['size'],
+        'loc': data_identifier['loc'],
         'description': data_identifier['description'],
         'encoding': data_identifier['encoding'],
+        'normalized_loc': data_identifier['normalized_loc'],
         'normalized_md5': data_identifier['normalized_md5'],
         'normalized_sha1': data_identifier['normalized_sha1'],
         'normalized_sha256': data_identifier['normalized_sha256'],
@@ -154,8 +163,10 @@ def get_file_identifiers(path):
         'dec_sha1': dec_data_identifier['sha1'],
         'dec_sha256': dec_data_identifier['sha256'],
         'dec_size': dec_data_identifier['size'],
+        'dec_loc': dec_data_identifier['loc'],
         'dec_description': dec_data_identifier['description'],
         'dec_encoding': dec_data_identifier['encoding'],
+        'dec_normalized_loc': dec_data_identifier['normalized_loc'],
         'dec_normalized_md5': dec_data_identifier['normalized_md5'],
         'dec_normalized_sha1': dec_data_identifier['normalized_sha1'],
         'dec_normalized_sha256': dec_data_identifier['normalized_sha256']
@@ -220,15 +231,23 @@ def pull_get_updated_lib_files(cdnjs_git_path):
 def get_all_lib_files(cdnjs_git_path):
     """Return all libraries stored in cdnjs git repo."""
     logging.info("Building file list (complete repository)")
+    libvers = set()
     files = []
+    versionidx=len(path_to_list(cdnjs_git_path))+4
     for fname in glob.iglob(
             os.path.join(cdnjs_git_path, 'ajax/libs/**/*'), recursive=True):
-        if not os.path.basename(fname) in ["package.json", ".gitkeep"]:
-            if not os.path.isdir(fname):
+        if not os.path.isdir(fname):
+            if not os.path.basename(fname) in ["package.json", ".gitkeep"]:
                 files.append(fname)
+        else:
+            plist = path_to_list(fname)
+            if len(plist) == versionidx:
+                libvers.add(fname)
     gc.collect()
+
     logging.info("Found " + str(len(files)) + " files")
-    return files
+    logging.info("Found " + str(len(libvers)) + " unique library/version combinations.")
+    return files, list(libvers)
 
 
 def update_database_for_file(cdnjs_git_path, filename):
@@ -255,5 +274,6 @@ def pull_and_update_db(cdnjs_git_path, poolsize=16):
 
 def update_db_all_libs(cdnjs_git_path, poolsize=16):
     """Update database entries for all libs in git repo."""
-    files = get_all_lib_files(cdnjs_git_path)
+    files, libvers = get_all_lib_files(cdnjs_git_path)
+
     update_database(cdnjs_git_path, files, poolsize)
