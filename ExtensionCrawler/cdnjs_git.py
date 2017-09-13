@@ -22,6 +22,7 @@ import hashlib
 import logging
 import mimetypes
 import os
+import glob
 import zlib
 from functools import reduce
 from io import StringIO
@@ -205,17 +206,19 @@ def pull_get_updated_lib_files(cdnjs_repo):
     logging.info("Found " + len(files) + " files")
     return files
 
+
 def get_all_lib_files(cdnjs_git_path):
     """Return all libraries stored in cdnjs git repo."""
     logging.info("Building file list (complete repository)")
     files = []
-    for dirpath, dirs, files in os.walk(os.path.join(cdnjs_git_path, "ajax")):
-        for filename in files:
-            if filename != "package.json" and filename != ".gitkeep":
-                fname = os.path.join(dirpath, filename)
+    for fname in glob.iglob(
+            os.path.join(cdnjs_git_path, 'ajax/libs/**/*'), recursive=True):
+        if not os.path.basename(fname) in ["package.json", ".gitkeep"]:
+            if not os.path.isdir(fname):
                 files.append(fname)
     logging.info("Found " + len(files) + " files")
     return files
+
 
 def update_database(cdnjs_git, files):
     """Update database for all files in files."""
@@ -226,12 +229,14 @@ def update_database(cdnjs_git, files):
             ## TODO
             logging.info("Updating database")
 
+
 def pull_and_update_db(cdnjs_git_path):
     """Pull repo and update database."""
     cdnjs_git = git.Git(cdnjs_git_path)
     cdnjs_repo = git.Repo(cdnjs_git_path)
     files = pull_get_updated_lib_files(cdnjs_repo)
     update_database(cdnjs_git, files)
+
 
 def update_db_all_libs(cdnjs_git_path):
     """Update database entries for all libs in git repo."""
