@@ -18,11 +18,13 @@
 """ Module for obtaining md5/sha1/sha256 hashes for all files available
     at CDNJS.com by mining the cdnjs git repository."""
 
+import gc
 import glob
 import hashlib
 import logging
 import mimetypes
 import os
+import sys
 import zlib
 from functools import partial, reduce
 from io import StringIO
@@ -36,11 +38,14 @@ import magic
 from ExtensionCrawler.js_mincer import mince_js
 
 
-def get_add_date(gitobj, filename):
+def get_add_date(git_path, filename):
     """Method for getting the initial add/commit date of a file."""
     try:
+        gitobj = git.Git(git_path)
         add_date_string = gitobj.log("--follow", "--format=%aD", "--reverse",
                                      filename).splitlines()[0]
+        del gitobj
+        gc.collect()
         return dateutil.parser.parse(add_date_string)
     except Exception:
         return None
@@ -102,11 +107,6 @@ def get_data_identifiers(data):
 
 def get_file_identifiers(path):
     """Get basic file identifiers (path, filename, etc.) and data identifiers."""
-    with open(path, 'rb') as fileobj:
-        data = fileobj.read()
-
-    data_identifier = get_data_identifiers(data)
-
     dec_data_identifier = {
         'md5': None,
         'sha1': None,
@@ -118,19 +118,25 @@ def get_file_identifiers(path):
         'normalized_sha1': None,
         'normalized_sha256': None
     }
+    with open(path, 'rb') as fileobj:
+        data = fileobj.read()
+
+    data_identifier = get_data_identifiers(data)
+
     if data_identifier['description'].startswith('gzip'):
         try:
             with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
                 dec_data = dec.decompress(data, 100 * data_identifier['size'])
+                del data
             dec_data_identifier = get_data_identifiers(dec_data)
+            del dec_data
         except Exception as e:
             dec_data_identifier[
                 'description'] = "Exception during compression (likely zip-bomb:" + str(
                     e)
-
-    data = None
-    dec_data = None
-
+    else:
+        del data
+    gc.collect()
     file_identifier = {
         'filename': os.path.basename(path),
         'path': path,
@@ -179,7 +185,7 @@ def path_to_list(path):
     return list(reversed(plist))
 
 
-def get_file_libinfo(gitobj, libfile):
+def get_file_libinfo(git_path, libfile):
     """Compute file idenfifiers and library information of libfile."""
     logging.info("Computing file info for " + libfile)
     try:
@@ -188,7 +194,7 @@ def get_file_libinfo(gitobj, libfile):
         idx = plist.index("libs")
         file_info['library'] = plist[idx + 1]
         file_info['version'] = plist[idx + 2]
-        file_info['add_date'] = get_add_date(gitobj, libfile)
+        file_info['add_date'] = get_add_date(git_path, libfile)
         package = os.path.join(
             reduce(os.path.join, plist[:idx + 1]), "package.json")
         return file_info
@@ -196,14 +202,17 @@ def get_file_libinfo(gitobj, libfile):
         return None
 
 
-def pull_get_updated_lib_files(cdnjs_repo):
+def pull_get_updated_lib_files(cdnjs_git_path):
     """Pull repository and determine updated libraries."""
     logging.info("Building file list (only updates)")
     files = []
+    cdnjs_repo = git.Repo(cdnjs_git_path)
     for update in pull_get_list_changed_files(cdnjs_repo):
         if not (os.path.basename(update) in ["package.json", ".gitkeep"]):
             if update.startswith("ajax"):
                 files.append(update)
+    del cdnjs_repo
+    gc.collect()
     logging.info("Found " + str(len(files)) + " files")
     return files
 
@@ -217,36 +226,34 @@ def get_all_lib_files(cdnjs_git_path):
         if not os.path.basename(fname) in ["package.json", ".gitkeep"]:
             if not os.path.isdir(fname):
                 files.append(fname)
+    gc.collect()
     logging.info("Found " + str(len(files)) + " files")
     return files
 
 
-def update_database_for_file(cdnjs_git, filename):
+def update_database_for_file(cdnjs_git_path, filename):
     """Update database for all file."""
     logging.info("Updating database for file " + filename)
-    file_info = get_file_libinfo(cdnjs_git, filename)
+    file_info = get_file_libinfo(cdnjs_git_path, filename)
     if not file_info is None:
         ## TODO
         logging.info("Updating database ...")
 
 
-def update_database(cdnjs_git, files, poolsize=16):
+def update_database(cdnjs_git_path, files, poolsize=16):
     """Update database for all files in files."""
     # could be converted to parallel map
     with Pool(poolsize) as p:
-        p.map(partial(update_database_for_file, cdnjs_git), files)
+        p.map(partial(update_database_for_file, cdnjs_git_path), files)
 
 
 def pull_and_update_db(cdnjs_git_path, poolsize=16):
     """Pull repo and update database."""
-    cdnjs_git = git.Git(cdnjs_git_path)
-    cdnjs_repo = git.Repo(cdnjs_git_path)
-    files = pull_get_updated_lib_files(cdnjs_repo)
-    update_database(cdnjs_git, files, poolsize)
+    files = pull_get_updated_lib_files(cdnjs_git_path)
+    update_database(cdnjs_git_path, files, poolsize)
 
 
 def update_db_all_libs(cdnjs_git_path, poolsize=16):
     """Update database entries for all libs in git repo."""
-    cdnjs_git = git.Git(cdnjs_git_path)
     files = get_all_lib_files(cdnjs_git_path)
-    update_database(cdnjs_git, files, poolsize)
+    update_database(cdnjs_git_path, files, poolsize)
