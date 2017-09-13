@@ -25,7 +25,6 @@ import os
 from ExtensionCrawler.config import (const_log_format, const_basedir)
 from ExtensionCrawler.cdnjs_git import (pull_and_update_db, update_db_all_libs)
 
-
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
@@ -34,11 +33,10 @@ def helpmsg():
     """Print help message."""
     print("cdnjs-git-miner [OPTION]")
     print(
-        "    -i   initialize database: update database with all libraries in the repository"
+        "    -i   initialize/update database with all libraries in the repository"
     )
-    print(
-        "    -u   update: pull repository and update database with new/upated libraries"
-    )
+    print("    -u   update: pull repository and update database")
+    print("    -p n update n files in parallel")
     print("    -v   verbose")
     print("    -h   print this help text")
 
@@ -49,8 +47,9 @@ def main(argv):
     verbose = False
     initialize = False
     update = False
+    parallel_updates = 5
     try:
-        opts, args = getopt.getopt(argv, "hviu")
+        opts, args = getopt.getopt(argv, "hviup:")
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -64,6 +63,8 @@ def main(argv):
             initialize = True
         elif opt == '-u':
             update = True
+        elif opt == "-p":
+            parallel_updates = int(arg)
 
     if verbose:
         loglevel = logging.INFO
@@ -79,9 +80,10 @@ def main(argv):
     cdnjs_git_path = os.path.join(os.path.join(basedir, "filedb"), "cdnjs-git")
 
     if initialize:
-        update_db_all_libs(cdnjs_git_path)
+        update_db_all_libs(cdnjs_git_path, parallel_updates)
     if update:
-        pull_and_update_db(cdnjs_git_path)
+        pull_and_update_db(cdnjs_git_path, parallel_updates)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

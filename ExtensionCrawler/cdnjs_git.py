@@ -18,14 +18,15 @@
 """ Module for obtaining md5/sha1/sha256 hashes for all files available
     at CDNJS.com by mining the cdnjs git repository."""
 
+import glob
 import hashlib
 import logging
 import mimetypes
 import os
-import glob
 import zlib
-from functools import reduce
+from functools import partial, reduce
 from io import StringIO
+from multiprocessing import Pool
 
 import cchardet as chardet
 import dateutil.parser
@@ -220,26 +221,32 @@ def get_all_lib_files(cdnjs_git_path):
     return files
 
 
-def update_database(cdnjs_git, files):
+def update_database_for_file(cdnjs_git, filename):
+    """Update database for all file."""
+    logging.info("Updating database for file " + filename)
+    file_info = get_file_libinfo(cdnjs_git, filename)
+    if not file_info is None:
+        ## TODO
+        logging.info("Updating database ...")
+
+
+def update_database(cdnjs_git, files, poolsize=16):
     """Update database for all files in files."""
     # could be converted to parallel map
-    for fname in files:
-        file_info = get_file_libinfo(cdnjs_git, fname)
-        if not file_info is None:
-            ## TODO
-            logging.info("Updating database")
+    with Pool(poolsize) as p:
+        p.map(partial(update_database_for_file, cdnjs_git), files)
 
 
-def pull_and_update_db(cdnjs_git_path):
+def pull_and_update_db(cdnjs_git_path, poolsize=16):
     """Pull repo and update database."""
     cdnjs_git = git.Git(cdnjs_git_path)
     cdnjs_repo = git.Repo(cdnjs_git_path)
     files = pull_get_updated_lib_files(cdnjs_repo)
-    update_database(cdnjs_git, files)
+    update_database(cdnjs_git, files, poolsize)
 
 
-def update_db_all_libs(cdnjs_git_path):
+def update_db_all_libs(cdnjs_git_path, poolsize=16):
     """Update database entries for all libs in git repo."""
     cdnjs_git = git.Git(cdnjs_git_path)
     files = get_all_lib_files(cdnjs_git_path)
-    update_database(cdnjs_git, files)
+    update_database(cdnjs_git, files, poolsize)
