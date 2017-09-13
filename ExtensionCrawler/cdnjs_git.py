@@ -190,3 +190,44 @@ def get_file_libinfo(gitobj, libfile):
         return file_info
     except Exception:
         return None
+
+
+def pull_get_updated_lib_files(cdnjs_repo):
+    """Pull repository and determine updated libraries."""
+    files = []
+    for update in pull_get_list_changed_files(cdnjs_repo):
+        if not (os.path.basename(update) in ["package.json", ".gitkeep"]):
+            if update.startswith("ajax"):
+                files.append(update)
+    return files
+
+def get_all_lib_files(cdnjs_git_path):
+    """Return all libraries stored in cdnjs git repo."""
+    files = []
+    for dirpath, dirs, files in os.walk(os.path.join(cdnjs_git_path, "ajax")):
+        for filename in files:
+            if filename != "package.json" and filename != ".gitkeep":
+                fname = os.path.join(dirpath, filename)
+                files.append(fname)
+    return files
+
+def update_database(cdnjs_git, files):
+    """Update database for all files in files."""
+    # could be converted to parallel map
+    for fname in files:
+        file_info = get_file_libinfo(cdnjs_git, fname)
+        if not file_info is None:
+            print("TODO: Updating data base: " + fname)
+
+def pull_and_update_db(cdnjs_git_path):
+    """Pull repo and update database."""
+    cdnjs_git = git.Git(cdnjs_git_path)
+    cdnjs_repo = git.Repo(cdnjs_git_path)
+    files = pull_get_updated_lib_files(cdnjs_repo)
+    update_database(cdnjs_git, files)
+
+def update_db_all_libs(cdnjs_git_path):
+    """Update database entries for all libs in git repo."""
+    cdnjs_git = git.Git(cdnjs_git_path)
+    files = get_all_lib_files(cdnjs_git_path)
+    update_database(cdnjs_git, files)

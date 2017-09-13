@@ -20,8 +20,11 @@
 import getopt
 import logging
 import sys
+import os
 
-from ExtensionCrawler.config import const_log_format
+from ExtensionCrawler.config import (const_log_format, const_basedir)
+from ExtensionCrawler.cdnjs_git import (pull_and_update_db, update_db_all_libs)
+
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
@@ -30,17 +33,24 @@ assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 def helpmsg():
     """Print help message."""
     print("cdnjs-git-miner [OPTION]")
-    print("    -h          print this help text")
+    print(
+        "    -i   initialize database: update database with all libraries in the repository"
+    )
+    print(
+        "    -u   update: pull repository and update database with new/upated libraries"
+    )
+    print("    -v   verbose")
+    print("    -h   print this help text")
 
 
 def main(argv):
     """Main function of the extension crawler."""
-    basedir = "archive"
-    verbose = True
-    force = False
-    clean = False
+    basedir = const_basedir()
+    verbose = False
+    initialize = False
+    update = False
     try:
-        opts, args = getopt.getopt(argv, "h")
+        opts, args = getopt.getopt(argv, "hviu")
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -48,6 +58,17 @@ def main(argv):
         if opt == '-h':
             helpmsg()
             sys.exit()
+        elif opt == '-v':
+            verbose = True
+        elif opt == '-i':
+            initialize = True
+        elif opt == '-u':
+            update = True
+
+    if verbose:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.WARNING
 
     logger = logging.getLogger()
     ch = logging.StreamHandler(sys.stdout)
@@ -55,6 +76,12 @@ def main(argv):
     logger.addHandler(ch)
     logger.setLevel(loglevel)
 
+    cdnjs_git_path = os.path.join(os.path.join(basedir, "filedb"), "cdnjs-git")
+
+    if initialize:
+        update_db_all_libs(cdnjs_git_path)
+    if update:
+        pull_and_update_db(cdnjs_git_path)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
