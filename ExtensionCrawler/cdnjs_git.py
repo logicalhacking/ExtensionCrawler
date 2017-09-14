@@ -55,7 +55,6 @@ def get_add_date(git_path, filename):
 def pull_get_list_changed_files(gitrepo):
     """Pull new updates from remote origin."""
     files = []
-    libvers = [] # TODO
     cdnjs_origin = gitrepo.remotes.origin
     fetch_info = cdnjs_origin.pull()
     for single_fetch_info in fetch_info:
@@ -63,8 +62,7 @@ def pull_get_list_changed_files(gitrepo):
                 single_fetch_info.old_commit):
             if not diff.a_blob.path in files:
                 files.append(diff.a_blob.path)
-    return files, libvers
-
+    return files
 
 def normalize_jsdata(str_data):
     """Compute normalized code blocks of a JavaScript file"""
@@ -220,16 +218,22 @@ def get_file_libinfo(release_dic, git_path, libfile):
 def pull_get_updated_lib_files(cdnjs_git_path):
     """Pull repository and determine updated libraries."""
     logging.info("Building file list (only updates)")
+    libvers = set()
     files = []
     cdnjs_repo = git.Repo(cdnjs_git_path)
     for update in pull_get_list_changed_files(cdnjs_repo):
         if not (os.path.basename(update) in ["package.json", ".gitkeep"]):
             if update.startswith("ajax"):
-                files.append(update)
+                fname = os.path.join(cdnjs_git_path, update)
+                files.append(fname)
+                plist = path_to_list(update)
+                if len(plist) == 4:
+                    libvers.add(fname)
     del cdnjs_repo
     gc.collect()
     logging.info("Found " + str(len(files)) + " files")
-    return files
+    logging.info("Found " + str(len(libvers)) + " unique library/version combinations.")
+    return files, list(libvers)
 
 
 def get_all_lib_files(cdnjs_git_path):
@@ -269,13 +273,6 @@ def update_database(release_dic, cdnjs_git_path, files, poolsize=16):
         pool.map(partial(update_database_for_file, release_dic, cdnjs_git_path), files)
 
 
-def pull_and_update_db(cdnjs_git_path, poolsize=16):
-    """Pull repo and update database."""
-    files, libvers = pull_get_updated_lib_files(cdnjs_git_path)
-    release_dic = build_release_date_dic(cdnjs_git_path, libvers)
-    del libvers
-    gc.collect()
-    update_database(release_dic, cdnjs_git_path, files, poolsize)
 
 def build_release_date_dic(git_path, libvers):
     """"Build dictionary of release date with the tuple (library, version) as key."""
@@ -289,6 +286,14 @@ def build_release_date_dic(git_path, libvers):
         logging.info(lib + " " + ver + ": " + str(date))
         release_date_dic[(lib,ver)] = date
     return release_date_dic
+
+def pull_and_update_db(cdnjs_git_path, poolsize=16):
+    """Pull repo and update database."""
+    files, libvers = pull_get_updated_lib_files(cdnjs_git_path)
+    release_dic = build_release_date_dic(cdnjs_git_path, libvers)
+    del libvers
+    gc.collect()
+    update_database(release_dic, cdnjs_git_path, files, poolsize)
 
 def update_db_all_libs(cdnjs_git_path, poolsize=16):
     """Update database entries for all libs in git repo."""
