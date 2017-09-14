@@ -272,25 +272,29 @@ def update_database(release_dic, cdnjs_git_path, files, poolsize=16):
     with Pool(poolsize) as pool:
         pool.map(partial(update_database_for_file, release_dic, cdnjs_git_path), files)
 
+def get_release_triple(git_path, libver):
+    plist = path_to_list(libver)
+    ver = plist[-1]
+    lib = plist[-2]
+    date = get_add_date(git_path, libver)
+    logging.info(lib + " " + ver + ": " + str(date))
+    return (lib, ver, date)
 
 
-def build_release_date_dic(git_path, libvers):
+def build_release_date_dic(git_path, libvers, poolsize=16):
     """"Build dictionary of release date with the tuple (library, version) as key."""
     logging.info("Building release dictionary")
+    with Pool(poolsize) as pool:
+        libverdates = pool.map(partial(get_release_triple, git_path), libvers)
     release_date_dic = {}
-    for libver in libvers:
-        plist = path_to_list(libver)
-        ver = plist[-1]
-        lib = plist[-2]
-        date = get_add_date(git_path, libver)
-        logging.info(lib + " " + ver + ": " + str(date))
-        release_date_dic[(lib,ver)] = date
+    for (lib, ver, date) in libverdates:
+        release_date_dic[(lib, ver)] = date
     return release_date_dic
 
 def pull_and_update_db(cdnjs_git_path, poolsize=16):
     """Pull repo and update database."""
     files, libvers = pull_get_updated_lib_files(cdnjs_git_path)
-    release_dic = build_release_date_dic(cdnjs_git_path, libvers)
+    release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
     del libvers
     gc.collect()
     update_database(release_dic, cdnjs_git_path, files, poolsize)
@@ -298,7 +302,7 @@ def pull_and_update_db(cdnjs_git_path, poolsize=16):
 def update_db_all_libs(cdnjs_git_path, poolsize=16):
     """Update database entries for all libs in git repo."""
     files, libvers = get_all_lib_files(cdnjs_git_path)
-    release_dic = build_release_date_dic(cdnjs_git_path, libvers)
+    release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
     del libvers
     gc.collect()
     update_database(release_dic, cdnjs_git_path, files, poolsize)
