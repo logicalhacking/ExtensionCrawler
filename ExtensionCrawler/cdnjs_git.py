@@ -271,9 +271,22 @@ def pull_and_update_db(cdnjs_git_path, poolsize=16):
     files = pull_get_updated_lib_files(cdnjs_git_path)
     update_database(cdnjs_git_path, files, poolsize)
 
+def build_release_date_dic(git_path, libvers):
+    """"Build dictionary of release date with the tuple (library, version) as key."""
+    logging.info("Building release dictionary")
+    release_date_dic = {}
+    for libver in libvers:
+        plist = path_to_list(libver)
+        ver = plist[-1]
+        lib = plist[-2]
+        date = get_add_date(git_path, libver)
+        logging.info(lib + " " + ver + ": " + str(date))
+        release_date_dic[(lib,ver)] = date
+    return release_date_dic
 
 def update_db_all_libs(cdnjs_git_path, poolsize=16):
     """Update database entries for all libs in git repo."""
     files, libvers = get_all_lib_files(cdnjs_git_path)
-
+    release_dic = build_release_date_dic(cdnjs_git_path, libvers)
+    del libvers
     update_database(cdnjs_git_path, files, poolsize)
