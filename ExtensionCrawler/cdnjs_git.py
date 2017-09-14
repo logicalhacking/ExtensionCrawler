@@ -47,13 +47,15 @@ def get_add_date(git_path, filename):
         del gitobj
         gc.collect()
         return dateutil.parser.parse(add_date_string)
-    except Exception:
+    except Exception as e:
+        logging.debug("Exception during git log for " + filename +":\n" + (str(e)))
         return None
 
 
 def pull_get_list_changed_files(gitrepo):
     """Pull new updates from remote origin."""
     files = []
+    libvers = [] # TODO
     cdnjs_origin = gitrepo.remotes.origin
     fetch_info = cdnjs_origin.pull()
     for single_fetch_info in fetch_info:
@@ -61,7 +63,7 @@ def pull_get_list_changed_files(gitrepo):
                 single_fetch_info.old_commit):
             if not diff.a_blob.path in files:
                 files.append(diff.a_blob.path)
-    return files
+    return files, libvers
 
 
 def normalize_jsdata(str_data):
@@ -196,16 +198,18 @@ def path_to_list(path):
     return list(reversed(plist))
 
 
-def get_file_libinfo(git_path, libfile):
+def get_file_libinfo(release_dic, git_path, libfile):
     """Compute file idenfifiers and library information of libfile."""
     logging.info("Computing file info for " + libfile)
     try:
         file_info = get_file_identifiers(libfile)
         plist = path_to_list(libfile)
         idx = plist.index("libs")
-        file_info['library'] = plist[idx + 1]
-        file_info['version'] = plist[idx + 2]
-        file_info['add_date'] = get_add_date(git_path, libfile)
+        lib =  plist[idx + 1]
+        version = plist[idx + 2]
+        file_info['library'] = lib
+        file_info['version'] = version
+        file_info['add_date'] = release_dic[(lib, version)]        
         package = os.path.join(
             reduce(os.path.join, plist[:idx + 1]), "package.json")
         return file_info
@@ -250,26 +254,28 @@ def get_all_lib_files(cdnjs_git_path):
     return files, list(libvers)
 
 
-def update_database_for_file(cdnjs_git_path, filename):
+def update_database_for_file(release_dic, cdnjs_git_path, filename):
     """Update database for all file."""
     logging.info("Updating database for file " + filename)
-    file_info = get_file_libinfo(cdnjs_git_path, filename)
+    file_info = get_file_libinfo(release_dic, cdnjs_git_path, filename)
     if not file_info is None:
         ## TODO
         logging.info("Updating database ...")
 
 
-def update_database(cdnjs_git_path, files, poolsize=16):
+def update_database(release_dic, cdnjs_git_path, files, poolsize=16):
     """Update database for all files in files."""
-    # could be converted to parallel map
-    with Pool(poolsize) as p:
-        p.map(partial(update_database_for_file, cdnjs_git_path), files)
+    with Pool(poolsize) as pool:
+        pool.map(partial(update_database_for_file, release_dic, cdnjs_git_path), files)
 
 
 def pull_and_update_db(cdnjs_git_path, poolsize=16):
     """Pull repo and update database."""
-    files = pull_get_updated_lib_files(cdnjs_git_path)
-    update_database(cdnjs_git_path, files, poolsize)
+    files, libvers = pull_get_updated_lib_files(cdnjs_git_path)
+    release_dic = build_release_date_dic(cdnjs_git_path, libvers)
+    del libvers
+    gc.collect()
+    update_database(release_dic, cdnjs_git_path, files, poolsize)
 
 def build_release_date_dic(git_path, libvers):
     """"Build dictionary of release date with the tuple (library, version) as key."""
@@ -289,4 +295,5 @@ def update_db_all_libs(cdnjs_git_path, poolsize=16):
     files, libvers = get_all_lib_files(cdnjs_git_path)
     release_dic = build_release_date_dic(cdnjs_git_path, libvers)
     del libvers
-    update_database(cdnjs_git_path, files, poolsize)
+    gc.collect()
+    update_database(release_dic, cdnjs_git_path, files, poolsize)
