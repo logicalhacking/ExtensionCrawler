@@ -221,6 +221,9 @@ def pull_get_updated_lib_files(cdnjs_git_path):
     libvers = set()
     files = []
     cdnjs_repo = git.Repo(cdnjs_git_path)
+    logging.info(" HEAD: " + str(cdnjs_repo.head.commit))
+    logging.info("   is detached: " + str(cdnjs_repo.head.is_detached))
+    logging.info("   is dirty: " + str(cdnjs_repo.is_dirty()))
     for update in pull_get_list_changed_files(cdnjs_repo):
         if not (os.path.basename(update) in ["package.json", ".gitkeep"]):
             if update.startswith("ajax"):
