@@ -420,42 +420,40 @@ def update_db_incremental(tmptardir, ext_id, date):
         if etag:
             try:
                 parse_and_insert_crx(ext_id, date, datepath, con)
-            except zipfile.BadZipfile as e:
-                log_warning(
-                    "* WARNING: the found crx file is not a zip file, exception: {}".
-                    format(str(e)), 3, ext_id)
+            except Exception as e:
+                log_exception("Exception when parsing crx", 3, ext_id)
         else:
             crx_status = get_crx_status(datepath)
             if crx_status != 401 and crx_status != 204 and crx_status != 404:
                 log_warning("* WARNING: could not find etag", 3, ext_id)
 
-        parse_and_insert_overview(ext_id, date, datepath, con)
-        parse_and_insert_status(ext_id, date, datepath, con)
+        try:
+            parse_and_insert_overview(ext_id, date, datepath, con)
+        except Exception as e:
+            log_exception("Exception when parsing overview", 3, ext_id)
+
+        try:
+            parse_and_insert_status(ext_id, date, datepath, con)
+        except Exception as e:
+            log_exception("Exception when parsing status", 3, ext_id)
 
         reviewpaths = glob.glob(os.path.join(datepath, "reviews*-*.text"))
         for reviewpath in reviewpaths:
             try:
                 parse_and_insert_review(ext_id, date, reviewpath, con)
-            except json.decoder.JSONDecodeError as e:
-                log_warning(
-                    "* Could not parse review file, exception: {}".format(
-                        str(e)), 3, ext_id)
+            except Exception as e:
+                log_exception("Exception when parsing review", 3, ext_id)
 
         supportpaths = glob.glob(os.path.join(datepath, "support*-*.text"))
         for supportpath in supportpaths:
             try:
                 parse_and_insert_support(ext_id, date, supportpath, con)
-            except json.decoder.JSONDecodeError as e:
-                log_warning(
-                    "* Could not parse support file, exception: {}".format(
-                        str(e)), 3, ext_id)
+            except Exception as e:
+                log_exception("Exception when parsing support", 3, ext_id)
 
         repliespaths = glob.glob(os.path.join(datepath, "*replies.text"))
         for repliespath in repliespaths:
             try:
                 parse_and_insert_replies(ext_id, date, repliespath, con)
-            except json.decoder.JSONDecodeError as e:
-                log_warning(
-                    "* Could not parse reply file, exception: {}".format(
-                        str(e)), 3, ext_id)
-        con.commit()
+            except Exception as e:
+                log_exception("Exception when parsing reply", 3, ext_id)

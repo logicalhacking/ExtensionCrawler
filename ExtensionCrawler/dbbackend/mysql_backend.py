@@ -72,6 +72,7 @@ class MysqlBackend:
         global db
         if db is None:
             db = MySQLdb.connect(**self.dbargs)
+            db.autocommit = True
         self.cursor = db.cursor()
 
         return self
@@ -83,9 +84,6 @@ class MysqlBackend:
                 self.cursor = None
         except Exception as e:
             log_error("Surpressed exception: {}".format(str(e)), 3, self.ext_id)
-
-    def commit(self):
-        db.commit()
 
     def get_single_value(self, query, args):
         self.retry(lambda: self.cursor.execute(query, args))
