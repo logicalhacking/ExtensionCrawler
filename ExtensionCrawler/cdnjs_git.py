@@ -60,8 +60,10 @@ def pull_get_list_changed_files(gitrepo):
     for single_fetch_info in fetch_info:
         for diff in single_fetch_info.commit.diff(
                 single_fetch_info.old_commit):
-            if not diff.a_blob.path in files:
-                files.append(diff.a_blob.path)
+            logging.debug("Found diff: " + str(diff))
+            if not diff.a_blob is None:
+                if not diff.a_blob.path in files:
+                    files.append(diff.a_blob.path)
     return files
 
 def normalize_jsdata(str_data):
