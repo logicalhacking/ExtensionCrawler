@@ -48,7 +48,8 @@ def get_add_date(git_path, filename):
         gc.collect()
         return dateutil.parser.parse(add_date_string)
     except Exception as e:
-        logging.debug("Exception during git log for " + filename +":\n" + (str(e)))
+        logging.debug("Exception during git log for " + filename + ":\n" +
+                      (str(e)))
         return None
 
 
@@ -65,6 +66,7 @@ def pull_get_list_changed_files(gitrepo):
                 if not diff.a_blob.path in files:
                     files.append(diff.a_blob.path)
     return files
+
 
 def normalize_jsdata(str_data):
     """Compute normalized code blocks of a JavaScript file"""
@@ -205,11 +207,11 @@ def get_file_libinfo(release_dic, git_path, libfile):
         file_info = get_file_identifiers(libfile)
         plist = path_to_list(libfile)
         idx = plist.index("libs")
-        lib =  plist[idx + 1]
+        lib = plist[idx + 1]
         version = plist[idx + 2]
         file_info['library'] = lib
         file_info['version'] = version
-        file_info['add_date'] = release_dic[(lib, version)]        
+        file_info['add_date'] = release_dic[(lib, version)]
         package = os.path.join(
             reduce(os.path.join, plist[:idx + 1]), "package.json")
         return file_info
@@ -237,7 +239,8 @@ def pull_get_updated_lib_files(cdnjs_git_path):
     del cdnjs_repo
     gc.collect()
     logging.info("Found " + str(len(files)) + " files")
-    logging.info("Found " + str(len(libvers)) + " unique library/version combinations.")
+    logging.info("Found " + str(len(libvers)) +
+                 " unique library/version combinations.")
     return files, list(libvers)
 
 
@@ -246,7 +249,7 @@ def get_all_lib_files(cdnjs_git_path):
     logging.info("Building file list (complete repository)")
     libvers = set()
     files = []
-    versionidx=len(path_to_list(cdnjs_git_path))+4
+    versionidx = len(path_to_list(cdnjs_git_path)) + 4
     for fname in glob.iglob(
             os.path.join(cdnjs_git_path, 'ajax/libs/**/*'), recursive=True):
         if not os.path.isdir(fname):
@@ -259,7 +262,8 @@ def get_all_lib_files(cdnjs_git_path):
     gc.collect()
 
     logging.info("Found " + str(len(files)) + " files")
-    logging.info("Found " + str(len(libvers)) + " unique library/version combinations.")
+    logging.info("Found " + str(len(libvers)) +
+                 " unique library/version combinations.")
     return files, list(libvers)
 
 
@@ -275,7 +279,10 @@ def update_database_for_file(release_dic, cdnjs_git_path, filename):
 def update_database(release_dic, cdnjs_git_path, files, poolsize=16):
     """Update database for all files in files."""
     with Pool(poolsize) as pool:
-        pool.map(partial(update_database_for_file, release_dic, cdnjs_git_path), files)
+        pool.map(
+            partial(update_database_for_file, release_dic, cdnjs_git_path),
+            files)
+
 
 def get_release_triple(git_path, libver):
     plist = path_to_list(libver)
@@ -296,6 +303,7 @@ def build_release_date_dic(git_path, libvers, poolsize=16):
         release_date_dic[(lib, ver)] = date
     return release_date_dic
 
+
 def pull_and_update_db(cdnjs_git_path, poolsize=16):
     """Pull repo and update database."""
     files, libvers = pull_get_updated_lib_files(cdnjs_git_path)
@@ -304,9 +312,26 @@ def pull_and_update_db(cdnjs_git_path, poolsize=16):
     gc.collect()
     update_database(release_dic, cdnjs_git_path, files, poolsize)
 
-def update_db_all_libs(cdnjs_git_path, poolsize=16):
+
+def update_db_all_libs(cdnjs_git_path, taskid=1, maxtaskid=1, poolsize=16):
     """Update database entries for all libs in git repo."""
     files, libvers = get_all_lib_files(cdnjs_git_path)
+
+    if maxtaskid > 1:
+        logging.info("Running task " + str(taskid) + " of " + str(maxtaskid))
+        chunksize = int(len(files) / maxtaskid)
+        if taskid == maxtaskid:
+            files = files[(taskid - 1) * chunksize:]
+        else:
+            files = files[(taskid - 1) * chunksize:taskid * chunksize]
+        libvers = set()
+        versionidx = len(path_to_list(cdnjs_git_path)) + 4
+        for path in files:
+            libvers.add(path[:versionidx + 5])
+        libvers = list(libvers)
+        logging.info("This task has  " + str(len(files)) + " files from  " +
+                     str(len(libvers)) + " library version(s).")
+
     release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
     del libvers
     gc.collect()
