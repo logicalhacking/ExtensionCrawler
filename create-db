@@ -34,19 +34,21 @@ from ExtensionCrawler.util import log_info, log_warning, log_error, log_exceptio
 
 
 def help():
-    print("create-db [OPTION]")
-    print("    -h                  print this help text")
-    print("    -a <DIR>            archive directory")
-    print("    -p <PREFIX>         three-letter-prefix")
-    print("    -e <EXTIDFILELIST>  file with extension ids")
-    print("    --from-date <DATE>  only process information gathered after this date")
-    print("                        (compared lexographically)")
-    print("    -t <THREADS>        number of parallel threads")
-    print("    -n <TASKID>         process chunk n where n in [1,N]")
-    print("    -N <MAXTASKID>      ")
+    print("""create-db [OPTION]""")
+    print("""  -h                  print this help text""")
+    print("""  -a <DIR>            archive directory""")
+    print("""  -p <PREFIX>         three-letter-prefix""")
+    print("""  -e <EXTIDFILELIST>  file with extension ids""")
+    print("""  --from-date <DATE>  only process information gathered after"""
+          """                      this date (compared lexographically)""")
+    print("""  --until-date <DATE> only process information gathered before"""
+          """                      this date (compared lexographically)""")
+    print("""  -t <THREADS>        number of parallel threads""")
+    print("""  -n <TASKID>         process chunk n where n in [1,N]""")
+    print("""  -N <MAXTASKID>      """)
 
 
-def process_id(from_date, path):
+def process_id(from_date, until_date, path):
     start = time.time()
     with tempfile.TemporaryDirectory() as tmpdir:
         with tarfile.open(path) as t:
@@ -57,7 +59,8 @@ def process_id(from_date, path):
             iddir = os.path.join(tmpdir, extid)
 
             for date in sorted(os.listdir(iddir)):
-                if from_date is not None and date < from_date:
+                if (from_date is not None and date < from_date) or \
+                        (until_date is not None and date > until_date):
                     log_info("* Skipping {}".format(date), 2, extid)
                     continue
                 try:
@@ -97,13 +100,14 @@ def parse_args(argv):
     taskid = 1
     maxtaskid = 1
     from_date = None
+    until_date = None
 
     paths = []
 
     try:
         opts, args = getopt.getopt(argv, "ha:p:e:t:n:N:", [
             "archive=", "prefix=", "extidlistfile=", "threads=", "taskid=",
-            "maxtaskid=", "from-date=", "help"
+            "maxtaskid=", "from-date=", "until-date=", "help"
         ])
     except getopt.GetoptError:
         help()
@@ -126,6 +130,8 @@ def parse_args(argv):
             maxtaskid = int(arg)
         elif opt in ("--from-date"):
             from_date = arg
+        elif opt in ("--until-date"):
+            until_date = arg
 
     if paths == []:
         paths = list(find(archive, "*"))
@@ -136,16 +142,16 @@ def parse_args(argv):
     else:
         paths = paths[(taskid - 1) * chunksize:taskid * chunksize]
 
-    return paths, parallel, from_date
+    return paths, parallel, from_date, until_date
 
 
 def main(argv):
     logging.basicConfig(level=logging.INFO, format=const_log_format())
 
-    paths, parallel, from_date = parse_args(argv)
+    paths, parallel, from_date, until_date = parse_args(argv)
 
     with Pool(processes=parallel) as p:
-        p.map(partial(process_id, from_date), paths)
+        p.map(partial(process_id, from_date, until_date), paths)
 
 
 if __name__ == "__main__":
