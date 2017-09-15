@@ -26,6 +26,8 @@ import datetime
 import dateutil
 import dateutil.parser
 from ExtensionCrawler.archive import last_crx, get_local_archive_dir, last_etag
+from ExtensionCrawler.config import  const_basedir
+
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
@@ -59,7 +61,7 @@ def get_tarinfo(members, name, winfs = False, etag = None):
 
 def main(argv):
     """Main function of the extension crawler."""
-    basedir = "archive"
+    basedir = const_basedir()
     verbose = True
     date = None
     extid = ""

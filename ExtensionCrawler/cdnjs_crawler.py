@@ -49,7 +49,7 @@ def get_jsfile_url(lib, version, jsfile):
 
 def get_local_libs(archive):
     """Get list of locally available libraries."""
-    dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
+    dirname = os.path.join(archive, "filedb", "cdnjs", "lib")
     return (list(
         map(lambda f: re.sub(".json$", "", os.path.basename(f)),
             glob.glob(os.path.join(dirname, "*.json")))))
@@ -75,7 +75,7 @@ def update_lib(force, archive, lib):
         logging.error(str(lib_res.content))
         return
     cdnjs_lib_json = lib_res.json()
-    dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
+    dirname = os.path.join(archive, "filedb", "cdnjs", "lib")
     os.makedirs(str(dirname), exist_ok=True)
 
     try:
@@ -190,7 +190,7 @@ def update_lib(force, archive, lib):
 
 def build_hash_map_of_lib(hashalg, archive, lib):
     """Build dictionary with file information using the file hash as key."""
-    dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
+    dirname = os.path.join(archive, "filedb", "cdnjs", "lib")
     hash_map = {}
     try:
         with open(os.path.join(dirname, lib + ".json"), "r") as json_file:
@@ -247,21 +247,21 @@ def build_md5_map(archive):
 
 def update_md5_map_file(archive):
     """Update file containing md5 information for all files."""
-    with open(os.path.join(archive, "fileinfo", "cdnjs-md5.json"),
+    with open(os.path.join(archive, "filedb", "cdnjs-md5.json"),
               "w") as json_file:
         json.dump(build_md5_map(archive), json_file)
 
 
 def update_sha1_map_file(archive):
     """Update file containing sha1 information for all files."""
-    with open(os.path.join(archive, "fileinfo", "cdnjs-sha1.json"),
+    with open(os.path.join(archive, "filedb", "cdnjs-sha1.json"),
               "w") as json_file:
         json.dump(build_sha1_map(archive), json_file)
 
 
 def delete_orphaned(archive, local_libs, cdnjs_current_libs):
     """Delete all orphaned local libaries."""
-    dirname = os.path.join(archive, "fileinfo", "cdnjs", "lib")
+    dirname = os.path.join(archive, "filedb", "cdnjs", "lib")
     for lib in local_libs:
         if not lib in cdnjs_current_libs:
             os.remove(os.path.join(dirname, lib + ".json"))
@@ -288,7 +288,7 @@ def update_jslib_archive(force, clean, archive):
     if clean:
         local_lib_catalog = get_local_libs(archive)
         delete_orphaned(archive, local_lib_catalog, cdnjs_lib_catalog)
-    dirname = os.path.join(archive, "fileinfo", "cdnjs")
+    dirname = os.path.join(archive, "filedb", "cdnjs")
     os.makedirs(str(dirname), exist_ok=True)
     with open(os.path.join(dirname, "cdnjs-libraries.json"), "w") as json_file:
         json.dump(res.json(), json_file)

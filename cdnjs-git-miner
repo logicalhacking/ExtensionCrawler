@@ -20,8 +20,10 @@
 import getopt
 import logging
 import sys
+import os
 
-from ExtensionCrawler.config import const_log_format
+from ExtensionCrawler.config import (const_log_format, const_basedir)
+from ExtensionCrawler.cdnjs_git import (pull_and_update_db, update_db_all_libs)
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
@@ -30,17 +32,24 @@ assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 def helpmsg():
     """Print help message."""
     print("cdnjs-git-miner [OPTION]")
-    print("    -h          print this help text")
+    print(
+        "    -i   initialize/update database with all libraries in the repository"
+    )
+    print("    -u   update: pull repository and update database")
+    print("    -p n update n files in parallel")
+    print("    -v   verbose")
+    print("    -h   print this help text")
 
 
 def main(argv):
     """Main function of the extension crawler."""
-    basedir = "archive"
-    verbose = True
-    force = False
-    clean = False
+    basedir = const_basedir()
+    verbose = False
+    initialize = False
+    update = False
+    parallel_updates = 5
     try:
-        opts, args = getopt.getopt(argv, "h")
+        opts, args = getopt.getopt(argv, "hviup:")
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -48,12 +57,32 @@ def main(argv):
         if opt == '-h':
             helpmsg()
             sys.exit()
+        elif opt == '-v':
+            verbose = True
+        elif opt == '-i':
+            initialize = True
+        elif opt == '-u':
+            update = True
+        elif opt == "-p":
+            parallel_updates = int(arg)
+
+    if verbose:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.WARNING
 
     logger = logging.getLogger()
     ch = logging.StreamHandler(sys.stdout)
     ch.setFormatter(logging.Formatter(const_log_format()))
     logger.addHandler(ch)
     logger.setLevel(loglevel)
+
+    cdnjs_git_path = os.path.join(os.path.join(basedir, "filedb"), "cdnjs-git")
+
+    if initialize:
+        update_db_all_libs(cdnjs_git_path, parallel_updates)
+    if update:
+        pull_and_update_db(cdnjs_git_path, parallel_updates)
 
 
 if __name__ == "__main__":

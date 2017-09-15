@@ -27,7 +27,7 @@ from multiprocessing import Pool, Lock
 from zipfile import ZipFile
 from functools import partial
 import re
-
+from ExtensionCrawler.config import const_basedir
 
 def help():
     print("grepper [OPTION] GREP [FILE]")
@@ -117,7 +117,7 @@ def init(l):
 
 
 def parse_args(argv):
-    archive = "archive"
+    archive = const_basedir()
     beautify = False
     parallel = 8
     taskid = 1
