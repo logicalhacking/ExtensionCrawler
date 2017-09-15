@@ -52,6 +52,9 @@ class MysqlBackend:
                         if db is not None:
                             db.close()
                             db = None
+                        db = MySQLdb.connect(**self.dbargs)
+                        db.autocommit = True
+                        self.cursor = db.cursor()
                     except Exception as e2:
                         log_error("Surpressed exception: {}".format(str(e2)), 3, self.ext_id)
                     raise last_exception
