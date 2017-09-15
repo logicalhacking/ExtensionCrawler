@@ -26,6 +26,8 @@ ssh sharc.shef.ac.uk \
   MAX_SGE_TASK_ID=\"$NRJOBS\" \
   qsub \
   -V \
+  -m a \
+  -M "msherzberg1@sheffield.ac.uk" \
   -t 1-$NRJOBS \
   -j yes \
   -o "$TARGETDIR/logs" \
