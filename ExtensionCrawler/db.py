@@ -449,6 +449,8 @@ def update_db_incremental(tmptardir, ext_id, date):
         for reviewpath in reviewpaths:
             try:
                 parse_and_insert_review(ext_id, date, reviewpath, con)
+            except json.decoder.JSONDecoder as e:
+                log_warning("- WARNING: Review is not a proper json file!", 3, ext_id)
             except Exception as e:
                 log_exception("Exception when parsing review", 3, ext_id)
 
@@ -456,6 +458,8 @@ def update_db_incremental(tmptardir, ext_id, date):
         for supportpath in supportpaths:
             try:
                 parse_and_insert_support(ext_id, date, supportpath, con)
+            except json.decoder.JSONDecoder as e:
+                log_warning("- WARNING: Support is not a proper json file!", 3, ext_id)
             except Exception as e:
                 log_exception("Exception when parsing support", 3, ext_id)
 
@@ -463,5 +467,7 @@ def update_db_incremental(tmptardir, ext_id, date):
         for repliespath in repliespaths:
             try:
                 parse_and_insert_replies(ext_id, date, repliespath, con)
+            except json.decoder.JSONDecoder as e:
+                log_warning("- WARNING: Reply is not a proper json file!", 3, ext_id)
             except Exception as e:
                 log_exception("Exception when parsing reply", 3, ext_id)
