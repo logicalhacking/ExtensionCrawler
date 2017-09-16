@@ -298,12 +298,14 @@ def get_all_lib_files(cdnjs_git_path):
 
 def update_database_for_file(release_dic, cdnjs_git_path, filename):
     """Update database for all file."""
-    logging.info("Updating database for file " + filename)
-    file_info = get_file_libinfo(release_dic, cdnjs_git_path, filename)
-    if not file_info is None:
-        ## TODO
-        logging.info("Updating database ...")
-
+    if os.path.isfile(filename):
+        logging.info("Updating database for file " + filename)
+        file_info = get_file_libinfo(release_dic, cdnjs_git_path, filename)
+        if not file_info is None:
+            ## TODO
+            logging.info("Updating database ...")
+    else:
+        logging.info("Skipping update for deleted file " + filename)
 
 def update_database(release_dic, cdnjs_git_path, files, poolsize=16):
     """Update database for all files in files."""
