@@ -121,20 +121,17 @@ def path_to_list(path):
 def get_file_libinfo(release_dic, git_path, libfile):
     """Compute file idenfifiers and library information of libfile."""
     logging.info("Computing file info for " + libfile)
-    try:
-        file_info = get_file_identifiers(libfile)
-        plist = path_to_list(libfile)
-        idx = plist.index("libs")
-        lib = plist[idx + 1]
-        version = plist[idx + 2]
-        file_info['library'] = lib
-        file_info['version'] = version
-        file_info['add_date'] = release_dic[(lib, version)]
-        package = os.path.join(
-            reduce(os.path.join, plist[:idx + 1]), "package.json")
-        return file_info
-    except Exception:
-        return None
+    file_info = get_file_identifiers(libfile)
+    plist = path_to_list(libfile)
+    idx = plist.index("libs")
+    lib = plist[idx + 1]
+    version = plist[idx + 2]
+    file_info['library'] = lib
+    file_info['version'] = version
+    file_info['add_date'] = release_dic[(lib, version)]
+    package = os.path.join(
+        reduce(os.path.join, plist[:idx + 1]), "package.json")
+    return file_info
 
 
 def pull_get_updated_lib_files(cdnjs_git_path):
@@ -148,8 +145,7 @@ def pull_get_updated_lib_files(cdnjs_git_path):
                 fname = os.path.join(cdnjs_git_path, update)
                 files.append(fname)
                 plist = path_to_list(update)
-                if len(plist) == 4:
-                    libvers.add(fname)
+                libvers.add(reduce(os.path.join, plist[:4]))
     logging.info("Found " + str(len(files)) + " files")
     logging.info("Found " + str(len(libvers)) +
                  " unique library/version combinations.")
