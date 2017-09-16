@@ -24,7 +24,7 @@ import hashlib
 import logging
 import mimetypes
 import os
-import sys
+import re
 import zlib
 from functools import partial, reduce
 from io import StringIO
@@ -53,7 +53,7 @@ def get_add_date(git_path, filename):
         return None
 
 
-def pull_get_list_changed_files(git_path):
+def pull_list_changed_files(git_path):
     """Pull new updates from remote origin."""
     git_repo = git.Repo(git_path)
     logging.info(" HEAD: " + str(git_repo.head.commit))
@@ -75,6 +75,32 @@ def pull_get_list_changed_files(git_path):
                 if not diff.a_blob.path in files:
                     files.append(diff.a_blob.path)
     return files
+
+
+def hackish_pull_list_changed_files(git_path):
+    """Pull new updates from remote origin (hack, using git binary - 
+       faster but not as safe as GitPython)."""
+    git_repo = git.Repo(git_path)
+    logging.info(" HEAD: " + str(git_repo.head.commit))
+    logging.info("   is detached: " + str(git_repo.head.is_detached))
+    logging.info("   is dirty: " + str(git_repo.is_dirty()))
+    if git_repo.head.is_detached:
+        raise Exception("Detached head")
+    if git_repo.is_dirty:
+        raise Exception("Dirty repository")
+    del git_repo
+    gc.collect()
+
+    files = set()
+    git_obj = git.Git(git_path)
+
+    for line in git_obj.pull().splitlines():
+        match = re.search(r'^ (.+) \| .*$', line)
+        if not match is None:
+            changed_files = match.group(1).split('=>')
+            for changed_file in changed_files:
+                files.add(changed_file.strip())
+    return list(files)
 
 
 def normalize_jsdata(str_data):
@@ -233,7 +259,7 @@ def pull_get_updated_lib_files(cdnjs_git_path):
     logging.info("Building file list (only updates)")
     libvers = set()
     files = []
-    for update in pull_get_list_changed_files(cdnjs_git_path):
+    for update in hackish_pull_list_changed_files(cdnjs_git_path):
         if not (os.path.basename(update) in ["package.json", ".gitkeep"]):
             if update.startswith("ajax"):
                 fname = os.path.join(cdnjs_git_path, update)
