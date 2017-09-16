@@ -191,82 +191,88 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
 
 def parse_and_insert_crx(ext_id, date, datepath, con):
     crx_path = next(iter(glob.glob(os.path.join(datepath, "*.crx"))), None)
-    if crx_path:
-        log_debug("- parsing crx file", 3, ext_id)
-        filename = os.path.basename(crx_path)
+    if not crx_path:
+        return
 
-        with ZipFile(crx_path) as f:
-            etag = get_etag(ext_id, datepath, con)
+    if os.path.getsize(crx_path) == 0:
+        log_warning("- WARNING: crx file has size 0!", 3, ext_id)
+        return
 
-            size = os.path.getsize(crx_path)
-            public_key = read_crx(crx_path).public_key
+    log_debug("- parsing crx file", 3, ext_id)
+    filename = os.path.basename(crx_path)
 
-            with f.open("manifest.json") as m:
-                raw_content = m.read()
-                # There are some manifests that seem to have weird encodings...
-                try:
-                    content = raw_content.decode("utf-8-sig")
-                except UnicodeDecodeError:
-                    # Trying a different encoding, manifests are weird...
-                    content = raw_content.decode("latin1")
+    with ZipFile(crx_path) as f:
+        etag = get_etag(ext_id, datepath, con)
 
-                # Attempt to remove JavaScript-style comments from json
-                comment_regex = re.compile(r'\s*//.*')
-                multiline_comment_regex = re.compile(r'\s*/\\*.*\\*/\s*')
-                lines = content.splitlines()
-                for index, line in enumerate(lines):
-                    if comment_regex.fullmatch(
-                            line) or multiline_comment_regex.fullmatch(line):
-                        lines[index] = ""
-                content = "\n".join(lines)
+        size = os.path.getsize(crx_path)
+        public_key = read_crx(crx_path).public_key
 
-                con.insert(
-                    "crx",
-                    crx_etag=etag,
-                    filename=filename,
-                    size=size,
-                    manifest=content,
-                    publickey=public_key)
+        with f.open("manifest.json") as m:
+            raw_content = m.read()
+            # There are some manifests that seem to have weird encodings...
+            try:
+                content = raw_content.decode("utf-8-sig")
+            except UnicodeDecodeError:
+                # Trying a different encoding, manifests are weird...
+                content = raw_content.decode("latin1")
 
-                manifest = json.loads(content, strict=False)
-                if "permissions" in manifest:
-                    for permission in manifest["permissions"]:
-                        con.insert(
-                            "permission",
-                            crx_etag=etag,
-                            permission_md5=hashlib.md5(
-                                str(permission).encode()).digest(),
-                            permission=str(permission))
-                if "content_scripts" in manifest:
-                    for csd in manifest["content_scripts"]:
-                        if "matches" in csd:
-                            for urlpattern in csd["matches"]:
-                                con.insert(
-                                    "content_script_url",
-                                    crx_etag=etag,
-                                    url_md5=hashlib.md5(
-                                        str(urlpattern).encode()).digest(),
-                                    url=str(urlpattern))
+            # Attempt to remove JavaScript-style comments from json
+            comment_regex = re.compile(r'\s*//.*')
+            multiline_comment_regex = re.compile(r'\s*/\\*.*\\*/\s*')
+            lines = content.splitlines()
+            for index, line in enumerate(lines):
+                if comment_regex.fullmatch(
+                        line) or multiline_comment_regex.fullmatch(line):
+                    lines[index] = ""
+            content = "\n".join(lines)
 
-            js_files = decompose_js(f)
-            for js_file_info in js_files:
-                con.insert(
-                    "jsfile",
-                    crx_etag=etag,
-                    detect_method=(js_file_info['detectionMethod']).value,
-                    # TODO: detect_method=(js_file_info['detectionMethodDetails']),
-                    evidence_start_pos=str(js_file_info['evidenceStartPos']),
-                    evidence_end_pos=str(js_file_info['evidenceEndPos']),
-                    evidence_text=str(js_file_info['evidenceText']),
-                    filename=js_file_info['jsFilename'],
-                    type=(js_file_info['type']).value,
-                    lib=js_file_info['lib'],
-                    path=js_file_info['path'],
-                    encoding=js_file_info['encoding'],
-                    md5=js_file_info['md5'],
-                    sha1=js_file_info['sha1'],
-                    size=js_file_info['size'],
-                    version=js_file_info['version'])
+            con.insert(
+                "crx",
+                crx_etag=etag,
+                filename=filename,
+                size=size,
+                manifest=content,
+                publickey=public_key)
+
+            manifest = json.loads(content, strict=False)
+            if "permissions" in manifest:
+                for permission in manifest["permissions"]:
+                    con.insert(
+                        "permission",
+                        crx_etag=etag,
+                        permission_md5=hashlib.md5(
+                            str(permission).encode()).digest(),
+                        permission=str(permission))
+            if "content_scripts" in manifest:
+                for csd in manifest["content_scripts"]:
+                    if "matches" in csd:
+                        for urlpattern in csd["matches"]:
+                            con.insert(
+                                "content_script_url",
+                                crx_etag=etag,
+                                url_md5=hashlib.md5(
+                                    str(urlpattern).encode()).digest(),
+                                url=str(urlpattern))
+
+        js_files = decompose_js(f)
+        for js_file_info in js_files:
+            con.insert(
+                "jsfile",
+                crx_etag=etag,
+                detect_method=(js_file_info['detectionMethod']).value,
+                # TODO: detect_method=(js_file_info['detectionMethodDetails']),
+                evidence_start_pos=str(js_file_info['evidenceStartPos']),
+                evidence_end_pos=str(js_file_info['evidenceEndPos']),
+                evidence_text=str(js_file_info['evidenceText']),
+                filename=js_file_info['jsFilename'],
+                type=(js_file_info['type']).value,
+                lib=js_file_info['lib'],
+                path=js_file_info['path'],
+                encoding=js_file_info['encoding'],
+                md5=js_file_info['md5'],
+                sha1=js_file_info['sha1'],
+                size=js_file_info['size'],
+                version=js_file_info['version'])
 
 
 def get(d, k):
@@ -414,7 +420,9 @@ def update_db_incremental(tmptardir, ext_id, date):
     # Don't forget to create a ~/.my.cnf file with the credentials
     with MysqlBackend(
             ext_id, read_default_file=const_mysql_config_file(),
-            charset='utf8mb4') as con:
+            charset='utf8mb4',
+            compress=True
+    ) as con:
         etag = get_etag(ext_id, datepath, con)
 
         if etag:
@@ -441,6 +449,8 @@ def update_db_incremental(tmptardir, ext_id, date):
         for reviewpath in reviewpaths:
             try:
                 parse_and_insert_review(ext_id, date, reviewpath, con)
+            except json.decoder.JSONDecoder as e:
+                log_warning("- WARNING: Review is not a proper json file!", 3, ext_id)
             except Exception as e:
                 log_exception("Exception when parsing review", 3, ext_id)
 
@@ -448,6 +458,8 @@ def update_db_incremental(tmptardir, ext_id, date):
         for supportpath in supportpaths:
             try:
                 parse_and_insert_support(ext_id, date, supportpath, con)
+            except json.decoder.JSONDecoder as e:
+                log_warning("- WARNING: Support is not a proper json file!", 3, ext_id)
             except Exception as e:
                 log_exception("Exception when parsing support", 3, ext_id)
 
@@ -455,5 +467,7 @@ def update_db_incremental(tmptardir, ext_id, date):
         for repliespath in repliespaths:
             try:
                 parse_and_insert_replies(ext_id, date, repliespath, con)
+            except json.decoder.JSONDecoder as e:
+                log_warning("- WARNING: Reply is not a proper json file!", 3, ext_id)
             except Exception as e:
                 log_exception("Exception when parsing reply", 3, ext_id)
