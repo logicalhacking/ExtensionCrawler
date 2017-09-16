@@ -42,30 +42,35 @@ class MysqlBackend:
                 return f()
             except _mysql_exceptions.OperationalError as e:
                 last_exception = e
+
+                try:
+                    # Reopen database connection
+                    if self.cursor is not None:
+                        self.cursor.close()
+                        self.cursor = None
+                    if db is not None:
+                        db.close()
+                        db = None
+                    db = MySQLdb.connect(**self.dbargs)
+                    db.autocommit = True
+                    self.cursor = db.cursor()
+                except Exception as e2:
+                    log_error("Surpressed exception: {}".format(str(e2)), 3, self.ext_id)
+
                 if t + 1 == const_mysql_maxtries():
                     log_error("MySQL connection eventually failed, closing connection!", 3,
                                   self.ext_id)
-                    try:
-                        if self.cursor is not None:
-                            self.cursor.close()
-                            self.cursor = None
-                        if db is not None:
-                            db.close()
-                            db = None
-                        db = MySQLdb.connect(**self.dbargs)
-                        db.autocommit = True
-                        self.cursor = db.cursor()
-                    except Exception as e2:
-                        log_error("Surpressed exception: {}".format(str(e2)), 3, self.ext_id)
                     raise last_exception
                 else:
+                    factor = 0.2
                     log_exception(
                         """Exception on mysql connection attempt {} of {}, """
-                        """wating {}s +/- 20% before retrying...""".format(
+                        """wating {}s +/- {}% before retrying...""".format(
                             t + 1,
                             const_mysql_maxtries(),
-                            const_mysql_try_wait()), 3, self.ext_id)
-                    time.sleep(const_mysql_try_wait() * uniform(0.8, 1.2))
+                            const_mysql_try_wait(),
+                            factor * 100), 3, self.ext_id)
+                    time.sleep(const_mysql_try_wait() * uniform(1 - factor, 1 + factor))
 
     def __init__(self, ext_id, **kwargs):
         self.ext_id = ext_id
