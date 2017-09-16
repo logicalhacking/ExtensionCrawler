@@ -37,6 +37,8 @@ def helpmsg():
     )
     print("    -u   update: pull repository and update database")
     print("    -p n update n files in parallel")
+    print("    -n <TASKID>         process chunk n where n in [1,N]")
+    print("    -N <MAXTASKID>      ")
     print("    -v   verbose")
     print("    -h   print this help text")
 
