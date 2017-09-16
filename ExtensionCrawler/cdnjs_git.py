@@ -53,10 +53,19 @@ def get_add_date(git_path, filename):
         return None
 
 
-def pull_get_list_changed_files(gitrepo):
+def pull_get_list_changed_files(git_path):
     """Pull new updates from remote origin."""
+    git_repo = git.Repo(git_path)
+    logging.info(" HEAD: " + str(git_repo.head.commit))
+    logging.info("   is detached: " + str(git_repo.head.is_detached))
+    logging.info("   is dirty: " + str(git_repo.is_dirty()))
+    if git_repo.head.is_detached:
+        raise Exception("Detached head")
+    if git_repo.is_dirty:
+        raise Exception("Dirty repository")
+
     files = []
-    cdnjs_origin = gitrepo.remotes.origin
+    cdnjs_origin = git_repo.remotes.origin
     fetch_info = cdnjs_origin.pull()
     for single_fetch_info in fetch_info:
         for diff in single_fetch_info.commit.diff(
@@ -224,11 +233,7 @@ def pull_get_updated_lib_files(cdnjs_git_path):
     logging.info("Building file list (only updates)")
     libvers = set()
     files = []
-    cdnjs_repo = git.Repo(cdnjs_git_path)
-    logging.info(" HEAD: " + str(cdnjs_repo.head.commit))
-    logging.info("   is detached: " + str(cdnjs_repo.head.is_detached))
-    logging.info("   is dirty: " + str(cdnjs_repo.is_dirty()))
-    for update in pull_get_list_changed_files(cdnjs_repo):
+    for update in pull_get_list_changed_files(cdnjs_git_path):
         if not (os.path.basename(update) in ["package.json", ".gitkeep"]):
             if update.startswith("ajax"):
                 fname = os.path.join(cdnjs_git_path, update)
@@ -236,8 +241,6 @@ def pull_get_updated_lib_files(cdnjs_git_path):
                 plist = path_to_list(update)
                 if len(plist) == 4:
                     libvers.add(fname)
-    del cdnjs_repo
-    gc.collect()
     logging.info("Found " + str(len(files)) + " files")
     logging.info("Found " + str(len(libvers)) +
                  " unique library/version combinations.")
