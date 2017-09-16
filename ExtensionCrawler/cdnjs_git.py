@@ -20,25 +20,18 @@
 
 import gc
 import glob
-import hashlib
 import logging
-import mimetypes
 import os
 import re
-import zlib
 from functools import partial, reduce
-from io import StringIO
 from multiprocessing import Pool
 import csv
 import sys
 
-import cchardet as chardet
 import dateutil.parser
 import git
-import magic
 
-from ExtensionCrawler.js_mincer import mince_js
-
+from ExtensionCrawler.file_identifiers import get_file_identifiers
 
 def get_add_date(git_path, filename):
     """Method for getting the initial add/commit date of a file."""
@@ -103,118 +96,6 @@ def hackish_pull_list_changed_files(git_path):
             for changed_file in changed_files:
                 files.add(changed_file.strip())
     return list(files)
-
-
-def normalize_jsdata(str_data):
-    """Compute normalized code blocks of a JavaScript file"""
-    txt = ""
-    loc = 0
-    with StringIO(str_data) as str_obj:
-        for block in mince_js(str_obj):
-            if block.is_code():
-                for line in block.content.splitlines():
-                    txt += line.strip()
-                    loc += 1
-    return txt.encode(), loc
-
-
-def get_data_identifiers(data):
-    """Get basic data identifiers (size, hashes, normalized hashes, etc.)."""
-    data_identifier = {
-        'md5': hashlib.md5(data).digest(),
-        'sha1': hashlib.sha1(data).digest(),
-        'sha256': hashlib.sha256(data).digest(),
-        'size': len(data),
-        'loc': len(data.splitlines()),
-        'description': magic.from_buffer(data),
-        'encoding': chardet.detect(data)['encoding'],
-    }
-    try:
-        normalized_data, normalized_loc = normalize_jsdata(
-            data.decode(data_identifier['encoding']))
-    except Exception:
-        normalized_data = None
-
-    if normalized_data is None:
-        data_identifier['normalized_loc'] = None
-        data_identifier['normalized_md5'] = None
-        data_identifier['normalized_sha1'] = None
-        data_identifier['normalized_sha256'] = None
-    else:
-        data_identifier['normalized_loc'] = normalized_loc
-        data_identifier['normalized_md5'] = hashlib.md5(
-            normalized_data).digest()
-        data_identifier['normalized_sha1'] = hashlib.sha1(
-            normalized_data).digest()
-        data_identifier['normalized_sha256'] = hashlib.sha256(
-            normalized_data).digest()
-    return data_identifier
-
-
-def get_file_identifiers(path):
-    """Get basic file identifiers (path, filename, etc.) and data identifiers."""
-    dec_data_identifier = {
-        'md5': None,
-        'sha1': None,
-        'sha256': None,
-        'size': None,
-        'loc': None,
-        'description': None,
-        'encoding': None,
-        'normalized_loc': None,
-        'normalized_md5': None,
-        'normalized_sha1': None,
-        'normalized_sha256': None
-    }
-    with open(path, 'rb') as fileobj:
-        data = fileobj.read()
-
-    data_identifier = get_data_identifiers(data)
-
-    if data_identifier['description'].startswith('gzip'):
-        try:
-            with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
-                dec_data = dec.decompress(data, 100 * data_identifier['size'])
-                del data
-            dec_data_identifier = get_data_identifiers(dec_data)
-            del dec_data
-        except Exception as e:
-            dec_data_identifier[
-                'description'] = "Exception during compression (likely zip-bomb:" + str(
-                    e)
-    else:
-        del data
-    gc.collect()
-    file_identifier = {
-        'filename': os.path.basename(path),
-        'path': path,
-        'mimetype': mimetypes.guess_type(path),
-        'md5': data_identifier['md5'],
-        'sha1': data_identifier['sha1'],
-        'sha256': data_identifier['sha256'],
-        'size': data_identifier['size'],
-        'loc': data_identifier['loc'],
-        'description': data_identifier['description'],
-        'encoding': data_identifier['encoding'],
-        'normalized_loc': data_identifier['normalized_loc'],
-        'normalized_md5': data_identifier['normalized_md5'],
-        'normalized_sha1': data_identifier['normalized_sha1'],
-        'normalized_sha256': data_identifier['normalized_sha256'],
-        'dec_md5': dec_data_identifier['md5'],
-        'dec_sha1': dec_data_identifier['sha1'],
-        'dec_sha256': dec_data_identifier['sha256'],
-        'dec_size': dec_data_identifier['size'],
-        'dec_loc': dec_data_identifier['loc'],
-        'dec_description': dec_data_identifier['description'],
-        'dec_encoding': dec_data_identifier['encoding'],
-        'dec_normalized_loc': dec_data_identifier['normalized_loc'],
-        'dec_normalized_md5': dec_data_identifier['normalized_md5'],
-        'dec_normalized_sha1': dec_data_identifier['normalized_sha1'],
-        'dec_normalized_sha256': dec_data_identifier['normalized_sha256']
-    }
-
-    return file_identifier
-
 
 def path_to_list(path):
     """Convert a path (string) to a list of folders/files."""
