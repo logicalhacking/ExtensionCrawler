@@ -29,6 +29,8 @@ import zlib
 from functools import partial, reduce
 from io import StringIO
 from multiprocessing import Pool
+import csv
+import sys
 
 import cchardet as chardet
 import dateutil.parser
@@ -296,23 +298,46 @@ def get_all_lib_files(cdnjs_git_path):
     return files, list(libvers)
 
 
-def update_database_for_file(release_dic, cdnjs_git_path, filename):
+def update_database_for_file(create_csv, release_dic, cdnjs_git_path,
+                             filename):
     """Update database for all file."""
     if os.path.isfile(filename):
         logging.info("Updating database for file " + filename)
         file_info = get_file_libinfo(release_dic, cdnjs_git_path, filename)
         if not file_info is None:
-            ## TODO
-            logging.info("Updating database ...")
+            if create_csv:
+                print(file_info['path'])
+                print(cdnjs_git_path)
+                file_info['path'] = re.sub(r'^.*\/ajax\/', 'ajax/',
+                                           file_info['path'])
+                for key in [
+                        'md5', 'sha1', 'sha256', 'normalized_md5',
+                        'normalized_sha1', 'normalized_sha256',
+                        'dec_normalized_md5', 'dec_normalized_sha1',
+                        'dec_normalized_sha256', 'dec_md5', 'dec_sha1',
+                        'dec_sha256'
+                ]:
+                    if not file_info[key] is None:
+                        file_info[key] = (file_info[key]).hex()
+                csv_writer = csv.DictWriter(sys.stdout, file_info.keys())
+                csv_writer.writeheader()
+                csv_writer.writerow(file_info)
+            else:
+                logging.info("Updating database (TODO) ...")
     else:
         logging.info("Skipping update for deleted file " + filename)
 
-def update_database(release_dic, cdnjs_git_path, files, poolsize=16):
+
+def update_database(create_csv,
+                    release_dic,
+                    cdnjs_git_path,
+                    files,
+                    poolsize=16):
     """Update database for all files in files."""
     with Pool(poolsize) as pool:
         pool.map(
-            partial(update_database_for_file, release_dic, cdnjs_git_path),
-            files)
+            partial(update_database_for_file, create_csv, release_dic,
+                    cdnjs_git_path), files)
 
 
 def get_release_triple(git_path, libver):
@@ -335,16 +360,21 @@ def build_release_date_dic(git_path, libvers, poolsize=16):
     return release_date_dic
 
 
-def pull_and_update_db(cdnjs_git_path, poolsize=16):
+def pull_and_update_db(cdnjs_git_path, create_csv, poolsize=16):
     """Pull repo and update database."""
     files, libvers = pull_get_updated_lib_files(cdnjs_git_path)
+
     release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
     del libvers
     gc.collect()
-    update_database(release_dic, cdnjs_git_path, files, poolsize)
+    update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
 
 
-def update_db_all_libs(cdnjs_git_path, taskid=1, maxtaskid=1, poolsize=16):
+def update_db_all_libs(cdnjs_git_path,
+                       create_csv,
+                       taskid=1,
+                       maxtaskid=1,
+                       poolsize=16):
     """Update database entries for all libs in git repo."""
     files, libvers = get_all_lib_files(cdnjs_git_path)
 
@@ -366,4 +396,4 @@ def update_db_all_libs(cdnjs_git_path, taskid=1, maxtaskid=1, poolsize=16):
     release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
     del libvers
     gc.collect()
-    update_database(release_dic, cdnjs_git_path, files, poolsize)
+    update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
