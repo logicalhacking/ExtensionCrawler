@@ -55,22 +55,27 @@ class MysqlBackend:
                     db.autocommit = True
                     self.cursor = db.cursor()
                 except Exception as e2:
-                    log_error("Surpressed exception: {}".format(str(e2)), 3, self.ext_id)
+                    log_error("Surpressed exception: {}".format(str(e2)), 3,
+                              self.ext_id)
 
                 if t + 1 == const_mysql_maxtries():
-                    log_error("MySQL connection eventually failed, closing connection!", 3,
-                                  self.ext_id)
+                    log_error(
+                        "MySQL connection eventually failed, closing connection!",
+                        3, self.ext_id)
                     raise last_exception
                 else:
                     factor = 0.2
-                    log_exception(
-                        """Exception on mysql connection attempt {} of {}, """
-                        """wating {}s +/- {}% before retrying...""".format(
-                            t + 1,
-                            const_mysql_maxtries(),
-                            const_mysql_try_wait(),
-                            factor * 100), 3, self.ext_id)
-                    time.sleep(const_mysql_try_wait() * uniform(1 - factor, 1 + factor))
+                    logmsg = """Exception on mysql connection attempt """
+                    """{} of {}, wating {}s +/- {}% before retrying...""".format(
+                        t + 1,
+                        const_mysql_maxtries(),
+                        const_mysql_try_wait(), factor * 100)
+                    if t == 0:
+                        log_exception(logmsg, 3, self.ext_id)
+                    else:
+                        log_error(logmsg, 3, self.ext_id)
+                    time.sleep(const_mysql_try_wait() * uniform(
+                        1 - factor, 1 + factor))
 
     def __init__(self, ext_id, **kwargs):
         self.ext_id = ext_id
@@ -91,7 +96,8 @@ class MysqlBackend:
                 self.cursor.close()
                 self.cursor = None
         except Exception as e:
-            log_error("Surpressed exception: {}".format(str(e)), 3, self.ext_id)
+            log_error("Surpressed exception: {}".format(str(e)), 3,
+                      self.ext_id)
 
     def get_single_value(self, query, args):
         self.retry(lambda: self.cursor.execute(query, args))
