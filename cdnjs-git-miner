@@ -32,13 +32,14 @@ assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 def helpmsg():
     """Print help message."""
     print("cdnjs-git-miner [OPTION]")
-    print(
-        "    -i   initialize/update database with all libraries in the repository"
-    )
-    print("    -u   update: pull repository and update database")
-    print("    -p n update n files in parallel")
-    print("    -v   verbose")
-    print("    -h   print this help text")
+    print("    -i               initialize/update database with all libraries in the repository")
+    print("    -u               update: pull repository and update database")
+    print("    -p n             update n files in parallel")
+    print("    -n <TASKID>      process chunk n where n in [1,N]")
+    print("    -N <MAXTASKID>   ")
+    print("    -v               verbose")
+    print("    -c               print csv format to stdout instead of writing to database")
+    print("    -h               print this help text")
 
 
 def main(argv):
@@ -50,9 +51,10 @@ def main(argv):
     parallel_updates = 5
     taskid = 1
     maxtaskid = 1
+    csv = False
 
     try:
-        opts, args = getopt.getopt(argv, "hviup:n:N:",
+        opts, args = getopt.getopt(argv, "hvicup:n:N:",
                                    ["taskid=", "maxtaskid="])
     except getopt.GetoptError:
         helpmsg()
@@ -67,6 +69,8 @@ def main(argv):
             initialize = True
         elif opt == '-u':
             update = True
+        elif opt == '-c':
+            csv = True
         elif opt == "-p":
             parallel_updates = int(arg)
         elif opt in ("-n", "--taskid"):
@@ -88,9 +92,9 @@ def main(argv):
     cdnjs_git_path = os.path.join(os.path.join(basedir, "filedb"), "cdnjs-git")
 
     if initialize:
-        update_db_all_libs(cdnjs_git_path, taskid, maxtaskid, parallel_updates)
+        update_db_all_libs(cdnjs_git_path, csv, taskid, maxtaskid, parallel_updates)
     if update:
-        pull_and_update_db(cdnjs_git_path, parallel_updates)
+        pull_and_update_db(cdnjs_git_path, csv, parallel_updates)
 
 
 if __name__ == "__main__":
