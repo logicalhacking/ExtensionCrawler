@@ -63,7 +63,7 @@ def pull_list_changed_files(git_path):
     logging.info("   is dirty: " + str(git_repo.is_dirty()))
     if git_repo.head.is_detached:
         raise Exception("Detached head")
-    if git_repo.is_dirty:
+    if git_repo.is_dirty():
         raise Exception("Dirty repository")
 
     files = []
@@ -88,7 +88,7 @@ def hackish_pull_list_changed_files(git_path):
     logging.info("   is dirty: " + str(git_repo.is_dirty()))
     if git_repo.head.is_detached:
         raise Exception("Detached head")
-    if git_repo.is_dirty:
+    if git_repo.is_dirty():
         raise Exception("Dirty repository")
     del git_repo
     gc.collect()
