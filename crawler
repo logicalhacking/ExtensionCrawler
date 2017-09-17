@@ -196,6 +196,10 @@ def main(argv):
     else:
         loglevel = logging.WARNING
 
+    # Surpressing these "Starting HTTPS connection ..." log messages
+    # Older versions of urllib3 use loglevel INFO for that, newer ones DEBUG
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+
     logger = logging.getLogger()
     ch = logging.StreamHandler(sys.stdout)
     ch.setFormatter(logging.Formatter(const_log_format()))
