@@ -65,11 +65,11 @@ class MysqlBackend:
                     raise last_exception
                 else:
                     factor = 0.2
-                    logmsg = """Exception on mysql connection attempt """
-                    """{} of {}, wating {}s +/- {}% before retrying...""".format(
-                        t + 1,
-                        const_mysql_maxtries(),
-                        const_mysql_try_wait(), factor * 100)
+                    logmsg = ("Exception on mysql connection attempt "
+                              "{} of {}, wating {}s +/- {}% before retrying..."
+                              ).format(t + 1,
+                                       const_mysql_maxtries(),
+                                       const_mysql_try_wait(), factor * 100)
                     if t == 0:
                         log_exception(logmsg, 3, self.ext_id)
                     else:
