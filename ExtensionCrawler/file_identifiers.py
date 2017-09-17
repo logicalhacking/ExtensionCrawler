@@ -75,7 +75,7 @@ def get_data_identifiers(data):
     return data_identifier
 
 
-def get_file_identifiers(path):
+def get_file_identifiers(path, data=None):
     """Get basic file identifiers (path, filename, etc.) and data identifiers."""
     dec_data_identifier = {
         'md5': None,
@@ -90,8 +90,9 @@ def get_file_identifiers(path):
         'normalized_sha1': None,
         'normalized_sha256': None
     }
-    with open(path, 'rb') as fileobj:
-        data = fileobj.read()
+    if data is None:
+        with open(path, 'rb') as fileobj:
+            data = fileobj.read()
 
     data_identifier = get_data_identifiers(data)
 
@@ -99,16 +100,12 @@ def get_file_identifiers(path):
         try:
             with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
                 dec_data = dec.decompress(data, 100 * data_identifier['size'])
-                del data
             dec_data_identifier = get_data_identifiers(dec_data)
             del dec_data
         except Exception as e:
             dec_data_identifier[
                 'description'] = "Exception during compression (likely zip-bomb:" + str(
                     e)
-    else:
-        del data
-    gc.collect()
     file_identifier = {
         'filename': os.path.basename(path),
         'path': path,
