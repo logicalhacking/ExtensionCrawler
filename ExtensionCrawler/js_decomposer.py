@@ -25,6 +25,7 @@ from enum import Enum
 import hashlib
 import cchardet as chardet
 from ExtensionCrawler.js_mincer import mince_js
+from ExtensionCrawler.file_identifiers import get_file_identifiers
 
 class DetectionType(Enum):
     """Enumeration for detection types."""
@@ -101,22 +102,16 @@ def init_jsinfo(zipfile, js_file):
             file_size = len(data)
             path = js_file
 
-    js_info = {
-        'lib': None,
-        'version': None,
-        'detectionMethod': None,
-        'detectionMethodDetails': None,
-        'type': None,
-        'evidenceStartPos': None,
-        'evidenceEndPos': None,
-        'evidenceText': None,
-        'encoding': chardet.detect(data)['encoding'],
-        'jsFilename': js_filename,
-        'md5': hashlib.md5(data).digest(),
-        'sha1': hashlib.sha1(data).digest(),
-        'size': file_size,
-        'path': path
-    }
+    js_info = get_file_identifiers(path, data)
+    js_info['lib'] = None
+    js_info['jsFilename'] = js_info['filename']
+    js_info['version'] = None
+    js_info['detectionMethod'] = None
+    js_info['detectionMethodDetails'] = None
+    js_info['type'] = None
+    js_info['evidenceStartPos'] = None
+    js_info['evidenceEndPos'] = None
+    js_info['evidenceText'] = None
     if js_info['size'] == 0:
         js_info['detectionMethod'] = FileClassification.FILE_SIZE
         js_info['type'] = FileClassification.EMPTY_FILE
