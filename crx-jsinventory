@@ -67,7 +67,7 @@ def main(argv):
         sys.exit()
 
     fieldnames = [
-        'jsFilename', 'path', 'size', 'md5', 'sha1', 'encoding', 'type',
+        'jsFilename', 'path', 'size', 'dec_size', 'md5', 'sha1', 'mimetype', 'description', 'encoding', 'type',
         'detectionMethod', 'detectionMethodDetails', 'lib', 'version', 'evidenceText', 
         'evidenceStartPos', 'evidenceEndPos'
     ]

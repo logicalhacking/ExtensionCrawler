@@ -22,29 +22,40 @@ import io
 import re
 import json
 from enum import Enum
-import hashlib
-import cchardet as chardet
 from ExtensionCrawler.js_mincer import mince_js
+from ExtensionCrawler.file_identifiers import get_file_identifiers
 
 class DetectionType(Enum):
     """Enumeration for detection types."""
-    FILENAME = "filename"
-    COMMENTBLOCK = "comment_block"
-    CODEBLOCK = "code_block"
-    FILENAME_COMMENT = "filename_and_comment_block"
-    FILENAME_CODE = "filename_and_code_block"
-    URL = "known_url"
-    MD5 = "md5"
+    # EMPTY_FILE
+    FILE_SIZE = "file_size"
+    # LIBRARY 
     SHA1 = "sha1"
+    MD5 = "md5"
+    SHA1_DECOMPRESSED = "sha1 (after decompression)"
+    MD5_DECOMPRESSED = "md5 (after decompression)"
+    SHA1_NORMALIZED = "sha1 (after normalization)"
+    MD5_NORMALIZED = "md5 (after normalization)"
+    SHA1_DECOMPRESSED_NORMALIZED = "sha1 (after decompression and normalization)"
+    MD5_DECOMPRESSED_NORMALIZED = "md5 (after decompression and normalization)"
+    # VERY_LIKELY_LIBRARY
+    FILENAME_COMMENTBLOCK = "filename and witness in comment block"
+    FILENAME_CODEBLOCK = "filename and witness in code block"
+    # LIKELY_LIBRARY
+    COMMENTBLOCK = "witness in comment block"
+    CODEBLOCK = "witness in code block"
+    FILENAME = "known file name"
+    URL = "known URL"
+    # LIKELY_APPLICATION
     DEFAULT = "default"
-
+    
 class FileClassification(Enum):
     """ Enumeration for file classification"""
-    LIBRARY = "known_library"
-    LIKELY_LIBRARY = "likely_library"
-    APPLICATION = "likely_application"
-    EMPTY_FILE = "empty_file"
-    FILE_SIZE = "file_size"
+    EMPTY_FILE = "other (empty file)"
+    LIBRARY = "known library"
+    VERY_LIKELY_LIBRARY = "very likely known library"
+    LIKELY_LIBRARY = "likely known library"
+    LIKELY_APPLICATION = "likely application"
 
 def load_lib_identifiers():
     """Initialize identifiers for known libraries from JSON file."""
@@ -101,24 +112,18 @@ def init_jsinfo(zipfile, js_file):
             file_size = len(data)
             path = js_file
 
-    js_info = {
-        'lib': None,
-        'version': None,
-        'detectionMethod': None,
-        'detectionMethodDetails': None,
-        'type': None,
-        'evidenceStartPos': None,
-        'evidenceEndPos': None,
-        'evidenceText': None,
-        'encoding': chardet.detect(data)['encoding'],
-        'jsFilename': js_filename,
-        'md5': hashlib.md5(data).digest(),
-        'sha1': hashlib.sha1(data).digest(),
-        'size': file_size,
-        'path': path
-    }
+    js_info = get_file_identifiers(path, data)
+    js_info['lib'] = None
+    js_info['jsFilename'] = js_info['filename']
+    js_info['version'] = None
+    js_info['detectionMethod'] = None
+    js_info['detectionMethodDetails'] = None
+    js_info['type'] = None
+    js_info['evidenceStartPos'] = None
+    js_info['evidenceEndPos'] = None
+    js_info['evidenceText'] = None
     if js_info['size'] == 0:
-        js_info['detectionMethod'] = FileClassification.FILE_SIZE
+        js_info['detectionMethod'] = DetectionType.FILE_SIZE
         js_info['type'] = FileClassification.EMPTY_FILE
 
     return js_info
@@ -299,7 +304,7 @@ def decompose_js(file):
                 js_info['lib'] = None
                 js_info['version'] = None
                 js_info['detectionMethod'] = DetectionType.DEFAULT
-                js_info['type'] = FileClassification.APPLICATION
+                js_info['type'] = FileClassification.LIKELY_APPLICATION
                 js_inventory.append(js_info)
             else:
                 js_inventory += js_info_file
