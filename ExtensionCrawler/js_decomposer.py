@@ -114,7 +114,6 @@ def init_jsinfo(zipfile, js_file):
 
     js_info = get_file_identifiers(path, data)
     js_info['lib'] = None
-    js_info['jsFilename'] = js_info['filename']
     js_info['version'] = None
     js_info['detectionMethod'] = None
     js_info['detectionMethodDetails'] = None

@@ -264,7 +264,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                 evidence_start_pos=str(js_file_info['evidenceStartPos']),
                 evidence_end_pos=str(js_file_info['evidenceEndPos']),
                 evidence_text=str(js_file_info['evidenceText']),
-                filename=js_file_info['jsFilename'],
+                filename=js_file_info['filename'],
                 type=(js_file_info['type']).value,
                 lib=js_file_info['lib'],
                 path=js_file_info['path'],

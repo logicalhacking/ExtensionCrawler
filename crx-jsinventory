@@ -67,13 +67,13 @@ def main(argv):
         sys.exit()
 
     fieldnames = [
-        'jsFilename', 'path', 'size', 'dec_size', 'md5', 'sha1', 'mimetype', 'description', 'encoding', 'type',
+        'filename', 'path', 'size', 'dec_size', 'md5', 'sha1', 'mimetype', 'description', 'encoding', 'type',
         'detectionMethod', 'detectionMethodDetails', 'lib', 'version', 'evidenceText', 
         'evidenceStartPos', 'evidenceEndPos'
     ]
 
     brief_fieldnames = [
-        'jsFilename', 'md5', 'type', 'detectionMethod',  'lib', 'version'
+        'filename', 'md5', 'type', 'detectionMethod',  'lib', 'version'
     ]
 
     if filename.endswith('.crx'):
