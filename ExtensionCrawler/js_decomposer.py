@@ -52,10 +52,12 @@ class DetectionType(Enum):
 class FileClassification(Enum):
     """ Enumeration for file classification"""
     EMPTY_FILE = "other (empty file)"
+    METADATA = "metadata"
     LIBRARY = "known library"
     VERY_LIKELY_LIBRARY = "very likely known library"
     LIKELY_LIBRARY = "likely known library"
     LIKELY_APPLICATION = "likely application"
+    ERROR = "error"
 
 def load_lib_identifiers():
     """Initialize identifiers for known libraries from JSON file."""
@@ -95,33 +97,68 @@ def unknown_lib_identifiers():
                    re.IGNORECASE)
     ])
 
-
-def init_jsinfo(zipfile, js_file):
+def init_file_info(path, data):
     """Initialize jsinfo record."""
-    data = ""
-    if zipfile is not None:
-        with zipfile.open(js_file) as js_file_obj:
-            data = js_file_obj.read()
-            path = js_file.filename
-    else:
-        with open(js_file, mode='rb') as js_file_obj:
-            data = js_file_obj.read()
-            path = js_file
+    file_info = get_file_identifiers(path, data)
+    file_info['lib'] = None
+    file_info['version'] = None
+    file_info['detectionMethod'] = None
+    file_info['detectionMethodDetails'] = None
+    file_info['type'] = None
+    file_info['evidenceStartPos'] = None
+    file_info['evidenceEndPos'] = None
+    file_info['evidenceText'] = None
+    return file_info
 
-    js_info = get_file_identifiers(path, data)
-    js_info['lib'] = None
-    js_info['version'] = None
-    js_info['detectionMethod'] = None
-    js_info['detectionMethodDetails'] = None
-    js_info['type'] = None
-    js_info['evidenceStartPos'] = None
-    js_info['evidenceEndPos'] = None
-    js_info['evidenceText'] = None
-    if js_info['size'] == 0:
-        js_info['detectionMethod'] = DetectionType.FILE_SIZE
-        js_info['type'] = FileClassification.EMPTY_FILE
+def check_empty_file(file_info):
+    """Check if file is empty."""
+    if file_info['size'] == 0:
+        file_info['detectionMethod'] = DetectionType.FILE_SIZE
+        file_info['type'] = FileClassification.EMPTY_FILE
+    return file_info
 
-    return js_info
+def check_metadata(file_info):
+    """Check for metadata (based on filename/path)."""
+    if file_info['path'] == "manifest.json" or file_info['path'] == "_metadata/verified_contents.json":
+        file_info['detectionMethod'] = DetectionType.FILENAME
+        file_info['type'] = FileClassification.METADATA
+    return file_info
+
+def check_sha1(file_info):
+    """Check for known sha1 hash (file content)."""
+    # TODO
+    return file_info
+
+def check_sha1_decompressed(file_info):
+    """Check for known sha1 hash (decompressed file content)."""
+    # TODO
+    return file_info
+
+def check_sha1_normalized(file_info):
+    """Check for known sha1 hash (normalized file content)."""
+    # TODO
+    return file_info
+
+def check_sha1_decompressed_normalized(file_info):
+    """Check for known sha1 hash (decompressed normalized file content)."""
+    # TODO
+    return file_info
+
+def check_filename(file_info):
+    """Check for known filename."""
+    # TODO
+    return file_info
+
+def check_comment_blocks(file_info, data):
+    """Check for known pattern in comment blocks."""
+    # TODO
+    return file_info
+
+def check_code_blocks(file_info, data):
+    """Check for known pattern in code blocks."""
+    # TODO
+    return file_info
+
 
 def analyse_checksum(zipfile, js_file, js_info):
     """Check for known md5 hashes (file content)."""
@@ -266,42 +303,70 @@ def analyse_comment_blocks(zipfile, js_file, js_info):
         libs = list()
     return libs
 
-def decompose_js(file):
+def decompose_js(path_or_zipfileobj):
     """JavaScript decomposition analysis for extensions."""
-    def remdups(lst):
-        """Remove duplicates in a list."""
-        res = list()
-        for sublist in lst:
-            if sublist not in res:
-                res.append(sublist)
-        return res
-
     zipfile = None
-    js_inventory = []
-    if isinstance(file, str):
-        js_files = [file]
+    inventory = []
+    if isinstance(path_or_zipfileobj, str):
+        path_list = [path_or_zipfileobj]
     else:
-        zipfile = file
-        js_files = list(filter(lambda x: x.filename.endswith(".js"), zipfile.infolist()))
+        zipfile = path_or_zipfileobj
+        path_list = list(filter(lambda x: os.path.basename(x.filename) != "", zipfile.infolist()))
 
-    for js_file in js_files:
-        js_info = init_jsinfo(zipfile, js_file)
+    for path_or_zipentry in path_list:
 
-        if js_info['type'] == FileClassification.EMPTY_FILE:
-            js_inventory.append(js_info)
+        if zipfile is not None:
+            with zipfile.open(path_or_zipentry) as js_file_obj:
+                data = js_file_obj.read()
+            path = path_or_zipentry.filename
         else:
-            js_info_file = analyse_checksum(zipfile, js_file, js_info)
-            if not js_info_file:
-                js_info_file = analyse_filename(zipfile, js_file, js_info)
-                js_info_file += analyse_comment_blocks(zipfile, js_file, js_info)
-            if not js_info_file:
-                # if no library could be detected, we report the JavaScript file as 'application'.
-                js_info['lib'] = None
-                js_info['version'] = None
-                js_info['detectionMethod'] = DetectionType.DEFAULT
-                js_info['type'] = FileClassification.LIKELY_APPLICATION
-                js_inventory.append(js_info)
-            else:
-                js_inventory += js_info_file
+            with open(path_or_zipentry, mode='rb') as js_file_obj:
+                data = js_file_obj.read()
+            path = path_or_zipentry
 
-    return remdups(js_inventory)
+        file_info = init_file_info(path, data)
+
+        file_info = check_empty_file(file_info)
+        if not file_info['detectionMethod'] is None:
+            inventory.append(file_info)
+            continue
+        file_info = check_metadata(file_info)
+        if not file_info['detectionMethod'] is None:
+            inventory.append(file_info)
+            continue
+        file_info = check_sha1(file_info)
+        if not file_info['detectionMethod'] is None:
+            inventory.append(file_info)
+            continue
+        file_info = check_sha1_decompressed(file_info)
+        if not file_info['detectionMethod'] is None:
+            inventory.append(file_info)
+            continue
+        file_info = check_sha1_normalized(file_info)
+        if not file_info['detectionMethod'] is None:
+            inventory.append(file_info)
+            continue
+        file_info = check_sha1_decompressed_normalized(file_info)
+        if not file_info['detectionMethod'] is None:
+            inventory.append(file_info)
+            continue
+        file_info = check_filename(file_info)
+        if not file_info['detectionMethod'] is None:
+            # TODO
+            js_info_comment = check_comment_blocks(file_info, data)
+            js_info_code = check_code_blocks(file_info, data)
+            # js_info_file = analyse_checksum(zipfile, js_file, js_info)
+            # if not js_info_file:
+            #     js_info_file = analyse_filename(zipfile, js_file, js_info)
+            #     js_info_file += analyse_comment_blocks(zipfile, js_file, js_info)
+            inventory.append(file_info)
+            continue
+
+        # if no library could be detected, we report the JavaScript file as 'application'.
+        file_info['lib'] = None
+        file_info['version'] = None
+        file_info['detectionMethod'] = DetectionType.DEFAULT
+        file_info['type'] = FileClassification.LIKELY_APPLICATION
+        inventory.append(file_info)
+
+    return inventory
