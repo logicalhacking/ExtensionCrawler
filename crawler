@@ -203,8 +203,8 @@ def main(argv):
     logger.setLevel(loglevel)
 
     # Surpressing these "Starting HTTPS connection ..." log messages
-    # Older versions of urllib3 use loglevel INFO for that, newer ones DEBUG
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    # Older versions of requests use loglevel INFO for that, newer ones DEBUG
+    logging.getLogger("requests").setLevel(logging.WARNING)
 
     archive_dir = os.path.join(basedir, "data")
     os.makedirs(archive_dir, exist_ok=True)
