@@ -52,7 +52,6 @@ class MysqlBackend:
                         db.close()
                         db = None
                     db = MySQLdb.connect(**self.dbargs)
-                    db.autocommit = True
                     self.cursor = db.cursor()
                 except Exception as e2:
                     log_error("Surpressed exception: {}".format(str(e2)), 3,
@@ -85,7 +84,6 @@ class MysqlBackend:
         global db
         if db is None:
             db = MySQLdb.connect(**self.dbargs)
-            db.autocommit = True
         self.cursor = db.cursor()
 
         return self

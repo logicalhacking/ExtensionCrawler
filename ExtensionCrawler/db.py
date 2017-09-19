@@ -421,6 +421,7 @@ def update_db_incremental(tmptardir, ext_id, date):
     with MysqlBackend(
             ext_id, read_default_file=const_mysql_config_file(),
             charset='utf8mb4',
+            autocommit=True,
             compress=True
     ) as con:
         etag = get_etag(ext_id, datepath, con)
