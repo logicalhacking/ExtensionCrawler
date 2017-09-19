@@ -145,19 +145,19 @@ def check_sha1_decompressed_normalized(file_info):
     return file_info
 
 def check_filename(file_info):
-    """Check for known filename."""
+    """Check for known filename and typical library filename patterns."""
     # TODO
     return file_info
 
 def check_comment_blocks(file_info, data):
     """Check for known pattern in comment blocks."""
     # TODO
-    return file_info
+    return [file_info]
 
 def check_code_blocks(file_info, data):
     """Check for known pattern in code blocks."""
     # TODO
-    return file_info
+    return [file_info]
 
 
 def analyse_checksum(zipfile, js_file, js_info):
@@ -353,8 +353,8 @@ def decompose_js(path_or_zipfileobj):
         file_info = check_filename(file_info)
         if not file_info['detectionMethod'] is None:
             # TODO
-            js_info_comment = check_comment_blocks(file_info, data)
-            js_info_code = check_code_blocks(file_info, data)
+            js_info_comments = check_comment_blocks(file_info, data)
+            js_info_codes = check_code_blocks(file_info, data)
             # js_info_file = analyse_checksum(zipfile, js_file, js_info)
             # if not js_info_file:
             #     js_info_file = analyse_filename(zipfile, js_file, js_info)
