@@ -39,6 +39,7 @@ def helpmsg():
     print("    -N <MAXTASKID>   ")
     print("    -v               verbose")
     print("    -c               print csv format to stdout instead of writing to database")
+    print("    -a=<DIR>         archive directory")
     print("    -h               print this help text")
 
 
