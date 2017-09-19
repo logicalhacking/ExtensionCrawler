@@ -12,4 +12,5 @@ printenv
 
 echo "The following parameter were passed: $*"
 
-"$BASEDIR/ExtensionCrawler/create-db" -t 1 -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID $*
+cd "$BASEDIR"
+./ExtensionCrawler/create-db -t 1 -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID $*
