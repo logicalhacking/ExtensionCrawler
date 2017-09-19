@@ -19,8 +19,10 @@
 
 import os
 import io
+from io import StringIO
 import re
 import json
+import zlib
 from enum import Enum
 from ExtensionCrawler.js_mincer import mince_js
 from ExtensionCrawler.file_identifiers import get_file_identifiers
@@ -149,14 +151,22 @@ def check_filename(file_info):
     # TODO
     return file_info
 
-def check_comment_blocks(file_info, data):
+def check_comment_blocks(file_info, str_data):
     """Check for known pattern in comment blocks."""
     # TODO
+    with StringIO(str_data) as str_obj:
+        for block in mince_js(str_obj, single_line_comments_block=True):
+            if block.is_comment():
+                pass # TODO
     return [file_info]
 
-def check_code_blocks(file_info, data):
+def check_code_blocks(file_info, str_data):
     """Check for known pattern in code blocks."""
     # TODO
+    with StringIO(str_data) as str_obj:
+        for block in mince_js(str_obj, single_line_comments_block=False):
+            if block.is_code():
+                pass # TODO
     return [file_info]
 
 
@@ -352,14 +362,26 @@ def decompose_js(path_or_zipfileobj):
             continue
         file_info = check_filename(file_info)
         if not file_info['detectionMethod'] is None:
-            # TODO
-            js_info_comments = check_comment_blocks(file_info, data)
-            js_info_codes = check_code_blocks(file_info, data)
+            if not file_info['dec_decoding'] is None:
+                try:
+                    with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
+                        dec_data = dec.decompress(data, 100 * file_info['size'])
+                    str_data = dec_data.decode(file_info['dec_encoding'])
+                    del dec_data
+                except Exception:
+                    return [file_info]
+            else:
+                str_data = data.decode(file_info['encoding'])
+
+            info_comment_blocks= check_comment_blocks(file_info, str_data)
+            info_comment_code_blocks = check_code_blocks(file_info, str_data)
+            del str_data
+            
             # js_info_file = analyse_checksum(zipfile, js_file, js_info)
             # if not js_info_file:
             #     js_info_file = analyse_filename(zipfile, js_file, js_info)
             #     js_info_file += analyse_comment_blocks(zipfile, js_file, js_info)
-            inventory.append(file_info)
+            inventory = inventory + info_comment_blocks + info_comment_code_blocks
             continue
 
         # if no library could be detected, we report the JavaScript file as 'application'.
