@@ -1,12 +1,11 @@
 #!/bin/bash
-
-module -s load apps/python/conda 2> /dev/null
-source activate mypython35
-
 set -o nounset
 
+SING_EXEC="singularity exec --pwd /opt/ExtensionCrawler -B $TMPDIR:/tmp $SING_IMG"
+
 printenv
-
 echo "The following parameter were passed: $*"
+echo "Printing the content of $ARCHIVE to force mounting:"
+ls "$ARCHIVE"
 
-"$BASEDIR/ExtensionCrawler/grepper" -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID $* | bzip2 > "$BASEDIR/out/$SGE_TASK_ID.bz2"
+$SING_EXEC ./grepper -t 1 -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID $* | bzip2 > "$BASEDIR/out/$SGE_TASK_ID.bz2"
