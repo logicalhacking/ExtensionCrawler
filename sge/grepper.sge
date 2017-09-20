@@ -8,4 +8,4 @@ echo "The following parameter were passed: $*"
 echo "Printing the content of $ARCHIVE to force mounting:"
 ls "$ARCHIVE"
 
-$SING_EXEC ./grepper -t 1 -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID $* | bzip2 > "$BASEDIR/out/$SGE_TASK_ID.bz2"
+/usr/bin/time $SING_EXEC ./grepper -t 1 -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID $* | bzip2 > "$BASEDIR/out/$SGE_TASK_ID.bz2"

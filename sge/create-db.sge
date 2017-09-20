@@ -8,4 +8,4 @@ echo "The following parameter were passed: $*"
 echo "Printing the content of $ARCHIVE to force mounting:"
 ls "$ARCHIVE"
 
-$SING_EXEC ./create-db -t 1 -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID $*
+/usr/bin/time $SING_EXEC ./create-db -t 1 -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID $*
