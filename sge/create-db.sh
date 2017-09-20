@@ -41,6 +41,7 @@ scp "$BASEDIR/sge/create-db.sge" sharc.shef.ac.uk:"$TARGETDIR/create-db.sge"
 
 echo "Starting job ..."
 ssh sharc.shef.ac.uk \
+  SING_IMG=\"$SING_IMG\" \
   ARCHIVE=\"$ARCHIVE\" \
   BASEDIR=\"$TARGETDIR\" \
   MAX_SGE_TASK_ID=\"$NRJOBS\" \
