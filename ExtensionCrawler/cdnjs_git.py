@@ -240,10 +240,26 @@ def build_release_date_dic(git_path, libvers, poolsize=16):
 def pull_and_update_db(cdnjs_git_path, create_csv, poolsize=16):
     """Pull repo and update database."""
     files, libvers = pull_get_updated_lib_files(cdnjs_git_path)
-
     release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
     del libvers
     gc.collect()
+    update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
+
+def update_db_from_listfile(cdnjs_git_path, listfile, create_csv, poolsize=16):
+    """Update database (without pull) for files in listfile)"""
+    paths = []
+    with open(listfile) as listfileobj:
+        paths = listfileobj.read().splitlines()
+    files = []
+    libvers = []
+    for path in paths:
+        if not os.path.isabs(path):
+            path = os.path.join(cdnjs_git_path, path)
+        path_files, path_libvers = get_all_lib_files(path)
+        libvers = libvers + path_libvers
+        files = files + path_files
+    logging.info("Found " + str(len(files)) + " in " + str(len(libvers)) + "versions.")    
+    release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
     update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
 
 
@@ -274,3 +290,4 @@ def update_db_all_libs(cdnjs_git_path,
     del libvers
     gc.collect()
     update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
+
