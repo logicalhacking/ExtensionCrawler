@@ -33,6 +33,7 @@ import git
 
 from ExtensionCrawler.file_identifiers import get_file_identifiers
 
+
 def get_add_date(git_path, filename):
     """Method for getting the initial add/commit date of a file."""
     try:
@@ -96,6 +97,7 @@ def hackish_pull_list_changed_files(git_path):
             for changed_file in changed_files:
                 files.add(changed_file.strip())
     return list(files)
+
 
 def path_to_list(path):
     """Convert a path (string) to a list of folders/files."""
@@ -250,6 +252,7 @@ def pull_and_update_db(cdnjs_git_path, create_csv, poolsize=16):
     gc.collect()
     update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
 
+
 def update_db_from_listfile(cdnjs_git_path, listfile, create_csv, poolsize=16):
     """Update database (without pull) for files in listfile)"""
     paths = []
@@ -261,7 +264,8 @@ def update_db_from_listfile(cdnjs_git_path, listfile, create_csv, poolsize=16):
         path_files, path_libvers = get_all_lib_files(cdnjs_git_path, path)
         libvers = libvers + path_libvers
         files = files + path_files
-    logging.info("In total, found " + str(len(files)) + " files in " + str(len(libvers)) + " liberies/versions.")    
+    logging.info("In total, found " + str(len(files)) + " files in " +
+                 str(len(libvers)) + " liberies/versions.")
     release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
     update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
 
@@ -293,4 +297,3 @@ def update_db_all_libs(cdnjs_git_path,
     del libvers
     gc.collect()
     update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
-
