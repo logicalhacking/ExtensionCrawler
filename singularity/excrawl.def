@@ -52,6 +52,14 @@ apt-get update
 ###################################################################
 
 ###################################################################
+# Configure locales
+apt-get install -y locales
+echo "en_GB.UTF-8 UTF-8" >> /etc/locale.gen
+locale-gen en_GB.UTF-8
+echo "LANG=en_GB.UTF-8" > /etc/default/locale
+###################################################################
+
+###################################################################
 # Install the core dependencies (Python 3.5 or later)
 # from the Debian Testing repository
 apt-get	install -y python3-magic python3-crypto python3-minimal python3-pip python3-setuptools python3-mysqldb
@@ -106,7 +114,3 @@ chmod go+u-w /scratch /fastdata /data /shared
 # to use any packages that the user might have installed in their home
 # directory.
 export PYTHONNOUSERSITE=1
-
-# Python needs to be explicitly told to use utf-8, otherwise we get
-# weird exceptions
-export PYTHONIOENCODING=utf-8
