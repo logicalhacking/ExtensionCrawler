@@ -37,7 +37,9 @@ def helpmsg():
     print("    -s        strings")
     print("    -g        group single line comments")
     print("    -c        program code")
+    print("    -b        beautify JavaScript files before analyzing them")
     print("    -r regexp select only comments/code/strings where regexp matches")
+    print("    -d date   use latest extension that was released not later than date (only for tar archives)")
 
 def print_block(comment, program, strings, regexp, block):
     """Print code/comment blocks."""
@@ -57,7 +59,7 @@ def print_block(comment, program, strings, regexp, block):
                     print(string)
 
 
-
+ 
 def main(argv):
     """Main function: JavaScript strings on steroids."""
     comment = True
@@ -68,9 +70,11 @@ def main(argv):
     filename = None
     path = None
     date = None
+    beautify = False
+
 
     try:
-        opts, args = getopt.getopt(argv, "hcd:snvr:",["--regesp", "--date"])
+        opts, args = getopt.getopt(argv, "hbcd:snvr:",["--regesp", "--date", "--beautify"])
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -86,6 +90,8 @@ def main(argv):
             group = True
         elif opt == '-c':
             program = True
+        elif opt in ('-b', "--beautify"):
+            beautify = True
         elif opt in ('-r', "--regexp"):
             regexp = arg
         elif opt in ('-r', "--date"):
