@@ -67,9 +67,10 @@ def main(argv):
     regexp = None
     filename = None
     path = None
+    date = None
 
     try:
-        opts, args = getopt.getopt(argv, "hcsnvr:",["--regesp"])
+        opts, args = getopt.getopt(argv, "hcd:snvr:",["--regesp", "--date"])
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -87,6 +88,8 @@ def main(argv):
             program = True
         elif opt in ('-r', "--regexp"):
             regexp = arg
+        elif opt in ('-r', "--date"):
+            date = arg
     if len(args) == 1 :
         filename = args[0]
     elif len(args) == 2:
@@ -118,6 +121,10 @@ def main(argv):
                     with io.TextIOWrapper(js_file_obj, encoding) as js_text_file_obj:
                         for block in mince_js(js_text_file_obj, single_line_comments_block=group):
                             print_block(comment, program, strings, regexp, block)
+    elif filename.endswith('.tar') and path is not None:
+        pass
+    elif filename.endswith('.tar') and path is None:
+        pass
     else:
         for block in mince_js(filename, single_line_comments_block=group):
             print_block(comment, program, strings, regexp, block)
