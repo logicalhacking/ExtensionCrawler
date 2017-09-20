@@ -152,14 +152,19 @@ def pull_get_updated_lib_files(cdnjs_git_path):
     return files, list(libvers)
 
 
-def get_all_lib_files(cdnjs_git_path):
+def get_all_lib_files(cdnjs_git_path, localpath=None):
     """Return all libraries stored in cdnjs git repo."""
-    logging.info("Building file list (complete repository)")
     libvers = set()
     files = []
     versionidx = len(path_to_list(cdnjs_git_path)) + 4
-    for fname in glob.iglob(
-            os.path.join(cdnjs_git_path, 'ajax/libs/**/*'), recursive=True):
+    if not localpath is None:
+        paths = os.path.join(cdnjs_git_path, localpath)
+    else:
+        paths = os.path.join(cdnjs_git_path, 'ajax/libs/**/*')
+
+    logging.info("Building file list for: " + str(paths))
+
+    for fname in glob.iglob(paths, recursive=True):
         if not os.path.isdir(fname):
             if not os.path.basename(fname) in ["package.json", ".gitkeep"]:
                 files.append(fname)
@@ -253,12 +258,10 @@ def update_db_from_listfile(cdnjs_git_path, listfile, create_csv, poolsize=16):
     files = []
     libvers = []
     for path in paths:
-        if not os.path.isabs(path):
-            path = os.path.join(cdnjs_git_path, path)
-        path_files, path_libvers = get_all_lib_files(path)
+        path_files, path_libvers = get_all_lib_files(cdnjs_git_path, path)
         libvers = libvers + path_libvers
         files = files + path_files
-    logging.info("Found " + str(len(files)) + " in " + str(len(libvers)) + "versions.")    
+    logging.info("In total, found " + str(len(files)) + " files in " + str(len(libvers)) + " liberies/versions.")    
     release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
     update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
 
