@@ -106,3 +106,7 @@ chmod go+u-w /scratch /fastdata /data /shared
 # to use any packages that the user might have installed in their home
 # directory.
 export PYTHONNOUSERSITE=1
+
+# Python needs to be explicitly told to use utf-8, otherwise we get
+# weird exceptions
+export PYTHONIOENCODING=utf-8
