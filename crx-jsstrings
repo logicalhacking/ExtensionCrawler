@@ -158,14 +158,18 @@ def analyze_tar(config, date, path, filename):
         last_crx_file = last_crx(
             os.path.join(config.basedir, "data"), extid, dateobj)
     else:
-
         last_crx_file = last_crx(os.path.join(config.basedir, "data"), extid)
-    print("# Start analyzing " + extid)
-    with tarfile.open(filename, 'r') as archive:
-        with archive.extractfile(last_crx_file) as crx:
-            match = analyze_crx(config, crx, path)
-    if match:
-        print("RegExp found in " + extid)
+    if last_crx_file == "" or last_crx_file is None:
+            print("No crx in  " + extid)
+    else:
+        print("# Start analyzing " + extid)
+        with tarfile.open(filename, 'r') as archive:
+            with archive.extractfile(last_crx_file) as crx:
+                match = analyze_crx(config, crx, path)
+        if match:
+            print("RegExp found in " + extid)
+        else:
+            print("RegExp not found in " + extid)
 
 def process_group(config, taskid, maxtaskid, date, path):
     archive_dir = os.path.join(config.basedir, "data")
