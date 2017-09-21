@@ -17,16 +17,47 @@
 #
 """Tool for extracting crx file from a tar archive."""
 
-import sys
+import getopt
 import io
 import re
-import getopt
+import sys
+import zlib
+from io import StringIO
 from zipfile import ZipFile
+import collections
+
 import cchardet as chardet
-from ExtensionCrawler.js_mincer import mince_js, JsBlockType
+import jsbeautifier
+
+from ExtensionCrawler.js_decomposer import init_file_info
+from ExtensionCrawler.js_mincer import JsBlockType, mince_js
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
+
+JsStringsConfig = collections.namedtuple('JsStringsConfig', ['comment', 'strings', 'group', 'program', 'beautify', 'regexp'])
+
+
+def jsstrings_data(path, data, config):
+    file_info = init_file_info(path, data)
+
+    if not file_info['dec_encoding'] is None:
+        try:
+            with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
+                dec_data = dec.decompress(data, 100 * file_info['size'])
+            str_data = dec_data.decode(file_info['dec_encoding'])
+            del dec_data
+        except Exception:
+            return [file_info]
+    else:
+        str_data = data.decode(file_info['encoding'])
+
+    if config.beautify:
+        str_data = jsbeautifier.beautify(str_data)
+
+    with StringIO(str_data) as str_obj:
+        for block in mince_js(str_obj, single_line_comments_block=config.group):
+            print_block(config.comment, config.program, config.strings, config.regexp, block)
 
 
 def helpmsg():
@@ -62,17 +93,19 @@ def print_block(comment, program, strings, regexp, block):
  
 def main(argv):
     """Main function: JavaScript strings on steroids."""
-    comment = True
-    strings = False
-    group = False
-    program = False
-    regexp = None
+    config = JsStringsConfig(
+        comment = True,
+        strings = False,
+        group = False,
+        program = False,
+        beautify = False,
+        regexp = None
+        )
+
     filename = None
     path = None
     date = None
-    beautify = False
-
-
+ 
     try:
         opts, args = getopt.getopt(argv, "hbcd:snvr:",["--regesp", "--date", "--beautify"])
     except getopt.GetoptError:
@@ -83,17 +116,17 @@ def main(argv):
             helpmsg()
             sys.exit()
         elif opt == '-n':
-            comment = False
+            config = config._replace(comment = False)
         elif opt == '-s':
-            strings = True
+            config = config._replace(strings = True)
         elif opt == '-g':
-            group = True
+            config = config._replace(group = True)
         elif opt == '-c':
-            program = True
+            config = config._replace(program = True)
         elif opt in ('-b', "--beautify"):
-            beautify = True
+            config = config._replace(beautify = True)
         elif opt in ('-r', "--regexp"):
-            regexp = arg
+            config = config._replace(regexp = arg)
         elif opt in ('-r', "--date"):
             date = arg
     if len(args) == 1 :
@@ -109,31 +142,23 @@ def main(argv):
         with ZipFile(filename) as crxobj:
             with crxobj.open(path) as js_file:
                 data = js_file.read()
-                encoding =  chardet.detect(data)['encoding']
-                data = None
-            with crxobj.open(path) as js_file:
-                with io.TextIOWrapper(js_file, encoding) as js_text_file_obj:
-                    for block in mince_js(js_text_file_obj, single_line_comments_block=group):
-                         print_block(comment, program, strings, regexp, block)
+            jsstrings_data(path, data, config)
     elif filename.endswith('.crx') and path is None:
         with ZipFile(filename) as crxobj:
             js_files = list(filter(lambda x: x.filename.endswith(".js"), crxobj.infolist()))
             for jsfile in js_files:
                 with crxobj.open(jsfile) as js_file_obj:
                     data = js_file_obj.read()
-                    encoding =  chardet.detect(data)['encoding']
-                    data = None
-                with crxobj.open(jsfile) as js_file_obj:
-                    with io.TextIOWrapper(js_file_obj, encoding) as js_text_file_obj:
-                        for block in mince_js(js_text_file_obj, single_line_comments_block=group):
-                            print_block(comment, program, strings, regexp, block)
+                    path = js_file_obj.name
+                jsstrings_data(path, data, config)
     elif filename.endswith('.tar') and path is not None:
         pass
     elif filename.endswith('.tar') and path is None:
         pass
     else:
-        for block in mince_js(filename, single_line_comments_block=group):
-            print_block(comment, program, strings, regexp, block)
+        with open(filename, 'rb') as fileobj:
+            data = fileobj.read()
+        jsstrings_data(filename, data, config)
             
 if __name__ == "__main__":
     main(sys.argv[1:])
