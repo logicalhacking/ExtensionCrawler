@@ -39,6 +39,11 @@ ssh sharc.shef.ac.uk cp "$SING_IMG_SRC" "$SING_IMG"
 echo "Pushing sge script ..."
 scp "$BASEDIR/sge/create-db.sge" sharc.shef.ac.uk:"$TARGETDIR/create-db.sge"
 
+if ! [ -z "${EXTIDLISTFILE:-}" ]; then
+  echo "Pushing list with extension ids ..."
+  scp "$EXTIDLISTFILE" sharc.shef.ac.uk:"$TARGETDIR/ids"
+fi
+
 echo "Starting job ..."
 ssh sharc.shef.ac.uk \
   SING_IMG=\"$SING_IMG\" \
@@ -48,6 +53,7 @@ ssh sharc.shef.ac.uk \
   qsub \
   -V \
   -m a \
+  -l rmem=4G
   -M "msherzberg1@sheffield.ac.uk" \
   -t $JOBRANGE \
   -j yes \
