@@ -64,7 +64,6 @@ def jsstrings_data(path, data, config):
         except Exception:
             return [file_info]
     else:
-        pri
         str_data = data.decode(file_info['encoding'])
 
     if config.beautify:
