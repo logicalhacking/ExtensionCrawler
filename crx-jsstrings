@@ -52,6 +52,8 @@ JsStringsConfig = collections.namedtuple('JsStringsConfig', [
 def jsstrings_data(path, data, config):
     print("## Analyzing " + path)
     file_info = init_file_info(path, data)
+    if file_info['size'] == 0:
+        return
 
     if not file_info['dec_encoding'] is None:
         try:
@@ -62,6 +64,7 @@ def jsstrings_data(path, data, config):
         except Exception:
             return [file_info]
     else:
+        pri
         str_data = data.decode(file_info['encoding'])
 
     if config.beautify:
