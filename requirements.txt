@@ -8,3 +8,4 @@ beautifulsoup4==4.6.0
 python_dateutil==2.6.1
 GitPython==2.1.5
 python_magic==0.4.13
+jsbeautifier==1.7.3
