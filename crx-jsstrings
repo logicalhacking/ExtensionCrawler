@@ -17,35 +17,40 @@
 #
 """Tool for extracting crx file from a tar archive."""
 
+import collections
+import datetime
 import getopt
 import io
-import re
 import os
+import re
 import sys
-import zlib
-from zipfile import ZipFile
-import collections
 import tarfile
-import datetime
+import zlib
+from functools import partial
+from multiprocessing import Pool
+from zipfile import ZipFile
+
 import dateutil
 import dateutil.parser
-
 import jsbeautifier
 
+from ExtensionCrawler.archive import get_existing_ids, last_crx
+from ExtensionCrawler.config import (archive_file, const_basedir,
+                                     get_local_archive_dir)
 from ExtensionCrawler.js_decomposer import init_file_info
 from ExtensionCrawler.js_mincer import mince_js
-from ExtensionCrawler.config import const_basedir, get_local_archive_dir
-from ExtensionCrawler.archive import last_crx
 
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
 JsStringsConfig = collections.namedtuple('JsStringsConfig', [
-    'comment', 'strings', 'group', 'program', 'beautify', 'basedir', 'regexp'
+    'comment', 'strings', 'group', 'program', 'beautify', 'basedir', 'regexp',
+    'parallel'
 ])
 
 
 def jsstrings_data(path, data, config):
+    print("## Analyzing " + path)
     file_info = init_file_info(path, data)
 
     if not file_info['dec_encoding'] is None:
@@ -71,14 +76,17 @@ def jsstrings_data(path, data, config):
 
 def helpmsg():
     """Print help message."""
-    print("crx-jsstrings [OPTION] [crx-file] js-file")
+    print("crx-jsstrings [OPTION] [crx-file|tar-file|ext_id] [js-file]")
     print("    -h        print this help text")
-    print("    -n        no comments")
+    print("    -i        ignore comments")
     print("    -s        strings")
     print("    -g        group single line comments")
     print("    -c        program code")
     print("    -b        beautify JavaScript files before analyzing them")
     print("    -a=<DIR>  archive directory")
+    print("    -n <TASKID>         process chunk n where n in [1,N]")
+    print("    -N <MAXTASKID>      ")
+
     print(
         "    -r regexp select only comments/code/strings where regexp matches")
     print(
@@ -109,7 +117,7 @@ def analyze_crx(config, crx, path):
         with ZipFile(crx) as crxobj:
             js_files = list(
                 filter(
-                    lambda x: x.filename.endswith(".js") or x.filename.endswith(".css"),
+                    lambda x: x.filename.endswith(".js") or x.filename.endswith(".js.gz") or x.filename.endswith(".jgz") or x.filename.endswith(".jsg") or x.filename.endswith(".css.gz"),
                     crxobj.infolist()))
             for jsfile in js_files:
                 with crxobj.open(jsfile) as js_file_obj:
@@ -123,7 +131,7 @@ def analyze_crx(config, crx, path):
             jsstrings_data(path, data, config)
 
 
-def analyze_tar(config, date, filename, path):
+def analyze_tar(config, date, path, filename):
     last_crx_file = ''
     extid = os.path.splitext(os.path.basename(filename))[0]
     if date is not None:
@@ -133,11 +141,27 @@ def analyze_tar(config, date, filename, path):
         last_crx_file = last_crx(
             os.path.join(config.basedir, "data"), extid, dateobj)
     else:
+
         last_crx_file = last_crx(os.path.join(config.basedir, "data"), extid)
-    print(filename, last_crx_file)
+    print("# Start analyzing " + extid)
     with tarfile.open(filename, 'r') as archive:
         with archive.extractfile(last_crx_file) as crx:
             analyze_crx(config, crx, path)
+
+
+def process_group(config, taskid, maxtaskid, date, path):
+    archive_dir = os.path.join(config.basedir, "data")
+    ext_ids = get_existing_ids(archive_dir)
+    chunksize = int(len(ext_ids) / maxtaskid)
+    if taskid == maxtaskid:
+        ext_ids = ext_ids[(taskid - 1) * chunksize:]
+    else:
+        ext_ids = ext_ids[(taskid - 1) * chunksize:taskid * chunksize]
+
+    ext_ids = list(map(partial(archive_file, archive_dir), ext_ids))
+
+    with Pool(config.parallel) as p:
+        p.map(partial(analyze_tar, config, date, path), ext_ids)
 
 
 def main(argv):
@@ -149,15 +173,19 @@ def main(argv):
         program=False,
         beautify=False,
         basedir=const_basedir(),
-        regexp=None)
+        regexp=None,
+        parallel=8)
 
     filename = None
     path = None
     date = None
+    taskid = -1
+    maxtaskid = -1
+    extid_re = re.compile('^[a-p]+$')
 
     try:
-        opts, args = getopt.getopt(argv, "hbcd:sna:vr:", [
-            "--regesp", "--date", "--archive", "--beautify"
+        opts, args = getopt.getopt(argv, "hibcd:sn:N:a:vr:", [
+            "--regexp", "--date", "--archive", "--beautify"
         ])
     except getopt.GetoptError:
         helpmsg()
@@ -168,7 +196,7 @@ def main(argv):
             sys.exit()
         elif opt in ("-a", "--archive"):
             config = config._replace(basedir=arg)
-        elif opt == '-n':
+        elif opt == '-i':
             config = config._replace(comment=False)
         elif opt == '-s':
             config = config._replace(strings=True)
@@ -180,32 +208,38 @@ def main(argv):
             config = config._replace(beautify=True)
         elif opt in ('-r', "--regexp"):
             config = config._replace(regexp=arg)
-        elif opt in ('-r', "--date"):
+        elif opt in ('-d', "--date"):
             date = arg
+        elif opt in ("-n", "--taskid"):
+            taskid = int(arg)
+        elif opt in ("-N", "--maxtaskid"):
+            maxtaskid = int(arg)
     if len(args) == 1:
         filename = args[0]
     elif len(args) == 2:
         filename = args[0]
         path = args[1]
-    else:
+    elif (not len(args) == 0) or taskid < 1 or maxtaskid < 1:
         helpmsg()
         sys.exit()
 
-    extid_re = re.compile('^[a-p]+$')
-
-    if filename.endswith('.crx'):
-        analyze_crx(config, filename, path)
-    elif filename.endswith('.tar'):
-        analyze_tar(config, date, filename, path)
-    elif extid_re.match(filename):
-        extid = filename
-        filename = os.path.join(config.basedir, 'data',
-                                get_local_archive_dir(extid), extid + ".tar")
-        analyze_tar(config, date, filename, path)
+    if taskid > 0 and maxtaskid > 0:
+        process_group(config, taskid, maxtaskid, date, path)
     else:
-        with open(filename, 'rb') as fileobj:
-            data = fileobj.read()
-        jsstrings_data(filename, data, config)
+        if filename.endswith('.crx'):
+            analyze_crx(config, filename, path)
+        elif filename.endswith('.tar'):
+            analyze_tar(config, date, path, filename)
+        elif extid_re.match(filename):
+            extid = filename
+            filename = os.path.join(config.basedir, 'data',
+                                    get_local_archive_dir(extid),
+                                    extid + ".tar")
+            analyze_tar(config, date, path, filename)
+        else:
+            with open(filename, 'rb') as fileobj:
+                data = fileobj.read()
+            jsstrings_data(filename, data, config)
 
 
 if __name__ == "__main__":
