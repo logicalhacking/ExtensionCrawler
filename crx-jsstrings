@@ -35,7 +35,9 @@ from ExtensionCrawler.js_mincer import JsBlockType, mince_js
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
-JsStringsConfig = collections.namedtuple('JsStringsConfig', ['comment', 'strings', 'group', 'program', 'beautify', 'regexp'])
+JsStringsConfig = collections.namedtuple('JsStringsConfig', [
+    'comment', 'strings', 'group', 'program', 'beautify', 'regexp'
+])
 
 
 def jsstrings_data(path, data, config):
@@ -56,8 +58,10 @@ def jsstrings_data(path, data, config):
         str_data = jsbeautifier.beautify(str_data)
 
     with StringIO(str_data) as str_obj:
-        for block in mince_js(str_obj, single_line_comments_block=config.group):
-            print_block(config.comment, config.program, config.strings, config.regexp, block)
+        for block in mince_js(
+                str_obj, single_line_comments_block=config.group):
+            print_block(config.comment, config.program, config.strings,
+                        config.regexp, block)
 
 
 def helpmsg():
@@ -69,8 +73,12 @@ def helpmsg():
     print("    -g        group single line comments")
     print("    -c        program code")
     print("    -b        beautify JavaScript files before analyzing them")
-    print("    -r regexp select only comments/code/strings where regexp matches")
-    print("    -d date   use latest extension that was released not later than date (only for tar archives)")
+    print(
+        "    -r regexp select only comments/code/strings where regexp matches")
+    print(
+        "    -d date   use latest extension that was released not later than date (only for tar archives)"
+    )
+
 
 def print_block(comment, program, strings, regexp, block):
     """Print code/comment blocks."""
@@ -83,31 +91,30 @@ def print_block(comment, program, strings, regexp, block):
     elif block.is_code():
         if program:
             if regexp is None or rgx.match(block.content):
-                print(block)    
+                print(block)
         if strings:
             for string in block.string_literals:
                 if regexp is None or rgx.match(string):
                     print(string)
 
 
- 
 def main(argv):
     """Main function: JavaScript strings on steroids."""
     config = JsStringsConfig(
-        comment = True,
-        strings = False,
-        group = False,
-        program = False,
-        beautify = False,
-        regexp = None
-        )
+        comment=True,
+        strings=False,
+        group=False,
+        program=False,
+        beautify=False,
+        regexp=None)
 
     filename = None
     path = None
     date = None
- 
+
     try:
-        opts, args = getopt.getopt(argv, "hbcd:snvr:",["--regesp", "--date", "--beautify"])
+        opts, args = getopt.getopt(argv, "hbcd:snvr:",
+                                   ["--regesp", "--date", "--beautify"])
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -116,20 +123,20 @@ def main(argv):
             helpmsg()
             sys.exit()
         elif opt == '-n':
-            config = config._replace(comment = False)
+            config = config._replace(comment=False)
         elif opt == '-s':
-            config = config._replace(strings = True)
+            config = config._replace(strings=True)
         elif opt == '-g':
-            config = config._replace(group = True)
+            config = config._replace(group=True)
         elif opt == '-c':
-            config = config._replace(program = True)
+            config = config._replace(program=True)
         elif opt in ('-b', "--beautify"):
-            config = config._replace(beautify = True)
+            config = config._replace(beautify=True)
         elif opt in ('-r', "--regexp"):
-            config = config._replace(regexp = arg)
+            config = config._replace(regexp=arg)
         elif opt in ('-r', "--date"):
             date = arg
-    if len(args) == 1 :
+    if len(args) == 1:
         filename = args[0]
     elif len(args) == 2:
         filename = args[0]
@@ -145,7 +152,9 @@ def main(argv):
             jsstrings_data(path, data, config)
     elif filename.endswith('.crx') and path is None:
         with ZipFile(filename) as crxobj:
-            js_files = list(filter(lambda x: x.filename.endswith(".js"), crxobj.infolist()))
+            js_files = list(
+                filter(lambda x: x.filename.endswith(".js"),
+                       crxobj.infolist()))
             for jsfile in js_files:
                 with crxobj.open(jsfile) as js_file_obj:
                     data = js_file_obj.read()
@@ -159,6 +168,7 @@ def main(argv):
         with open(filename, 'rb') as fileobj:
             data = fileobj.read()
         jsstrings_data(filename, data, config)
-            
+
+
 if __name__ == "__main__":
     main(sys.argv[1:])
