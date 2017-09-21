@@ -1,16 +1,19 @@
 #!/bin/bash
-
-module -s load apps/python/conda 2> /dev/null
-source activate mypython35
-
-export PATH=~/bin:$PATH
-export LD_LIBRARY_PATH=~/lib:$LD_LIBRARY_PATH
-
 set -o nounset
+set -x
+
+SING_EXEC="singularity exec --pwd /opt/ExtensionCrawler -B $TMPDIR:/tmp $SING_IMG"
 
 printenv
-
 echo "The following parameter were passed: $*"
+echo "Printing the content of $ARCHIVE to force mounting:"
+ls "$ARCHIVE"
 
-cd "$BASEDIR"
-./ExtensionCrawler/create-db -t 1 -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID $*
+if [ -f "$BASEDIR/ids" ]; then
+  EXT_SELECT="-e $BASEDIR/ids"
+else
+  EXT_SELECT=
+fi
+
+
+/usr/bin/time $SING_EXEC ./create-db -t 1 -a "$ARCHIVE" -n $SGE_TASK_ID -N $MAX_SGE_TASK_ID $EXT_SELECT $*
