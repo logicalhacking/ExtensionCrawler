@@ -95,11 +95,10 @@ def get_file_identifiers(path, data=None):
             data = fileobj.read()
 
     data_identifier = get_data_identifiers(data)
-
     if data_identifier['description'].startswith('gzip'):
         try:
-            with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
-                dec_data = dec.decompress(data, 100 * data_identifier['size'])
+            dec = zlib.decompressobj(zlib.MAX_WBITS | 16)
+            dec_data = dec.decompress(data, 100 * data_identifier['size'])
             dec_data_identifier = get_data_identifiers(dec_data)
             del dec_data
         except Exception as e:
