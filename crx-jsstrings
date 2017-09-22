@@ -22,6 +22,7 @@ import datetime
 import getopt
 import io
 import os
+import logging
 import re
 import sys
 import tarfile
@@ -34,6 +35,7 @@ import dateutil
 import dateutil.parser
 import jsbeautifier
 
+from ExtensionCrawler.config import (const_log_format, const_basedir)
 from ExtensionCrawler.archive import get_existing_ids, last_crx
 from ExtensionCrawler.config import (archive_file, const_basedir,
                                      get_local_archive_dir)
@@ -45,7 +47,7 @@ assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
 JsStringsConfig = collections.namedtuple('JsStringsConfig', [
     'comment', 'strings', 'group', 'program', 'beautify', 'basedir', 'regexp',
-    'parallel'
+    'parallel', "verbose"
 ])
 
 
@@ -60,13 +62,21 @@ def jsstrings_data(path, data, config):
         try:
             with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
                 dec_data = dec.decompress(data, 100 * file_info['size'])
-            str_data = dec_data.decode(file_info['dec_encoding'])
+            if file_info['dec_encoding'] is None:
+                logging.warning("Encoding is None for " +path + " using utf-8.")
+                str_data = dec_data.decode(file_info['utf-8'])
+            else:
+                str_data = dec_data.decode(file_info['dec_encoding'])
             del dec_data
         except Exception:
             return [file_info]
     else:
-        str_data = data.decode(file_info['encoding'])
-
+            if file_info['encoding'] is None:
+                logging.warning("Encoding is None for " +path + " (decompressed) using utf-8.")
+                str_data = data.decode(file_info['utf-8'])
+            else:
+                str_data = data.decode(file_info['encoding'])
+    
     if config.beautify:
         str_data = jsbeautifier.beautify(str_data)
 
@@ -196,7 +206,8 @@ def main(argv):
         beautify=False,
         basedir=const_basedir(),
         regexp=None,
-        parallel=8)
+        parallel=8,
+        verbose=True)
 
     filename = None
     path = None
@@ -244,6 +255,19 @@ def main(argv):
     elif (not len(args) == 0) or taskid < 1 or maxtaskid < 1:
         helpmsg()
         sys.exit()
+
+
+    if config.verbose:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.WARNING
+
+    logger = logging.getLogger()
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(logging.Formatter(const_log_format()))
+    logger.addHandler(ch)
+    logger.setLevel(loglevel)
+
 
     if taskid > 0 and maxtaskid > 0:
         process_group(config, taskid, maxtaskid, date, path)
