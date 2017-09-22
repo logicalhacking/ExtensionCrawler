@@ -37,7 +37,7 @@ import jsbeautifier
 
 from ExtensionCrawler.config import (const_log_format, const_basedir)
 from ExtensionCrawler.archive import get_existing_ids, last_crx
-from ExtensionCrawler.config import (archive_file, const_basedir,
+from ExtensionCrawler.config import (archive_file,
                                      get_local_archive_dir)
 from ExtensionCrawler.js_decomposer import init_file_info
 from ExtensionCrawler.js_mincer import mince_js
@@ -56,26 +56,26 @@ def jsstrings_data(path, data, config):
     print("## Analyzing " + path)
     file_info = init_file_info(path, data)
     if file_info['size'] == 0:
-        return
+        return match
 
     if not file_info['dec_encoding'] is None:
         try:
-            with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
-                dec_data = dec.decompress(data, 100 * file_info['size'])
+            dec = zlib.decompressobj(zlib.MAX_WBITS | 16)
+            dec_data = dec.decompress(data, 100 * file_info['size'])
             if file_info['dec_encoding'] is None:
                 logging.warning("Encoding is None for " +path + " using utf-8.")
-                str_data = dec_data.decode(file_info['utf-8'])
+                str_data = dec_data.decode('UTF-8')
             else:
                 str_data = dec_data.decode(file_info['dec_encoding'])
             del dec_data
         except Exception:
-            return [file_info]
+            return match
     else:
-            if file_info['encoding'] is None:
-                logging.warning("Encoding is None for " +path + " (decompressed) using utf-8.")
-                str_data = data.decode(file_info['utf-8'])
-            else:
-                str_data = data.decode(file_info['encoding'])
+        if file_info['encoding'] is None:
+            logging.warning("Encoding is None for " +path + " using utf-8.")
+            str_data = data.decode('UTF-8')
+        else:
+            str_data = data.decode(file_info['encoding'])
     
     if config.beautify:
         str_data = jsbeautifier.beautify(str_data)
@@ -206,7 +206,7 @@ def main(argv):
         beautify=False,
         basedir=const_basedir(),
         regexp=None,
-        parallel=8,
+        parallel=1,
         verbose=True)
 
     filename = None
