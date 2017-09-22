@@ -53,7 +53,7 @@ ssh sharc.shef.ac.uk \
   qsub \
   -V \
   -m a \
-  -l rmem=4G
+  -l rmem=8G \
   -M "msherzberg1@sheffield.ac.uk" \
   -t $JOBRANGE \
   -j yes \
