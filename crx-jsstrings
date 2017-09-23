@@ -37,8 +37,7 @@ import jsbeautifier
 
 from ExtensionCrawler.config import (const_log_format, const_basedir)
 from ExtensionCrawler.archive import get_existing_ids, last_crx
-from ExtensionCrawler.config import (archive_file,
-                                     get_local_archive_dir)
+from ExtensionCrawler.config import (archive_file, get_local_archive_dir)
 from ExtensionCrawler.js_decomposer import init_file_info
 from ExtensionCrawler.js_mincer import mince_js
 
@@ -63,7 +62,8 @@ def jsstrings_data(path, data, config):
             dec = zlib.decompressobj(zlib.MAX_WBITS | 16)
             dec_data = dec.decompress(data, 100 * file_info['size'])
             if file_info['dec_encoding'] is None:
-                logging.warning("Encoding is None for " +path + " using utf-8.")
+                logging.warning("Encoding is None for " + path +
+                                " using utf-8.")
                 str_data = dec_data.decode('UTF-8')
             else:
                 str_data = dec_data.decode(file_info['dec_encoding'])
@@ -72,23 +72,23 @@ def jsstrings_data(path, data, config):
             return match
     else:
         if file_info['encoding'] is None:
-            logging.warning("Encoding is None for " +path + " using utf-8.")
+            logging.warning("Encoding is None for " + path + " using utf-8.")
             str_data = data.decode('UTF-8')
         else:
             str_data = data.decode(file_info['encoding'])
-    
+
     if config.beautify:
         str_data = jsbeautifier.beautify(str_data)
 
     with io.StringIO(str_data) as str_obj:
         for block in mince_js(
                 str_obj, single_line_comments_block=config.group):
-            if analyze_block(True, config.comment, config.program, config.strings,
-                             config.regexp, block):
+            if analyze_block(True, config.comment, config.program,
+                             config.strings, config.regexp, block):
                 match = True
 
-
     return match
+
 
 def helpmsg():
     """Print help message."""
@@ -113,7 +113,7 @@ def helpmsg():
 def analyze_block(verbose, comment, program, strings, regexp, block):
     """Print code/comment blocks."""
     match = False
-    rgx = None 
+    rgx = None
     if regexp is not None:
         rgx = re.compile(regexp)
     if comment and block.is_comment():
@@ -142,7 +142,11 @@ def analyze_crx(config, crx, path):
         with ZipFile(crx) as crxobj:
             js_files = list(
                 filter(
-                    lambda x: x.filename.endswith(".js") or x.filename.endswith(".js.gz") or x.filename.endswith(".jgz") or x.filename.endswith(".jsg") or x.filename.endswith(".css.gz"),
+                    lambda x: x.filename.endswith(".js") 
+                           or x.filename.endswith(".js.gz")
+                           or x.filename.endswith(".jgz")
+                           or x.filename.endswith(".jsg")
+                           or x.filename.endswith(".css.gz"),
                     crxobj.infolist()))
             for jsfile in js_files:
                 with crxobj.open(jsfile) as js_file_obj:
@@ -170,7 +174,7 @@ def analyze_tar(config, date, path, filename):
     else:
         last_crx_file = last_crx(os.path.join(config.basedir, "data"), extid)
     if last_crx_file == "" or last_crx_file is None:
-            print("No crx in  " + extid)
+        print("No crx in  " + extid)
     else:
         print("# Start analyzing " + extid)
         with tarfile.open(filename, 'r') as archive:
@@ -180,6 +184,7 @@ def analyze_tar(config, date, path, filename):
             print("RegExp found in " + extid)
         else:
             print("RegExp not found in " + extid)
+
 
 def process_group(config, taskid, maxtaskid, date, path):
     archive_dir = os.path.join(config.basedir, "data")
@@ -256,7 +261,6 @@ def main(argv):
         helpmsg()
         sys.exit()
 
-
     if config.verbose:
         loglevel = logging.INFO
     else:
@@ -267,7 +271,6 @@ def main(argv):
     ch.setFormatter(logging.Formatter(const_log_format()))
     logger.addHandler(ch)
     logger.setLevel(loglevel)
-
 
     if taskid > 0 and maxtaskid > 0:
         process_group(config, taskid, maxtaskid, date, path)
