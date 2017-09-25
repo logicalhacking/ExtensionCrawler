@@ -16,7 +16,7 @@
 
 bootstrap:debootstrap
 OSVersion: testing
-MirrorURL: https://mirror.bytemark.co.uk/debian/
+MirrorURL: https://deb.debian.org/debian 
  
 %labels
 Maintainer The LogicalHacking Team (https://logicalhacking.com)
