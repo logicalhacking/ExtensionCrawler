@@ -93,6 +93,26 @@ chmod -R go+u-w /usr/local/bin/
 ###################################################################
 
 ###################################################################
+# Clone cdnjs repository 
+case ${SINGULARITY_IMAGE} in *-cdnjs.img)
+    rm -f /cdnjs
+    mkdir -p /opt/Shared/BrowserExtensions/archive/filedb
+    cd /opt/Shared/BrowserExtensions/archive/filedb
+    git clone https://github.com/cdnjs/cdnjs.git cdnjs-git
+    cd cdnjs-git
+    git pull
+    cd  /opt/Shared/BrowserExtensions/archive/ 
+    ln -s /opt/Shared/BrowserExtensions/archive/conf .
+    ln -s /opt/Shared/BrowserExtensions/archive/data .
+    ln -s /opt/Shared/BrowserExtensions/archive/log .
+    cd /opt
+    ln -s /opt/Shared/BrowserExtensions/archive .
+    chmod -R go+u-w Shared
+    ;;
+esac
+###################################################################
+
+###################################################################
 # Create mount/bind points for the various network drives 
 # on SHARC (only useful when using the Singularity image on 
 # the High-Performance Cluster of The University of Sheffield
