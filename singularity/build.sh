@@ -13,11 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -f excrawl.img ]; then 
-    echo "Image excrawl.img exists already."
+IMAGE=ExtensionCrawler
+
+if [ -f ${IMAGE}.img ]; then 
+    echo "Image ${IMAGE}.img exists already."
     echo "Please remove/rename the image and restart this script"
     exit 1
 else
-    singularity create --size 600 excrawl.img
-    sudo singularity bootstrap excrawl.img excrawl.def
+    singularity create --size 600 ${IMAGE}.img
+    sudo singularity bootstrap ${IMAGE}.img ${IMAGE}.def
 fi
