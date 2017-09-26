@@ -93,21 +93,22 @@ chmod -R go+u-w /usr/local/bin/
 ###################################################################
 
 ###################################################################
-# Clone cdnjs repository 
-case ${SINGULARITY_IMAGE} in *-cdnjs.img)
-    rm -f /cdnjs
-    mkdir -p /opt/Shared/BrowserExtensions/archive/filedb
-    cd /opt/Shared/BrowserExtensions/archive/filedb
+# Clone cdnjs repository or crate link to external archive dir
+ARCHIVE=/shared/brucker_research1/Shared/BrowserExtensions/archive/
+case ${SINGULARITY_IMAGE} in 
+  *-cdnjs.img)
+    mkdir -p /opt/archive/filedb
+    cd /opt/archive/filedb
     git clone https://github.com/cdnjs/cdnjs.git cdnjs-git
     cd cdnjs-git
     git pull
-    cd  /opt/Shared/BrowserExtensions/archive/ 
-    ln -s /opt/Shared/BrowserExtensions/archive/conf .
-    ln -s /opt/Shared/BrowserExtensions/archive/data .
-    ln -s /opt/Shared/BrowserExtensions/archive/log .
-    cd /opt
-    ln -s /opt/Shared/BrowserExtensions/archive .
-    chmod -R go+u-w Shared
+    cd  /opt/archive/ 
+    ln -s ${ARCHIVE}/* . > /dev/null
+    chmod -R go+u-w /opt/archive 
+    ;;
+  *)
+    cd  /opt/
+    ln -s ${ARCHIVE} .
     ;;
 esac
 ###################################################################
@@ -130,7 +131,10 @@ chmod go+u-w /scratch /fastdata /data /shared
 
 %environment
 
+EXTENSION_ARCHIVE=/opt/archive
+
 # We install all python modules into the container, so we do not want
 # to use any packages that the user might have installed in their home
 # directory.
 export PYTHONNOUSERSITE=1
+
