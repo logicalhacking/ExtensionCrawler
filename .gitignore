@@ -66,4 +66,5 @@ target/
 
 archive
 .ropeproject
-excrawl.img
+ExtensionCrawler.img
+ExtensionCrawler-cdnjs.img
