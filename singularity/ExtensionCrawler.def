@@ -85,7 +85,6 @@ cd ExtensionCrawler
 git checkout production 
 cd ..
 pip3 install --system -e ExtensionCrawler
-ln -s /opt/ExtensionCrawler/crx-* /usr/local/bin/
 cd /
 chmod -R go+u-w /opt/ExtensionCrawler
 chmod -R go+u-w /usr/local/lib/
@@ -131,7 +130,8 @@ chmod go+u-w /scratch /fastdata /data /shared
 
 %environment
 
-EXTENSION_ARCHIVE=/opt/archive
+export EXTENSION_ARCHIVE=/opt/archive
+export PATH=/opt/ExtensionCrawler/:${PATH}
 
 # We install all python modules into the container, so we do not want
 # to use any packages that the user might have installed in their home
