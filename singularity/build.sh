@@ -13,13 +13,58 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-IMAGE=ExtensionCrawler
+BASE=ExtensionCrawler
+BASESIZE=600
 
-if [ -f ${IMAGE}.img ]; then 
-    echo "Image ${IMAGE}.img exists already."
-    echo "Please remove/rename the image and restart this script"
-    exit 1
+print_help()
+{
+    echo "Usage: $prog [OPTION] "
+    echo ""
+    echo "Build a singularity image (fat application) for all ExtensenCrawler utilities."
+    echo ""
+    echo "  --help, -h              display this help message"
+    echo "  --force, -f             overwrite existing singularity image"
+    echo "  --cdnjs, -c            include cdnjs repository (ca. 125 GB)"
+}
+
+
+FORCE="false"
+CDNJS="false"
+
+while [ $# -gt 0 ]
+do
+    case "$1" in
+        --force|-f)
+            FORCE="true";;
+        --cdnjs|-c)
+            CDNJS="true";;
+        --help|-h)
+            print_help
+            exit 0;;
+    esac
+    shift
+done
+
+
+
+if [ "$CDNJS" = "true" ]; then
+    IMAGE=${BASE}-cdnjs.img
+    BASESIZE=$((BASESIZE+124400))
 else
-    singularity create --size 600 ${IMAGE}.img
-    sudo singularity bootstrap ${IMAGE}.img ${IMAGE}.def
+    IMAGE=${BASE}.img
 fi
+
+
+if [ -f ${IMAGE} ]; then 
+    if [ "$FORCE" = "true" ]; then
+        rm -f ${IMAGE}
+    else
+        echo "Image ${IMAGE} exists already."
+        echo "Please remove/rename the image and restart this script"
+        exit 1
+    fi
+fi
+
+echo "Creating $IMAGE ($BASESIZE MiB) using ${BASE}.def"
+singularity create --size ${BASESIZE} ${IMAGE}
+sudo singularity bootstrap ${IMAGE} ${BASE}.def
