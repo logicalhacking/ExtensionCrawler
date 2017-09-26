@@ -24,7 +24,7 @@ print_help()
     echo ""
     echo "  --help, -h              display this help message"
     echo "  --force, -f             overwrite existing singularity image"
-    echo "  --cdnjs, -c            include cdnjs repository (ca. 125 GB)"
+    echo "  --cdnjs, -c             include cdnjs repository (ca. 125 GB)"
 }
 
 
