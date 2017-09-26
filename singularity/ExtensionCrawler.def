@@ -138,3 +138,37 @@ export PATH=/opt/ExtensionCrawler/:${PATH}
 # directory.
 export PYTHONNOUSERSITE=1
 
+%runscript
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# this text will get copied to /singularity and will run whenever the container
+# is called as an executable
+usage() {
+    cat <<EOF
+NAME
+     ExtensionCrawler 
+SYNOPSIS
+    ExtensionCrawler tool [tool options]
+    ExtensionCrawler list
+    ExtensionCrawler help
+DESCRIPTION
+    A collection of utilities for downloading and analyzing browser extension 
+    from the Chrome Web store.
+ENVIRIONMENT
+    EXTENSION_ARCHIVE=${EXTENSION_ARCHIVE}
+EOF
+}
+
+tools() {
+    find /opt/ExtensionCrawler  -maxdepth 1 -executable -type f -exec sh -c "{} -h | head -n 1" \;
+}
+
+arg="${1:-none}"
+
+case "$arg" in
+    none) usage; exit 1;;
+    help) usage; exit 0;;
+    list) tools; exit 0;;
+    # just try to execute it then
+    *)    $@;;
+esac
+
