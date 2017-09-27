@@ -19,7 +19,7 @@
 
 import collections
 import datetime
-import getopt
+import argparse
 import io
 import os
 import logging
@@ -88,27 +88,6 @@ def jsstrings_data(path, data, config):
                 match = True
 
     return match
-
-
-def helpmsg():
-    """Print help message."""
-    print("crx-jsstrings [OPTION] [crx-file|tar-file|ext_id] [js-file]")
-    print("    -h        print this help text")
-    print("    -i        ignore comments")
-    print("    -s        strings")
-    print("    -g        group single line comments")
-    print("    -c        program code")
-    print("    -b        beautify JavaScript files before analyzing them")
-    print("    -a=<DIR>  archive directory")
-    print("    -n <TASKID>         process chunk n where n in [1,N]")
-    print("    -N <MAXTASKID>      ")
-
-    print(
-        "    -r regexp select only comments/code/strings where regexp matches")
-    print(
-        "    -d date   use latest extension that was released not later than date (only for tar archives)"
-    )
-
 
 def analyze_block(verbose, comment, program, strings, regexp, block):
     """Print code/comment blocks."""
@@ -201,7 +180,7 @@ def process_group(config, taskid, maxtaskid, date, path):
         p.map(partial(analyze_tar, config, date, path), ext_ids)
 
 
-def main(argv):
+def main(args):
     """Main function: JavaScript strings on steroids."""
     config = JsStringsConfig(
         comment=True,
@@ -214,52 +193,12 @@ def main(argv):
         parallel=1,
         verbose=True)
 
-    filename = None
+    filename = ""
     path = None
     date = None
     taskid = -1
     maxtaskid = -1
     extid_re = re.compile('^[a-p]+$')
-
-    try:
-        opts, args = getopt.getopt(argv, "hibcd:sn:N:a:vr:", [
-            "--regexp", "--date", "--archive", "--beautify"
-        ])
-    except getopt.GetoptError:
-        helpmsg()
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            helpmsg()
-            sys.exit()
-        elif opt in ("-a", "--archive"):
-            config = config._replace(basedir=arg)
-        elif opt == '-i':
-            config = config._replace(comment=False)
-        elif opt == '-s':
-            config = config._replace(strings=True)
-        elif opt == '-g':
-            config = config._replace(group=True)
-        elif opt == '-c':
-            config = config._replace(program=True)
-        elif opt in ('-b', "--beautify"):
-            config = config._replace(beautify=True)
-        elif opt in ('-r', "--regexp"):
-            config = config._replace(regexp=arg)
-        elif opt in ('-d', "--date"):
-            date = arg
-        elif opt in ("-n", "--taskid"):
-            taskid = int(arg)
-        elif opt in ("-N", "--maxtaskid"):
-            maxtaskid = int(arg)
-    if len(args) == 1:
-        filename = args[0]
-    elif len(args) == 2:
-        filename = args[0]
-        path = args[1]
-    elif (not len(args) == 0) or taskid < 1 or maxtaskid < 1:
-        helpmsg()
-        sys.exit()
 
     if config.verbose:
         loglevel = logging.INFO
@@ -292,4 +231,7 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    parser = argparse.ArgumentParser(description='A combination of strings and grep for JavaScript and CSS files.')
+    args = parser.parse_args()
+    main(args)
+
