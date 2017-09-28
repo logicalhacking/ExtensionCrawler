@@ -89,6 +89,7 @@ def jsstrings_data(path, data, config):
 
     return match
 
+
 def analyze_block(verbose, comment, program, strings, regexp, block):
     """Print code/comment blocks."""
     match = False
@@ -121,11 +122,7 @@ def analyze_crx(config, crx, path):
         with ZipFile(crx) as crxobj:
             js_files = list(
                 filter(
-                    lambda x: x.filename.endswith(".js") 
-                           or x.filename.endswith(".js.gz")
-                           or x.filename.endswith(".jgz")
-                           or x.filename.endswith(".jsg")
-                           or x.filename.endswith(".css.gz"),
+                    lambda x: x.filename.endswith(".js") or x.filename.endswith(".js.gz") or x.filename.endswith(".jgz") or x.filename.endswith(".jsg") or x.filename.endswith(".css.gz"),
                     crxobj.infolist()))
             for jsfile in js_files:
                 with crxobj.open(jsfile) as js_file_obj:
@@ -139,6 +136,7 @@ def analyze_crx(config, crx, path):
                 data = js_file.read()
             match = jsstrings_data(path, data, config)
     return match
+
 
 def analyze_tar(config, date, path, filename):
     last_crx_file = ''
@@ -193,7 +191,7 @@ def main(args):
         parallel=1,
         verbose=True)
 
-    filename = ""
+    filename = None
     path = None
     date = None
     taskid = -1
@@ -231,7 +229,79 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='A combination of strings and grep for JavaScript and CSS files.')
-    args = parser.parse_args()
-    main(args)
+    main_parser = argparse.ArgumentParser(
+        description=
+        'A combination of strings and grep for JavaScript and CSS files.')
+    main_parser.add_argument(
+        '-r',
+        '--reg-exp',
+        metavar='REGEXP',
+        type=str,
+        nargs='+',
+        help='search for regular expression')
 
+    main_parser.add_argument(
+        '-d',
+        '--output-decoration',
+        metavar='L',
+        choices=[0, 1, 2, 3],
+        type=int,
+        help='show only matching files, crx, tar')
+    main_parser.add_argument(
+        '-a',
+        '--archive-dir',
+        metavar='archive',
+        type=str,
+        help='archive directory')
+    main_parser.add_argument(
+        '-C', '--colorize', action='store_true', help='use colors')
+    main_parser.add_argument(
+        '-n',
+        '--taskid',
+        metavar='n',
+        type=int,
+        help='task id')
+    main_parser.add_argument(
+        '-N',
+        '--max-taskid',
+        metavar='N',
+        type=int,
+        help='max task id')
+ 
+    main_parser.add_argument('FILE_OR_EXTID', nargs='*', help="extid/js/css/crx/tar file")
+
+
+    comment_group = main_parser.add_argument_group('comment blocks')
+    comment_group.add_argument('-g', '--group-single-line-comments', help='Group consecutive singe-line comments into blocks')
+    comment_group.add_argument(
+        '-c',
+        '--reg-exp-comments',
+        metavar='REGEXP',
+        type=str,
+        nargs='+',
+        help='search comments for regular expression')
+
+    source_group = main_parser.add_argument_group('source blocks')
+    source_group.add_argument(
+        '-b', '--beautify', action='store_true', help='beautify source code')
+    source_group.add_argument(
+        '-s',
+        '--reg-exp-source',
+        metavar='REGEXP',
+        type=str,
+        nargs='+',
+        help='search source for regular expression')
+
+    strings_group = main_parser.add_argument_group('string literals')
+    source_group.add_argument(
+        '-j', '--join-string-literals', action='store_true', help='join string literals (heuristic)')
+    source_group.add_argument(
+        '-l',
+        '--reg-exp-string-literals',
+        metavar='REGEXP',
+        type=str,
+        nargs='+',
+        help='search string literals for regular expression')
+    args = main_parser.parse_args()
+
+    main(args)
