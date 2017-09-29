@@ -293,9 +293,9 @@ if __name__ == "__main__":
         help='search source for regular expression')
 
     strings_group = main_parser.add_argument_group('string literals')
-    source_group.add_argument(
+    strings_group.add_argument(
         '-j', '--join-string-literals', action='store_true', help='join string literals (heuristic)')
-    source_group.add_argument(
+    strings_group.add_argument(
         '-l',
         '--reg-exp-string-literals',
         metavar='REGEXP',
@@ -304,4 +304,6 @@ if __name__ == "__main__":
         help='search string literals for regular expression')
     args = main_parser.parse_args()
 
+
+    print(args.FILE_OR_EXTID)
     main(args)
