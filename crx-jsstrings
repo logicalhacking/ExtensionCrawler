@@ -255,6 +255,7 @@ if __name__ == "__main__":
         help='archive directory')
     main_parser.add_argument(
         '-C', '--colorize', action='store_true', help='use colors')
+
     main_parser.add_argument(
         '-n',
         '--taskid',
@@ -268,7 +269,7 @@ if __name__ == "__main__":
         type=int,
         help='max task id')
  
-    main_parser.add_argument('FILE_OR_EXTID', nargs='*', help="extid/js/css/crx/tar file")
+    main_parser.add_argument('FILE_OR_EXTID', nargs='+', help="extid/js/css/crx/tar file")
 
 
     comment_group = main_parser.add_argument_group('comment blocks')
