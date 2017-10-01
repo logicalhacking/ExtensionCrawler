@@ -257,23 +257,18 @@ if __name__ == "__main__":
         '-C', '--colorize', action='store_true', help='use colors')
 
     main_parser.add_argument(
-        '-n',
-        '--taskid',
-        metavar='n',
-        type=int,
-        help='task id')
+        '-n', '--taskid', metavar='n', type=int, help='task id')
     main_parser.add_argument(
-        '-N',
-        '--max-taskid',
-        metavar='N',
-        type=int,
-        help='max task id')
- 
-    main_parser.add_argument('FILE_OR_EXTID', nargs='+', help="extid/js/css/crx/tar file")
+        '-N', '--max-taskid', metavar='N', type=int, help='max task id')
 
+    main_parser.add_argument(
+        'FILE_OR_EXTID', nargs='+', help="extid/js/css/crx/tar file")
 
     comment_group = main_parser.add_argument_group('comment blocks')
-    comment_group.add_argument('-g', '--group-single-line-comments', help='Group consecutive singe-line comments into blocks')
+    comment_group.add_argument(
+        '-g',
+        '--group-single-line-comments',
+        help='Group consecutive singe-line comments into blocks')
     comment_group.add_argument(
         '-c',
         '--reg-exp-comments',
@@ -295,7 +290,10 @@ if __name__ == "__main__":
 
     strings_group = main_parser.add_argument_group('string literals')
     strings_group.add_argument(
-        '-j', '--join-string-literals', action='store_true', help='join string literals (heuristic)')
+        '-j',
+        '--join-string-literals',
+        action='store_true',
+        help='join string literals (heuristic)')
     strings_group.add_argument(
         '-l',
         '--reg-exp-string-literals',
@@ -304,7 +302,6 @@ if __name__ == "__main__":
         nargs='+',
         help='search string literals for regular expression')
     args = main_parser.parse_args()
-
 
     print(args.FILE_OR_EXTID)
     main(args)
