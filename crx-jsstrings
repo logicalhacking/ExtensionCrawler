@@ -180,6 +180,19 @@ def process_group(config, taskid, maxtaskid, date, path):
 
 def main(args):
     """Main function: JavaScript strings on steroids."""
+    if args.verbose:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.WARNING
+    logger = logging.getLogger()
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(logging.Formatter(const_log_format()))
+    logger.addHandler(ch)
+    logger.setLevel(loglevel)
+
+    for file_or_extid in print(args.FILE_OR_EXTID):
+        pass
+        
     config = JsStringsConfig(
         comment=True,
         strings=False,
@@ -198,16 +211,6 @@ def main(args):
     maxtaskid = -1
     extid_re = re.compile('^[a-p]+$')
 
-    if config.verbose:
-        loglevel = logging.INFO
-    else:
-        loglevel = logging.WARNING
-
-    logger = logging.getLogger()
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setFormatter(logging.Formatter(const_log_format()))
-    logger.addHandler(ch)
-    logger.setLevel(loglevel)
 
     if taskid > 0 and maxtaskid > 0:
         process_group(config, taskid, maxtaskid, date, path)
@@ -239,7 +242,13 @@ if __name__ == "__main__":
         type=str,
         nargs='+',
         help='search for regular expression')
-
+    main_parser.add_argument(
+        '-v',
+        '--verbose',
+        type=bool,
+        default=False,
+        help='increase verbosity')
+        
     main_parser.add_argument(
         '-d',
         '--output-decoration',
@@ -303,5 +312,4 @@ if __name__ == "__main__":
         help='search string literals for regular expression')
     args = main_parser.parse_args()
 
-    print(args.FILE_OR_EXTID)
     main(args)
