@@ -192,7 +192,7 @@ def main(args):
 
     for file_or_extid in print(args.FILE_OR_EXTID):
         pass
-        
+
     config = JsStringsConfig(
         comment=True,
         strings=False,
@@ -261,6 +261,7 @@ if __name__ == "__main__":
         '--archive-dir',
         metavar='archive',
         type=str,
+        default=const_basedir(),
         help='archive directory')
     main_parser.add_argument(
         '-C', '--colorize', action='store_true', help='use colors')
