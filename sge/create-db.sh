@@ -27,8 +27,8 @@ if ! ssh sharc.shef.ac.uk [ -f "$SING_IMG_SRC" ]; then
   echo "Creating new image ..."
   (cd "$BASEDIR/singularity"; ./build.sh)
   echo "Pushing new image ..."
-  scp "$BASEDIR/singularity/excrawl.img" sharc.shef.ac.uk:"$SING_IMG_SRC"
-  rm "$BASEDIR/singularity/excrawl.img"
+  scp "$BASEDIR/singularity/ExtensionCrawler.img" sharc.shef.ac.uk:"$SING_IMG_SRC"
+  rm "$BASEDIR/singularity/ExtensionCrawler.img"
 fi
 echo "Creating dirs ..."
 ssh sharc.shef.ac.uk mkdir -p $TARGETDIR/logs
