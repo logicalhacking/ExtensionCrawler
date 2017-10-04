@@ -44,6 +44,7 @@ from ExtensionCrawler.js_mincer import mince_js
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
+
 def jsstrings_data(path, data, args):
     match = False
     print("## Analyzing " + path)
@@ -76,7 +77,8 @@ def jsstrings_data(path, data, args):
 
     with io.StringIO(str_data) as str_obj:
         for block in mince_js(
-                str_obj, single_line_comments_block=args.group_single_line_comments):
+                str_obj,
+                single_line_comments_block=args.group_single_line_comments):
             if analyze_block(args, block):
                 match = True
 
@@ -90,6 +92,8 @@ def analyze_block(args, block):
     if args.reg_exp is not None:
         rgx = re.compile(args.reg_exp)
     return match
+
+
 '''     if comment and block.is_comment():
         if regexp is None or rgx.match(block.content):
             if verbose:
@@ -108,6 +112,7 @@ def analyze_block(args, block):
                         print(string)
                     match = True
  '''
+
 
 def analyze_crx(args, crx, path):
     match = False
@@ -171,6 +176,37 @@ def process_group(args, taskid, maxtaskid, date, path):
         p.map(partial(analyze_tar, args, date, path), ext_ids)
 
 
+def compute_tasks(file_or_extids):
+    """Function for computing list of tasks."""
+    tasks = []
+    for file_or_extid in file_or_extids:
+        path = None
+        date = None
+        extid_re = re.compile('^[a-p]+$')
+        if file_or_extid.endswith('.crx'):
+            tasks.append(file_or_extid)
+        elif file_or_extid.endswith('.tar'):
+            tasks.append(file_or_extid)
+        elif file_or_extid.endswith('.css'):
+            tasks.append(file_or_extid)
+        elif file_or_extid.endswith('.js'):
+            tasks.append(file_or_extid)
+        elif file_or_extid.endswith('.c'):
+            tasks.append(file_or_extid)
+        elif file_or_extid.endswith('.java'):
+            tasks.append(file_or_extid)
+        elif extid_re.match(file_or_extid):
+            tasks.append(file_or_extid)
+        else:
+            # default: a file with extension ide
+            with open(file_or_extid) as fileobj:
+                for line in fileobj:
+                    line = line.strip()
+                    if extid_re.match(line):
+                        tasks.append(line)
+    return tasks
+
+
 def main(args):
     """Main function: JavaScript strings on steroids."""
     if args.verbose:
@@ -185,33 +221,25 @@ def main(args):
 
     print(vars(args))
 
-    for file_or_extid in print(args.FILE_OR_EXTID):
-        pass
-    filename = None
-    path = None
-    date = None
-    taskid = -1
-    maxtaskid = -1
-    extid_re = re.compile('^[a-p]+$')
+    tasks = compute_tasks(args.FILE_OR_EXTID)
 
+    print(tasks)
 
-    if taskid > 0 and maxtaskid > 0:
-        process_group(config, taskid, maxtaskid, date, path)
-    else:
-        if filename.endswith('.crx'):
-            analyze_crx(config, filename, path)
-        elif filename.endswith('.tar'):
-            analyze_tar(config, date, path, filename)
-        elif extid_re.match(filename):
-            extid = filename
-            filename = os.path.join(config.basedir, 'data',
-                                    get_local_archive_dir(extid),
-                                    extid + ".tar")
-            analyze_tar(config, date, path, filename)
+    for file_or_extid in tasks:
+        if file_or_extid.endswith('.crx'):
+            analyze_crx(args, file_or_extid, path)
+        elif file_or_extid.endswith('.tar'):
+            analyze_tar(args, date, path, file_or_extid)
+        elif extid_re.match(file_or_extid):
+            extid = file_or_extid
+            file_or_extid = os.path.join(args.basedir, 'data',
+                                         get_local_archive_dir(extid),
+                                         extid + ".tar")
+            analyze_tar(args, date, path, filename)
         else:
-            with open(filename, 'rb') as fileobj:
+            with open(file_or_extid, 'rb') as fileobj:
                 data = fileobj.read()
-            jsstrings_data(filename, data, config)
+            jsstrings_data(filename, data, args)
 
 
 if __name__ == "__main__":
@@ -231,7 +259,7 @@ if __name__ == "__main__":
         action='store_true',
         default=False,
         help='increase verbosity')
-        
+
     main_parser.add_argument(
         '-d',
         '--output-decoration',
@@ -244,7 +272,7 @@ if __name__ == "__main__":
         '--parallel',
         metavar='P',
         type=int,
-        help='run P threads in parallel')
+        help='run P  threads in parallel')
 
     main_parser.add_argument(
         '-f',
@@ -252,7 +280,7 @@ if __name__ == "__main__":
         metavar='pattern',
         type=str,
         help='process only files matching pattern')
-        
+
     main_parser.add_argument(
         '-a',
         '--archive-dir',
@@ -286,7 +314,11 @@ if __name__ == "__main__":
 
     source_group = main_parser.add_argument_group('source blocks')
     source_group.add_argument(
-        '-b', '--beautify', action='store_true', default=False, help='beautify source code')
+        '-b',
+        '--beautify',
+        action='store_true',
+        default=False,
+        help='beautify source code')
     source_group.add_argument(
         '-s',
         '--reg-exp-source',
