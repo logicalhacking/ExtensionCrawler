@@ -176,7 +176,7 @@ def process_group(args, taskid, maxtaskid, date, path):
         p.map(partial(analyze_tar, args, date, path), ext_ids)
 
 
-def compute_tasks(file_or_extids):
+def compute_tasks(file_or_extids, taskid=1, maxtaskid=1):
     """Function for computing list of tasks."""
     tasks = []
     for file_or_extid in file_or_extids:
@@ -204,6 +204,14 @@ def compute_tasks(file_or_extids):
                     line = line.strip()
                     if extid_re.match(line):
                         tasks.append(line)
+
+    chunksize = int(len(tasks) / maxtaskid)
+    if taskid == maxtaskid:
+        tasks = tasks[(taskid - 1) * chunksize:]
+    else:
+        tasks = tasks[(taskid - 1) * chunksize:taskid * chunksize]
+
+
     return tasks
 
 
@@ -221,7 +229,7 @@ def main(args):
 
     print(vars(args))
 
-    tasks = compute_tasks(args.FILE_OR_EXTID)
+    tasks = compute_tasks(args.FILE_OR_EXTID, args.taskid, args.max_taskid)
 
     print(tasks)
 
@@ -292,9 +300,9 @@ if __name__ == "__main__":
         '-C', '--colorize', action='store_true', help='use colors')
 
     main_parser.add_argument(
-        '-n', '--taskid', metavar='n', type=int, help='task id')
+        '-n', '--taskid', metavar='n', type=int, default=1, help='task id')
     main_parser.add_argument(
-        '-N', '--max-taskid', metavar='N', type=int, help='max task id')
+        '-N', '--max-taskid', metavar='N', type=int, default=1, help='max task id')
 
     main_parser.add_argument(
         'FILE_OR_EXTID', nargs='+', help="extid/js/css/crx/tar file")
