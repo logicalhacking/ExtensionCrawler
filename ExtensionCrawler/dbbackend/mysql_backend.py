@@ -15,27 +15,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from ExtensionCrawler.config import *
+import time
+import datetime
+from random import uniform
+from itertools import starmap
+
 import MySQLdb
 import _mysql_exceptions
-import time
-from random import uniform
+
+import ExtensionCrawler.config as config
 from ExtensionCrawler.util import log_info, log_error, log_exception
-import datetime
-from itertools import starmap
 
 
 class MysqlBackend:
+    cache = []
     db = None
     cursor = None
-    dbargs = None
-    ext_id = None
 
-    cache = []
-
-    def __init__(self, ext_id, **kwargs):
+    def __init__(self, ext_id, try_wait=config.const_mysql_try_wait(), maxtries=config.const_mysql_maxtries(), **kwargs):
         self.ext_id = ext_id
         self.dbargs = kwargs
+        self.try_wait = try_wait
+        self.maxtries = maxtries
 
     def __enter__(self):
         self._create_conn()
@@ -67,7 +68,7 @@ class MysqlBackend:
             self.db = None
 
     def retry(self, f):
-        for t in range(const_mysql_maxtries()):
+        for t in range(self.maxtries):
             try:
                 self._create_conn()
                 return f()
@@ -80,7 +81,7 @@ class MysqlBackend:
                     log_error("Surpressed exception: {}".format(str(e2)), 3,
                               self.ext_id)
 
-                if t + 1 == const_mysql_maxtries():
+                if t + 1 == self.maxtries:
                     log_error(
                         "MySQL connection eventually failed, closing connection!",
                         3, self.ext_id)
@@ -90,13 +91,13 @@ class MysqlBackend:
                     logmsg = ("Exception on mysql connection attempt "
                               "{} of {}, wating {}s +/- {}% before retrying..."
                               ).format(t + 1,
-                                       const_mysql_maxtries(),
-                                       const_mysql_try_wait(), factor * 100)
+                                       self.maxtries,
+                                       self.try_wait, factor * 100)
                     if t == 0:
                         log_exception(logmsg, 3, self.ext_id)
                     else:
                         log_error(logmsg, 3, self.ext_id)
-                    time.sleep(const_mysql_try_wait() * uniform(
+                    time.sleep(self.try_wait * uniform(
                         1 - factor, 1 + factor))
 
     def get_single_value(self, query, args):

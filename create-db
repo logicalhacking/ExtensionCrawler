@@ -61,7 +61,10 @@ def process_id(from_date, until_date, path):
 
             try:
                 with MysqlBackend(
-                        extid, read_default_file=const_mysql_config_file(),
+                        extid,
+                        try_wait=10,
+                        maxtries=30,
+                        read_default_file=const_mysql_config_file(),
                         charset='utf8mb4',
                         compress=True
                 ) as con:
