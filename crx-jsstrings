@@ -17,17 +17,20 @@
 #
 """Tool for extracting crx file from a tar archive."""
 
-import collections
+
 import datetime
-import getopt
+import argparse
 import io
+import fnmatch
 import os
 import logging
 import re
 import sys
+import operator
 import tarfile
 import zlib
-from functools import partial
+from functools import partial, reduce
+from colorama import init, Fore
 from multiprocessing import Pool
 from zipfile import ZipFile
 
@@ -36,7 +39,7 @@ import dateutil.parser
 import jsbeautifier
 
 from ExtensionCrawler.config import (const_log_format, const_basedir)
-from ExtensionCrawler.archive import get_existing_ids, last_crx
+from ExtensionCrawler.archive import last_crx, first_crx, all_crx
 from ExtensionCrawler.config import (archive_file, get_local_archive_dir)
 from ExtensionCrawler.js_decomposer import init_file_info
 from ExtensionCrawler.js_mincer import mince_js
@@ -44,15 +47,27 @@ from ExtensionCrawler.js_mincer import mince_js
 # Script should run with python 3.4 or 3.5
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
-JsStringsConfig = collections.namedtuple('JsStringsConfig', [
-    'comment', 'strings', 'group', 'program', 'beautify', 'basedir', 'regexp',
-    'parallel', "verbose"
-])
+
+def is_file_with_c_style_comments(filename):
+    """Test if filename indicates file with C-style comment."""
+    return (filename.endswith(".js") or filename.endswith(".js.gz")
+            or filename.endswith(".jgz") or filename.endswith(".jsg")
+            or filename.endswith(".css.gz") or filename.endswith(".c")
+            or filename.endswith(".cpp") or filename.endswith(".java"))
 
 
-def jsstrings_data(path, data, config):
+def jsstrings_data(conf, path, data):
+    """Analyze data in memory."""
+    if not conf.file_pattern is None:
+        if path is None:
+            return False
+        elif not fnmatch.fnmatch(path, conf.file_pattern):
+            logging.debug("Filename \'" + path + "\' does not match pattern \'"
+                          + conf.file_pattern + "\'")
+            return False
+
     match = False
-    print("## Analyzing " + path)
+    logging.debug("Start analyzing " + path)
     file_info = init_file_info(path, data)
     if file_info['size'] == 0:
         return match
@@ -62,8 +77,7 @@ def jsstrings_data(path, data, config):
             dec = zlib.decompressobj(zlib.MAX_WBITS | 16)
             dec_data = dec.decompress(data, 100 * file_info['size'])
             if file_info['dec_encoding'] is None:
-                logging.warning("Encoding is None for " + path +
-                                " using utf-8.")
+                logging.debug("Encoding is None for " + path + " using utf-8.")
                 str_data = dec_data.decode('UTF-8')
             else:
                 str_data = dec_data.decode(file_info['dec_encoding'])
@@ -77,219 +91,342 @@ def jsstrings_data(path, data, config):
         else:
             str_data = data.decode(file_info['encoding'])
 
-    if config.beautify:
+    if conf.beautify:
         str_data = jsbeautifier.beautify(str_data)
 
     with io.StringIO(str_data) as str_obj:
         for block in mince_js(
-                str_obj, single_line_comments_block=config.group):
-            if analyze_block(True, config.comment, config.program,
-                             config.strings, config.regexp, block):
+                str_obj,
+                single_line_comments_block=conf.group_single_line_comments):
+            if analyze_block(conf, block):
                 match = True
 
     return match
 
 
-def helpmsg():
-    """Print help message."""
-    print("crx-jsstrings [OPTION] [crx-file|tar-file|ext_id] [js-file]")
-    print("    -h        print this help text")
-    print("    -i        ignore comments")
-    print("    -s        strings")
-    print("    -g        group single line comments")
-    print("    -c        program code")
-    print("    -b        beautify JavaScript files before analyzing them")
-    print("    -a=<DIR>  archive directory")
-    print("    -n <TASKID>         process chunk n where n in [1,N]")
-    print("    -N <MAXTASKID>      ")
-
-    print(
-        "    -r regexp select only comments/code/strings where regexp matches")
-    print(
-        "    -d date   use latest extension that was released not later than date (only for tar archives)"
-    )
+def print_block(conf, block, string_match=False, code_match=False):
+    print(block)
 
 
-def analyze_block(verbose, comment, program, strings, regexp, block):
+def analyze_block(conf, block):
     """Print code/comment blocks."""
     match = False
-    rgx = None
-    if regexp is not None:
-        rgx = re.compile(regexp)
-    if comment and block.is_comment():
-        if regexp is None or rgx.match(block.content):
-            if verbose:
-                print(block)
-            match = True
-    elif block.is_code():
-        if program:
-            if regexp is None or rgx.match(block.content):
-                if verbose:
-                    print(block)
+    regexps = []
+    if not conf.reg_exp is None:
+        for regexp in conf.reg_exp:
+            regexps.append(re.compile('('+regexp+')'))
+    if block.is_comment():
+        content = block.content
+        if not conf.reg_exp_comments is None:
+            for regexp in conf.reg_exp_comments:
+                regexps.append(re.compile('('+regexp+')'))
+        for regexp in regexps:
+            if regexp.search(block.content):
+                if conf.colorize:
+                    content = regexp.sub(Fore.RED + r'\1' + Fore.RESET, content)
                 match = True
-        if strings:
-            for string in block.string_literals:
-                if regexp is None or rgx.match(string):
-                    if verbose:
-                        print(string)
-                    match = True
-    return match
-
-
-def analyze_crx(config, crx, path):
-    match = False
-    if path is None:
-        with ZipFile(crx) as crxobj:
-            js_files = list(
-                filter(
-                    lambda x: x.filename.endswith(".js") 
-                           or x.filename.endswith(".js.gz")
-                           or x.filename.endswith(".jgz")
-                           or x.filename.endswith(".jsg")
-                           or x.filename.endswith(".css.gz"),
-                    crxobj.infolist()))
-            for jsfile in js_files:
-                with crxobj.open(jsfile) as js_file_obj:
-                    data = js_file_obj.read()
-                    path = js_file_obj.name
-                if jsstrings_data(path, data, config):
-                    match = True
-    else:
-        with ZipFile(crx) as crxobj:
-            with crxobj.open(path) as js_file:
-                data = js_file.read()
-            match = jsstrings_data(path, data, config)
-    return match
-
-def analyze_tar(config, date, path, filename):
-    last_crx_file = ''
-    match = False
-    extid = os.path.splitext(os.path.basename(filename))[0]
-    if date is not None:
-        dateobj = dateutil.parser.parse(date)
-        if dateobj.tzinfo is None or dateobj.tzinfo.utcoffset(dateobj) is None:
-            dateobj = dateobj.replace(tzinfo=datetime.timezone.utc)
-        last_crx_file = last_crx(
-            os.path.join(config.basedir, "data"), extid, dateobj)
-    else:
-        last_crx_file = last_crx(os.path.join(config.basedir, "data"), extid)
-    if last_crx_file == "" or last_crx_file is None:
-        print("No crx in  " + extid)
-    else:
-        print("# Start analyzing " + extid)
-        with tarfile.open(filename, 'r') as archive:
-            with archive.extractfile(last_crx_file) as crx:
-                match = analyze_crx(config, crx, path)
         if match:
-            print("RegExp found in " + extid)
+            block.content = content
+            print_block(conf, block)
+    elif block.is_code():
+        content = block.content
+        regexps_string = regexps.copy()
+        regexps_code = regexps.copy()
+        if not conf.reg_exp_string_literals is None:
+            for regexp in conf.reg_exp_string_literals:
+                regexps_string.append(re.compile('('+regexp+')'))
+        if not conf.reg_exp_source is None:
+            for regexp in conf.reg_exp_source:
+                regexps_code.append(re.compile('('+regexp+')'))
+        string_match = False
+        for regexp in regexps_string:
+            string_literals = block.string_literals.copy()
+            for idx,string in enumerate(block.string_literals):
+                if regexp.search(string):
+                    if conf.colorize:
+                        string_literals[idx] = regexp.sub(Fore.BLUE + r'\1' + Fore.RESET, string_literals[idx])
+                    string_match = True
+        code_match = False
+        for regexp in regexps_code:
+            if regexp.search(block.content):
+                if conf.colorize:
+                    content = regexp.sub(Fore.CYAN + r'\1' + Fore.RESET, content)
+                code_match = True
+        match = string_match or code_match
+        block.content = content
+        if match:
+            print_block(conf, block, string_match, code_match)
+    return match
+
+
+def analyze_crx(conf, crx):
+    """Analyze crx file."""
+    match = False
+    with ZipFile(crx) as crxobj:
+        js_files = list(
+            filter(lambda x: is_file_with_c_style_comments(x.filename),
+                   crxobj.infolist()))
+        for jsfile in js_files:
+            with crxobj.open(jsfile) as js_file_obj:
+                data = js_file_obj.read()
+                path = js_file_obj.name
+            if jsstrings_data(conf, crx + "/" + path, data):
+                match = True
+
+    return match
+
+
+def analyze_tar(conf, tarfilename):
+    last_crx_file = ''
+    #   from_date
+    #    latest_date
+    match = False
+    extid = os.path.splitext(os.path.basename(tarfilename))[0]
+    from_dateobj = None
+    latest_dateobj = None
+    if conf.from_date is not None:
+        from_dateobj = dateutil.parser.parse(conf.from_date)
+        if from_dateobj.tzinfo is None or from_dateobj.tzinfo.utcoffset(
+                from_dateobj) is None:
+            from_dateobj = from_dateobj.replace(tzinfo=datetime.timezone.utc)
+    if conf.latest_date is not None:
+        latest_dateobj = dateutil.parser.parse(conf.latest_date)
+        if latest_dateobj.tzinfo is None or latest_dateobj.tzinfo.utcoffset(
+                latest_dateobj) is None:
+            latest_dateobj = latest_dateobj.replace(
+                tzinfo=datetime.timezone.utc)
+
+    match = False
+
+    if from_dateobj is None:
+        last_crx_file = last_crx(
+            os.path.join(conf.archive_dir, "data"), extid, latest_dateobj)
+        if last_crx_file == "" or last_crx_file is None:
+            logging.warning("No crx in  " + extid)
         else:
-            print("RegExp not found in " + extid)
-
-
-def process_group(config, taskid, maxtaskid, date, path):
-    archive_dir = os.path.join(config.basedir, "data")
-    ext_ids = get_existing_ids(archive_dir)
-    chunksize = int(len(ext_ids) / maxtaskid)
-    if taskid == maxtaskid:
-        ext_ids = ext_ids[(taskid - 1) * chunksize:]
+            with tarfile.open(tarfilename, 'r') as archive:
+                with archive.extractfile(last_crx_file) as crx:
+                    match = analyze_crx(conf, crx)
     else:
-        ext_ids = ext_ids[(taskid - 1) * chunksize:taskid * chunksize]
+        if latest_dateobj is None:
+            # only from date is given
+            first_crx_file = first_crx(
+                os.path.join(conf.archive_dir, "data"), extid, from_dateobj)
+            if first_crx_file == "" or first_crx_file is None:
+                logging.warning("No crx in  " + extid)
+            else:
+                with tarfile.open(tarfilename, 'r') as archive:
+                    with archive.extractfile(first_crx_file) as crx:
+                        match = analyze_crx(conf, crx)
+        else:
+            # both dates are given
+            all_crx_files = all_crx(
+                os.path.join(conf.archive_dir, "data"), extid)
+            if all_crx_files == []:
+                logging.warning("No crx in  " + extid)
+            else:
+                with tarfile.open(tarfilename, 'r') as archive:
+                    for crx_file in all_crx_files:
+                        with archive.extractfile(crx_file) as crx:
+                            match = analyze_crx(conf, crx) or match
 
-    ext_ids = list(map(partial(archive_file, archive_dir), ext_ids))
 
-    with Pool(config.parallel) as p:
-        p.map(partial(analyze_tar, config, date, path), ext_ids)
+def analyze_file(conf, filename):
+    with open(filename, 'rb') as fileobj:
+        data = fileobj.read()
+    return jsstrings_data(conf, filename, data)
 
 
-def main(argv):
-    """Main function: JavaScript strings on steroids."""
-    config = JsStringsConfig(
-        comment=True,
-        strings=False,
-        group=False,
-        program=False,
-        beautify=False,
-        basedir=const_basedir(),
-        regexp=None,
-        parallel=1,
-        verbose=True)
-
-    filename = None
-    path = None
-    date = None
-    taskid = -1
-    maxtaskid = -1
+def compute_tasks(file_or_extids, taskid=1, maxtaskid=1):
+    """Function for computing list of tasks."""
     extid_re = re.compile('^[a-p]+$')
+    tasks = []
+    for file_or_extid in file_or_extids:
+        if is_file_with_c_style_comments(file_or_extid):
+            tasks.append(file_or_extid)
+        elif file_or_extid.endswith('.tar'):
+            tasks.append(file_or_extid)
+        elif file_or_extid.endswith('.crx'):
+            tasks.append(file_or_extid)
+        elif extid_re.match(file_or_extid):
+            tasks.append(file_or_extid)
+        else:
+            # default: a file with extension ide
+            with open(file_or_extid) as fileobj:
+                for line in fileobj:
+                    line = line.strip()
+                    if extid_re.match(line):
+                        tasks.append(line)
 
-    try:
-        opts, args = getopt.getopt(argv, "hibcd:sn:N:a:vr:", [
-            "--regexp", "--date", "--archive", "--beautify"
-        ])
-    except getopt.GetoptError:
-        helpmsg()
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            helpmsg()
-            sys.exit()
-        elif opt in ("-a", "--archive"):
-            config = config._replace(basedir=arg)
-        elif opt == '-i':
-            config = config._replace(comment=False)
-        elif opt == '-s':
-            config = config._replace(strings=True)
-        elif opt == '-g':
-            config = config._replace(group=True)
-        elif opt == '-c':
-            config = config._replace(program=True)
-        elif opt in ('-b', "--beautify"):
-            config = config._replace(beautify=True)
-        elif opt in ('-r', "--regexp"):
-            config = config._replace(regexp=arg)
-        elif opt in ('-d', "--date"):
-            date = arg
-        elif opt in ("-n", "--taskid"):
-            taskid = int(arg)
-        elif opt in ("-N", "--maxtaskid"):
-            maxtaskid = int(arg)
-    if len(args) == 1:
-        filename = args[0]
-    elif len(args) == 2:
-        filename = args[0]
-        path = args[1]
-    elif (not len(args) == 0) or taskid < 1 or maxtaskid < 1:
-        helpmsg()
-        sys.exit()
-
-    if config.verbose:
-        loglevel = logging.INFO
+    chunksize = int(len(tasks) / maxtaskid)
+    if taskid == maxtaskid:
+        tasks = tasks[(taskid - 1) * chunksize:]
     else:
-        loglevel = logging.WARNING
+        tasks = tasks[(taskid - 1) * chunksize:taskid * chunksize]
 
+    return tasks
+
+
+def analyze_task(conf, task):
+    """Analyze one file/tar/crx/extid."""
+    logging.debug("Analyzing " + task)
+    extid_re = re.compile('^[a-p]+$')
+    retval = False
+    if task.endswith('.crx'):
+        retval = analyze_crx(conf, task)
+    elif task.endswith('.tar'):
+        retval = analyze_tar(conf, task)
+    elif extid_re.match(task):
+        retval = analyze_tar(conf, task + '.tar')
+    else:
+        retval = analyze_file(conf, task)
+    return retval
+
+
+def main(conf):
+    """Main function: JavaScript strings on steroids."""
     logger = logging.getLogger()
     ch = logging.StreamHandler(sys.stdout)
     ch.setFormatter(logging.Formatter(const_log_format()))
     logger.addHandler(ch)
-    logger.setLevel(loglevel)
-
-    if taskid > 0 and maxtaskid > 0:
-        process_group(config, taskid, maxtaskid, date, path)
+    if conf.verbose:
+        logger.setLevel(logging.DEBUG)
     else:
-        if filename.endswith('.crx'):
-            analyze_crx(config, filename, path)
-        elif filename.endswith('.tar'):
-            analyze_tar(config, date, path, filename)
-        elif extid_re.match(filename):
-            extid = filename
-            filename = os.path.join(config.basedir, 'data',
-                                    get_local_archive_dir(extid),
-                                    extid + ".tar")
-            analyze_tar(config, date, path, filename)
-        else:
-            with open(filename, 'rb') as fileobj:
-                data = fileobj.read()
-            jsstrings_data(filename, data, config)
+        logger.setLevel(logging.WARNING)
+
+    if conf.colorize:
+        init()
+
+    if conf.join_string_literals:
+        logging.warning("Joining of string literals not yet supported!")
+
+    tasks = compute_tasks(conf.FILE_OR_EXTID, conf.taskid, conf.max_taskid)
+    with Pool(conf.parallel) as p:
+        retvals = p.map(partial(analyze_task, conf), tasks)
+    return reduce(operator.or_, retvals, False)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main_parser = argparse.ArgumentParser(
+        description=
+        'A combination of strings and grep for JavaScript and CSS files.')
+    main_parser.add_argument(
+        '-r',
+        '--reg-exp',
+        metavar='REGEXP',
+        type=str,
+        nargs='+',
+        help='search for regular expression')
+    main_parser.add_argument(
+        '-v',
+        '--verbose',
+        action='store_true',
+        default=False,
+        help='increase verbosity')
+
+    main_parser.add_argument(
+        '-o',
+        '--output-decoration',
+        metavar='L',
+        choices=[0, 1, 2, 3],
+        type=int,
+        help='show only matching files, crx, tar')
+    main_parser.add_argument(
+        '-p',
+        '--parallel',
+        metavar='P',
+        type=int,
+        help='run P  threads in parallel')
+
+    main_parser.add_argument(
+        '-D',
+        '--latest-date',
+        metavar='DATE',
+        type=str,
+        help=
+        'select latest crx from tar, released before DATE. Together with --from-date, specifies all crx released in specified date range.'
+    )
+
+    main_parser.add_argument(
+        '-d',
+        '--from-date',
+        metavar='DATE',
+        type=str,
+        help=
+        'select oldest crx from tar released after DATE. Together with --from-date, specifies all crx released in specified date range.'
+    )
+
+    main_parser.add_argument(
+        '-f',
+        '--file-pattern',
+        metavar='pattern',
+        type=str,
+        help='process only files matching pattern')
+
+    main_parser.add_argument(
+        '-a',
+        '--archive-dir',
+        metavar='archive',
+        type=str,
+        default=const_basedir(),
+        help='archive directory')
+    main_parser.add_argument(
+        '-C', '--colorize', action='store_true', help='use colors')
+
+    main_parser.add_argument(
+        '-n', '--taskid', metavar='n', type=int, default=1, help='task id')
+    main_parser.add_argument(
+        '-N',
+        '--max-taskid',
+        metavar='N',
+        type=int,
+        default=1,
+        help='max task id')
+
+    main_parser.add_argument(
+        'FILE_OR_EXTID', nargs='+', help="extid/js/css/crx/tar file")
+
+    comment_group = main_parser.add_argument_group('comment blocks')
+    comment_group.add_argument(
+        '-g',
+        '--group-single-line-comments',
+        help='Group consecutive singe-line comments into blocks')
+    comment_group.add_argument(
+        '-c',
+        '--reg-exp-comments',
+        metavar='REGEXP',
+        type=str,
+        nargs='+',
+        help='search comments for regular expression')
+
+    source_group = main_parser.add_argument_group('source blocks')
+    source_group.add_argument(
+        '-b',
+        '--beautify',
+        action='store_true',
+        default=False,
+        help='beautify source code')
+    source_group.add_argument(
+        '-s',
+        '--reg-exp-source',
+        metavar='REGEXP',
+        type=str,
+        nargs='+',
+        help='search source for regular expression')
+
+    strings_group = main_parser.add_argument_group('string literals')
+    strings_group.add_argument(
+        '-j',
+        '--join-string-literals',
+        action='store_true',
+        help='join string literals (heuristic)')
+    strings_group.add_argument(
+        '-l',
+        '--reg-exp-string-literals',
+        metavar='REGEXP',
+        type=str,
+        nargs='+',
+        help='search string literals for regular expression')
+    main_conf = main_parser.parse_args()
+
+    main(main_conf)
