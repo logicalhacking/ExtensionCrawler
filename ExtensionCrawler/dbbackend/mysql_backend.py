@@ -28,7 +28,7 @@ from ExtensionCrawler.util import log_info, log_error, log_exception
 
 
 class MysqlBackend:
-    cache = []
+    cache = {}
     db = None
     cursor = None
 
@@ -44,7 +44,7 @@ class MysqlBackend:
 
     def __exit__(self, *args):
         start = time.time()
-        self.retry(lambda: list(starmap(lambda query, args: self.cursor.executemany(query, args), self.cache)))
+        self.retry(self._commit_cache)
         self.db.commit()
         log_info(
             "* Database batch insert finished after {}".format(
@@ -52,6 +52,10 @@ class MysqlBackend:
             3,
             self.ext_id)
         self._close_conn()
+
+    def _commit_cache(self):
+        for query, args in self.cache.items():
+            self.cursor.executemany(query, args)
 
     def _create_conn(self):
         if self.db is None:
@@ -122,7 +126,9 @@ class MysqlBackend:
             ",".join(len(args[0]) * ["%s"]),
             ",".join(
                 ["{c}=VALUES({c})".format(c=c) for c in arglist[0].keys()]))
-        self.cache += [(query, args)]
+        if query not in self.cache:
+            self.cache[query] = []
+        self.cache[query] += args
 
     def insert(self, table, **kwargs):
         self.insertmany(table, [kwargs])
