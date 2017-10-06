@@ -136,26 +136,21 @@ def analyze_block(conf, block):
     return match
 
 def analyze_crx(conf, crx):
+    """Analyze crx file."""
     match = False
-    if path is None:
-        with ZipFile(crx) as crxobj:
-            js_files = list(
-                filter(
-                    lambda x: x.filename.endswith(".js") or x.filename.endswith(".js.gz") or x.filename.endswith(".jgz") or x.filename.endswith(".jsg") or x.filename.endswith(".css.gz"),
-                    crxobj.infolist()))
-            for jsfile in js_files:
-                with crxobj.open(jsfile) as js_file_obj:
-                    data = js_file_obj.read()
-                    path = js_file_obj.name
-                if jsstrings_data(path, data, args):
-                    match = True
-    else:
-        with ZipFile(crx) as crxobj:
-            with crxobj.open(path) as js_file:
-                data = js_file.read()
-            match = jsstrings_data(path, data, args)
-    return match
+    with ZipFile(crx) as crxobj:
+        js_files = list(
+            filter(
+                lambda x: x.filename.endswith(".js") or x.filename.endswith(".js.gz") or x.filename.endswith(".jgz") or x.filename.endswith(".jsg") or x.filename.endswith(".css.gz"),
+                crxobj.infolist()))
+        for jsfile in js_files:
+            with crxobj.open(jsfile) as js_file_obj:
+                data = js_file_obj.read()
+                path = js_file_obj.name
+            if jsstrings_data(conf, path, data):
+                match = True
 
+    return match
 
 def analyze_tar(conf, tarfile):
     last_crx_file = ''
