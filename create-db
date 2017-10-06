@@ -32,6 +32,7 @@ from ExtensionCrawler.archive import update_db_incremental
 from ExtensionCrawler.config import *
 from ExtensionCrawler.util import log_info, log_warning, log_error, log_exception
 
+from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
 
 def help():
     print("""create-db [OPTION]""")
@@ -58,17 +59,28 @@ def process_id(from_date, until_date, path):
             log_info("Start processing extension", 0, extid)
             iddir = os.path.join(tmpdir, extid)
 
-            for date in sorted(os.listdir(iddir)):
-                if (from_date is not None and date < from_date) or \
-                        (until_date is not None and date > until_date):
-                    log_info("* Skipping {}".format(date), 2, extid)
-                    continue
-                try:
-                    update_db_incremental(iddir, extid, date)
-                except Exception:
-                    log_exception(
-                        "Exception when handling data from {}".format(date), 0,
-                        extid)
+            try:
+                with MysqlBackend(
+                        extid,
+                        try_wait=10,
+                        maxtries=30,
+                        read_default_file=const_mysql_config_file(),
+                        charset='utf8mb4',
+                        compress=True
+                ) as con:
+                    for date in sorted(os.listdir(iddir)):
+                        if (from_date is not None and date < from_date) or \
+                                (until_date is not None and date > until_date):
+                            log_info("* Skipping {}".format(date), 2, extid)
+                            continue
+                        try:
+                            update_db_incremental(iddir, extid, date, con)
+                        except Exception:
+                            log_exception(
+                                "Exception when handling data from {}".format(date), 0,
+                                extid)
+            except Exception:
+                log_exception("Exception when handling extension", 0, extid)
     log_info(
         "Finished extension in {}".format(
             str(datetime.timedelta(seconds=int(time.time() - start)))),

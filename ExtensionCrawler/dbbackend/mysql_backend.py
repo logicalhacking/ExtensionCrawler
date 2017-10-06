@@ -15,49 +15,77 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from ExtensionCrawler.config import *
+import time
+import datetime
+from random import uniform
+from itertools import starmap
+
 import MySQLdb
 import _mysql_exceptions
-import atexit
-import time
-from random import uniform
+
+import ExtensionCrawler.config as config
 from ExtensionCrawler.util import log_info, log_error, log_exception
-
-db = None
-
-
-def close_db():
-    if db is not None:
-        db.close()
-
-
-atexit.register(close_db)
 
 
 class MysqlBackend:
+    cache = {}
+    db = None
+    cursor = None
+
+    def __init__(self, ext_id, try_wait=config.const_mysql_try_wait(), maxtries=config.const_mysql_maxtries(), **kwargs):
+        self.ext_id = ext_id
+        self.dbargs = kwargs
+        self.try_wait = try_wait
+        self.maxtries = maxtries
+
+    def __enter__(self):
+        self._create_conn()
+        return self
+
+    def __exit__(self, *args):
+        start = time.time()
+        self.retry(self._commit_cache)
+        self.db.commit()
+        log_info(
+            "* Database batch insert finished after {}".format(
+                datetime.timedelta(seconds=int(time.time() - start))),
+            3,
+            self.ext_id)
+        self._close_conn()
+
+    def _commit_cache(self):
+        for query, args in self.cache.items():
+            self.cursor.executemany(query, args)
+
+    def _create_conn(self):
+        if self.db is None:
+            self.db = MySQLdb.connect(**self.dbargs)
+        if self.cursor is None:
+            self.cursor = self.db.cursor()
+
+    def _close_conn(self):
+        if self.cursor is not None:
+            self.cursor.close()
+            self.cursor = None
+        if self.db is not None:
+            self.db.close()
+            self.db = None
+
     def retry(self, f):
-        global db
-        for t in range(const_mysql_maxtries()):
+        for t in range(self.maxtries):
             try:
+                self._create_conn()
                 return f()
             except _mysql_exceptions.OperationalError as e:
                 last_exception = e
 
                 try:
-                    # Reopen database connection
-                    if self.cursor is not None:
-                        self.cursor.close()
-                        self.cursor = None
-                    if db is not None:
-                        db.close()
-                        db = None
-                    db = MySQLdb.connect(**self.dbargs)
-                    self.cursor = db.cursor()
+                    self._close_conn()
                 except Exception as e2:
                     log_error("Surpressed exception: {}".format(str(e2)), 3,
                               self.ext_id)
 
-                if t + 1 == const_mysql_maxtries():
+                if t + 1 == self.maxtries:
                     log_error(
                         "MySQL connection eventually failed, closing connection!",
                         3, self.ext_id)
@@ -67,35 +95,14 @@ class MysqlBackend:
                     logmsg = ("Exception on mysql connection attempt "
                               "{} of {}, wating {}s +/- {}% before retrying..."
                               ).format(t + 1,
-                                       const_mysql_maxtries(),
-                                       const_mysql_try_wait(), factor * 100)
+                                       self.maxtries,
+                                       self.try_wait, factor * 100)
                     if t == 0:
                         log_exception(logmsg, 3, self.ext_id)
                     else:
                         log_error(logmsg, 3, self.ext_id)
-                    time.sleep(const_mysql_try_wait() * uniform(
+                    time.sleep(self.try_wait * uniform(
                         1 - factor, 1 + factor))
-
-    def __init__(self, ext_id, **kwargs):
-        self.ext_id = ext_id
-        self.dbargs = kwargs
-
-    def __enter__(self):
-        global db
-        if db is None:
-            db = MySQLdb.connect(**self.dbargs)
-        self.cursor = db.cursor()
-
-        return self
-
-    def __exit__(self, *args):
-        try:
-            if self.cursor is not None:
-                self.cursor.close()
-                self.cursor = None
-        except Exception as e:
-            log_error("Surpressed exception: {}".format(str(e)), 3,
-                      self.ext_id)
 
     def get_single_value(self, query, args):
         self.retry(lambda: self.cursor.execute(query, args))
@@ -119,7 +126,9 @@ class MysqlBackend:
             ",".join(len(args[0]) * ["%s"]),
             ",".join(
                 ["{c}=VALUES({c})".format(c=c) for c in arglist[0].keys()]))
-        self.retry(lambda: self.cursor.executemany(query, args))
+        if query not in self.cache:
+            self.cache[query] = []
+        self.cache[query] += args
 
     def insert(self, table, **kwargs):
         self.insertmany(table, [kwargs])

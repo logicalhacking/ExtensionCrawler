@@ -552,11 +552,11 @@ def update_extension(archivedir, forums, ext_id):
 def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
     ext_with_forums = []
     ext_without_forums = []
-    ext_ids = list(set(ext_ids) - set(forums_ext_ids))
-    forums_ext_ids = list(set(forums_ext_ids))
+    ext_ids = sorted(list(set(ext_ids) - set(forums_ext_ids)))
+    forums_ext_ids = sorted(list(set(forums_ext_ids)))
     log_info("Updating {} extensions ({} including forums)".format(
         len(ext_ids), len(forums_ext_ids)))
-    
+
     # First, update all extensions without forums in parallel (increased speed).
     # parallel_ids = list(set(ext_ids) - set(forums_ext_ids))
     parallel_ids = ext_ids
@@ -566,7 +566,7 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
         ext_without_forums = list(
             p.map(partial(update_extension, archivedir, False), parallel_ids))
 
-    
+
     # Second, update extensions with forums sequentially (and with delays) to
     # avoid running into Googles DDOS detection.
     log_info("Updating {} extensions including forums (sequentially)".format(
@@ -575,7 +575,7 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
     ext_with_forums = list(
         map(partial(update_extension, archivedir, True), forums_ext_ids))
 
-    
+
     return ext_with_forums + ext_without_forums
 
 
