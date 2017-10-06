@@ -157,7 +157,7 @@ def analyze_crx(conf, crx):
             with crxobj.open(jsfile) as js_file_obj:
                 data = js_file_obj.read()
                 path = js_file_obj.name
-            if jsstrings_data(conf, path, data):
+            if jsstrings_data(conf, crx + "/" + path, data):
                 match = True
 
     return match
@@ -165,9 +165,11 @@ def analyze_crx(conf, crx):
 
 def analyze_tar(conf, tarfile):
     last_crx_file = ''
+#   from_date
+#    latest_date
     match = False
-    extid = os.path.splitext(os.path.basename(filename))[0]
-    if date is not None:
+    extid = os.path.splitext(os.path.basename(tarfile))[0]
+    if conf.date is not None:
         dateobj = dateutil.parser.parse(date)
         if dateobj.tzinfo is None or dateobj.tzinfo.utcoffset(dateobj) is None:
             dateobj = dateobj.replace(tzinfo=datetime.timezone.utc)
@@ -277,7 +279,7 @@ if __name__ == "__main__":
         help='increase verbosity')
 
     main_parser.add_argument(
-        '-d',
+        '-o',
         '--output-decoration',
         metavar='L',
         choices=[0, 1, 2, 3],
@@ -289,6 +291,20 @@ if __name__ == "__main__":
         metavar='P',
         type=int,
         help='run P  threads in parallel')
+
+    main_parser.add_argument(
+        '-D',
+        '--latest-date',
+        metavar='DATE',
+        type=str,
+        help='select latest crx from tar, released before DATE. Together with --from-date, specifies all crx released in specified date range.')
+
+    main_parser.add_argument(
+        '-d',
+        '--from-date',
+        metavar='DATE',
+        type=str,
+        help='select oldest crx from tar released after DATE. Together with --from-date, specifies all crx released in specified date range.')
 
     main_parser.add_argument(
         '-f',
