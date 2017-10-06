@@ -46,13 +46,22 @@ from ExtensionCrawler.js_mincer import mince_js
 assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
 
+def is_file_with_c_style_comments(filename):
+    """Test if filename indicates file with C-style comment."""
+    return (filename.endswith(".js") or filename.endswith(".js.gz")
+            or filename.endswith(".jgz") or filename.endswith(".jsg")
+            or filename.endswith(".css.gz") or filename.endswith(".c")
+            or filename.endswith(".cpp") or filename.endswith(".java"))
+
+
 def jsstrings_data(conf, path, data):
     """Analyze data in memory."""
     if not conf.file_pattern is None:
-        if path is None: 
+        if path is None:
             return False
         elif not fnmatch.fnmatch(path, conf.file_pattern):
-            logging.debug("Filename \'" + path + "\' does not match pattern \'" + conf.file_pattern + "\'")
+            logging.debug("Filename \'" + path + "\' does not match pattern \'"
+                          + conf.file_pattern + "\'")
             return False
 
     match = False
@@ -66,8 +75,7 @@ def jsstrings_data(conf, path, data):
             dec = zlib.decompressobj(zlib.MAX_WBITS | 16)
             dec_data = dec.decompress(data, 100 * file_info['size'])
             if file_info['dec_encoding'] is None:
-                logging.debug("Encoding is None for " + path +
-                                " using utf-8.")
+                logging.debug("Encoding is None for " + path + " using utf-8.")
                 str_data = dec_data.decode('UTF-8')
             else:
                 str_data = dec_data.decode(file_info['dec_encoding'])
@@ -93,8 +101,10 @@ def jsstrings_data(conf, path, data):
 
     return match
 
-def print_block(conf, block, string_match = False, code_match = False):
+
+def print_block(conf, block, string_match=False, code_match=False):
     print(block)
+
 
 def analyze_block(conf, block):
     """Print code/comment blocks."""
@@ -130,19 +140,19 @@ def analyze_block(conf, block):
         for regexp in regexps_code:
             if regexp.search(block.content):
                 code_match = True
-        match = string_match or code_match            
+        match = string_match or code_match
         if match:
             print_block(conf, block, string_match, code_match)
     return match
+
 
 def analyze_crx(conf, crx):
     """Analyze crx file."""
     match = False
     with ZipFile(crx) as crxobj:
         js_files = list(
-            filter(
-                lambda x: x.filename.endswith(".js") or x.filename.endswith(".js.gz") or x.filename.endswith(".jgz") or x.filename.endswith(".jsg") or x.filename.endswith(".css.gz"),
-                crxobj.infolist()))
+            filter(lambda x: is_file_with_c_style_comments(x.filename),
+                   crxobj.infolist()))
         for jsfile in js_files:
             with crxobj.open(jsfile) as js_file_obj:
                 data = js_file_obj.read()
@@ -151,6 +161,7 @@ def analyze_crx(conf, crx):
                 match = True
 
     return match
+
 
 def analyze_tar(conf, tarfile):
     last_crx_file = ''
@@ -176,6 +187,7 @@ def analyze_tar(conf, tarfile):
         else:
             print("RegExp not found in " + extid)
 
+
 def analyze_file(conf, filename):
     with open(filename, 'rb') as fileobj:
         data = fileobj.read()
@@ -186,18 +198,12 @@ def compute_tasks(file_or_extids, taskid=1, maxtaskid=1):
     """Function for computing list of tasks."""
     extid_re = re.compile('^[a-p]+$')
     tasks = []
-    for file_or_extid in file_or_extids: 
-        if file_or_extid.endswith('.crx'):
+    for file_or_extid in file_or_extids:
+        if is_file_with_c_style_comments(file_or_extid):
             tasks.append(file_or_extid)
         elif file_or_extid.endswith('.tar'):
             tasks.append(file_or_extid)
-        elif file_or_extid.endswith('.css'):
-            tasks.append(file_or_extid)
-        elif file_or_extid.endswith('.js'):
-            tasks.append(file_or_extid)
-        elif file_or_extid.endswith('.c'):
-            tasks.append(file_or_extid)
-        elif file_or_extid.endswith('.java'):
+        elif file_or_extid.endswith('.crx'):
             tasks.append(file_or_extid)
         elif extid_re.match(file_or_extid):
             tasks.append(file_or_extid)
