@@ -17,6 +17,7 @@
 #
 """Tool for extracting crx file from a tar archive."""
 
+
 import datetime
 import argparse
 import io
@@ -29,6 +30,7 @@ import operator
 import tarfile
 import zlib
 from functools import partial, reduce
+from colorama import init, Fore
 from multiprocessing import Pool
 from zipfile import ZipFile
 
@@ -112,35 +114,46 @@ def analyze_block(conf, block):
     regexps = []
     if not conf.reg_exp is None:
         for regexp in conf.reg_exp:
-            regexps.append(re.compile(regexp))
+            regexps.append(re.compile('('+regexp+')'))
     if block.is_comment():
+        content = block.content
         if not conf.reg_exp_comments is None:
             for regexp in conf.reg_exp_comments:
-                regexps.append(re.compile(regexp))
+                regexps.append(re.compile('('+regexp+')'))
         for regexp in regexps:
             if regexp.search(block.content):
+                if conf.colorize:
+                    content = regexp.sub(Fore.RED + r'\1' + Fore.RESET, content)
                 match = True
         if match:
+            block.content = content
             print_block(conf, block)
     elif block.is_code():
+        content = block.content
         regexps_string = regexps.copy()
         regexps_code = regexps.copy()
         if not conf.reg_exp_string_literals is None:
             for regexp in conf.reg_exp_string_literals:
-                regexps_string.append(re.compile(regexp))
+                regexps_string.append(re.compile('('+regexp+')'))
         if not conf.reg_exp_source is None:
             for regexp in conf.reg_exp_source:
-                regexps_code.append(re.compile(regexp))
+                regexps_code.append(re.compile('('+regexp+')'))
         string_match = False
         for regexp in regexps_string:
-            for string in block.string_literals:
+            string_literals = block.string_literals.copy()
+            for idx,string in enumerate(block.string_literals):
                 if regexp.search(string):
+                    if conf.colorize:
+                        string_literals[idx] = regexp.sub(Fore.BLUE + r'\1' + Fore.RESET, string_literals[idx])
                     string_match = True
         code_match = False
         for regexp in regexps_code:
             if regexp.search(block.content):
+                if conf.colorize:
+                    content = regexp.sub(Fore.CYAN + r'\1' + Fore.RESET, content)
                 code_match = True
         match = string_match or code_match
+        block.content = content
         if match:
             print_block(conf, block, string_match, code_match)
     return match
@@ -281,7 +294,12 @@ def main(conf):
     else:
         logger.setLevel(logging.WARNING)
 
-    print(vars(conf))
+    if conf.colorize:
+        init()
+
+    if conf.join_string_literals:
+        logging.warning("Joining of string literals not yet supported!")
+
     tasks = compute_tasks(conf.FILE_OR_EXTID, conf.taskid, conf.max_taskid)
     with Pool(conf.parallel) as p:
         retvals = p.map(partial(analyze_task, conf), tasks)
