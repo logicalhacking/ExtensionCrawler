@@ -519,8 +519,8 @@ def update_extension(archivedir, forums, ext_id):
 def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
     ext_with_forums = []
     ext_without_forums = []
-    ext_ids = sorted(list(set(ext_ids) - set(forums_ext_ids)))
-    forums_ext_ids = sorted(list(set(forums_ext_ids)))
+    ext_ids = (list(set(ext_ids) - set(forums_ext_ids)))
+    forums_ext_ids = (list(set(forums_ext_ids)))
     log_info("Updating {} extensions ({} including forums)".format(
         len(ext_ids), len(forums_ext_ids)))
 
