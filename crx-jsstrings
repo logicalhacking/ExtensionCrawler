@@ -37,7 +37,7 @@ import dateutil.parser
 import jsbeautifier
 
 from ExtensionCrawler.config import (const_log_format, const_basedir)
-from ExtensionCrawler.archive import get_existing_ids, last_crx
+from ExtensionCrawler.archive import get_existing_ids, last_crx, first_crx, all_crx
 from ExtensionCrawler.config import (archive_file, get_local_archive_dir)
 from ExtensionCrawler.js_decomposer import init_file_info
 from ExtensionCrawler.js_mincer import mince_js
@@ -169,26 +169,47 @@ def analyze_tar(conf, tarfile):
 #    latest_date
     match = False
     extid = os.path.splitext(os.path.basename(tarfile))[0]
-    if conf.date is not None:
-        dateobj = dateutil.parser.parse(date)
-        if dateobj.tzinfo is None or dateobj.tzinfo.utcoffset(dateobj) is None:
-            dateobj = dateobj.replace(tzinfo=datetime.timezone.utc)
-        last_crx_file = last_crx(
-            os.path.join(args.archive_dir, "data"), extid, dateobj)
-    else:
-        last_crx_file = last_crx(os.path.join(args.archive_dir, "data"), extid)
-    if last_crx_file == "" or last_crx_file is None:
-        print("No crx in  " + extid)
-    else:
-        print("# Start analyzing " + extid)
-        with tarfile.open(filename, 'r') as archive:
-            with archive.extractfile(last_crx_file) as crx:
-                match = analyze_crx(args, crx, path)
-        if match:
-            print("RegExp found in " + extid)
-        else:
-            print("RegExp not found in " + extid)
+    from_dateobj = None
+    latest_dateobj = None
+    if conf.from_date is not None:
+        from_dateobj = dateutil.parser.parse(conf.from_date)
+        if from_dateobj.tzinfo is None or from_dateobj.tzinfo.utcoffset(from_dateobj) is None:
+            from_dateobj = from_dateobj.replace(tzinfo=datetime.timezone.utc)
+    if conf.latest_date is not None:
+        latest_dateobj = dateutil.parser.parse(conf.latest_date)
+        if latest_dateobj.tzinfo is None or latest_dateobj.tzinfo.utcoffset(latest_dateobj) is None:
+            latest_dateobj = latest_dateobj.replace(tzinfo=datetime.timezone.utc)
 
+    match = False
+
+    if from_dateobj is None:
+        last_crx_file = last_crx(os.path.join(conf.archive_dir, "data"), extid, latest_dateobj)
+        if last_crx_file == "" or last_crx_file is None:
+            logging.warning("No crx in  " + extid)
+        else:
+            with tarfile.open(tarfile, 'r') as archive:
+                with archive.extractfile(last_crx_file) as crx:
+                    match = analyze_crx(conf, crx)
+    else:
+        if latest_dateobj is None:
+            # only from date is given
+            first_crx_file = first_crx(os.path.join(conf.archive_dir, "data"), extid, from_dateobj)
+            if first_crx_file == "" or first_crx_file is None:
+                logging.warning("No crx in  " + extid)
+            else:
+                with tarfile.open(tarfile, 'r') as archive:
+                    with archive.extractfile(first_crx_file) as crx:
+                        match = analyze_crx(conf, crx)
+        else:
+            # both dates are given
+            all_crx_files = all_crx(os.path.join(conf.archive_dir, "data"), extid)
+            if all_crx_files == []:
+                logging.warning("No crx in  " + extid)
+            else:
+                with tarfile.open(tarfile, 'r') as archive:
+                    for crx_file in all_crx_files:
+                        with archive.extractfile(crx_file) as crx:
+                            match = analyze_crx(conf, crx) or match
 
 def analyze_file(conf, filename):
     with open(filename, 'rb') as fileobj:

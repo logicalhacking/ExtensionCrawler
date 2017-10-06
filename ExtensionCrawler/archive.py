@@ -202,6 +202,39 @@ def last_crx(archivedir, extid, date=None):
 
     return last_crx
 
+def first_crx(archivedir, extid, date=None):
+    first_crx = ""
+    tar = os.path.join(archivedir, get_local_archive_dir(extid),
+                       extid + ".tar")
+    if os.path.exists(tar):
+        t = tarfile.open(tar, 'r')
+        old_crxs = sorted([
+            x.name for x in t.getmembers()
+            if x.name.endswith(".crx") and x.size > 0 and (
+                date is None or (date <= dateutil.parser.parse(
+                    os.path.split(os.path.split(x.name)[0])[1])))
+        ])
+        t.close()
+        if old_crxs != []:
+            first_crx = old_crxs[0]
+
+    return first_crx
+
+def all_crx(archivedir, extid, date=None):
+    tar = os.path.join(archivedir, get_local_archive_dir(extid),
+                       extid + ".tar")
+    all_crxs = []
+    if os.path.exists(tar):
+        t = tarfile.open(tar, 'r')
+        all_crxs = sorted([
+            x.name for x in t.getmembers()
+            if x.name.endswith(".crx") and x.size > 0
+        ])
+        t.close()
+    return all_crxs
+
+
+
 
 def last_etag(archivedir, extid, crxfile):
     etag = ""
