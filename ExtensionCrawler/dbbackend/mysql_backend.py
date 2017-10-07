@@ -28,15 +28,14 @@ from ExtensionCrawler.util import log_info, log_error, log_exception
 
 
 class MysqlBackend:
-    cache = {}
-    db = None
-    cursor = None
-
     def __init__(self, ext_id, try_wait=config.const_mysql_try_wait(), maxtries=config.const_mysql_maxtries(), **kwargs):
         self.ext_id = ext_id
         self.dbargs = kwargs
         self.try_wait = try_wait
         self.maxtries = maxtries
+        self.cache = {}
+        self.db = None
+        self.cursor = None
 
     def __enter__(self):
         self._create_conn()
