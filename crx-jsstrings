@@ -161,7 +161,7 @@ def analyze_block(conf, block):
     return match
 
 
-def analyze_crx(conf, crx):
+def analyze_crx(conf, crx, path=""):
     """Analyze crx file."""
     match = False
     with ZipFile(crx) as crxobj:
@@ -171,8 +171,8 @@ def analyze_crx(conf, crx):
         for jsfile in js_files:
             with crxobj.open(jsfile) as js_file_obj:
                 data = js_file_obj.read()
-                path = js_file_obj.name
-            if jsstrings_data(conf, crx + "/" + path, data):
+                path = path + "/" + js_file_obj.name
+            if jsstrings_data(conf, path, data):
                 match = True
 
     return match
@@ -208,7 +208,7 @@ def analyze_tar(conf, tarfilename):
         else:
             with tarfile.open(tarfilename, 'r') as archive:
                 with archive.extractfile(last_crx_file) as crx:
-                    match = analyze_crx(conf, crx)
+                    match = analyze_crx(conf, crx, last_crx_file)
     else:
         if latest_dateobj is None:
             # only from date is given
@@ -219,7 +219,7 @@ def analyze_tar(conf, tarfilename):
             else:
                 with tarfile.open(tarfilename, 'r') as archive:
                     with archive.extractfile(first_crx_file) as crx:
-                        match = analyze_crx(conf, crx)
+                        match = analyze_crx(conf, crx, last_crx_file)
         else:
             # both dates are given
             all_crx_files = all_crx(
@@ -230,7 +230,8 @@ def analyze_tar(conf, tarfilename):
                 with tarfile.open(tarfilename, 'r') as archive:
                     for crx_file in all_crx_files:
                         with archive.extractfile(crx_file) as crx:
-                            match = analyze_crx(conf, crx) or match
+                            match = analyze_crx(conf, crx, last_crx_file) or match
+    return match
 
 
 def analyze_file(conf, filename):
