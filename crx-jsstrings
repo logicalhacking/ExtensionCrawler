@@ -100,12 +100,14 @@ def jsstrings_data(conf, path, data):
                 single_line_comments_block=conf.group_single_line_comments):
             if analyze_block(conf, block):
                 match = True
-
+    if match and conf.output_decoration > 0:
+        print(path)
     return match
 
 
 def print_block(conf, block, string_match=False, code_match=False):
-    print(block)
+    if conf.output_decoration > 1:
+        print(block)
 
 
 def analyze_block(conf, block):
@@ -303,7 +305,7 @@ def main(conf):
     tasks = compute_tasks(conf.FILE_OR_EXTID, conf.taskid, conf.max_taskid)
     with Pool(conf.parallel) as p:
         retvals = p.map(partial(analyze_task, conf), tasks)
-    return reduce(operator.or_, retvals, False)
+    return not reduce(operator.or_, retvals, False)
 
 
 if __name__ == "__main__":
@@ -330,6 +332,7 @@ if __name__ == "__main__":
         metavar='L',
         choices=[0, 1, 2, 3],
         type=int,
+        default=2,
         help='show only matching files, crx, tar')
     main_parser.add_argument(
         '-p',
@@ -429,4 +432,4 @@ if __name__ == "__main__":
         help='search string literals for regular expression')
     main_conf = main_parser.parse_args()
 
-    main(main_conf)
+    sys.exit(main(main_conf))
