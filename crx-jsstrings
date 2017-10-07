@@ -280,7 +280,8 @@ def analyze_task(conf, task):
     elif task.endswith('.tar'):
         retval = analyze_tar(conf, task)
     elif extid_re.match(task):
-        retval = analyze_tar(conf, task + '.tar')
+        tarfile = "data/" + get_local_archive_dir(task) + "/" + task + '.tar'
+        retval = analyze_tar(conf, conf.archive_dir + "/" + tarfile)
     else:
         retval = analyze_file(conf, task)
     return retval
