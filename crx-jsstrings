@@ -100,12 +100,14 @@ def jsstrings_data(conf, path, data):
                 single_line_comments_block=conf.group_single_line_comments):
             if analyze_block(conf, block):
                 match = True
-
+    if match and conf.output_decoration > 0:
+        print(path)
     return match
 
 
 def print_block(conf, block, string_match=False, code_match=False):
-    print(block)
+    if conf.output_decoration > 1:
+        print(block)
 
 
 def analyze_block(conf, block):
@@ -159,7 +161,7 @@ def analyze_block(conf, block):
     return match
 
 
-def analyze_crx(conf, crx):
+def analyze_crx(conf, crx, path=""):
     """Analyze crx file."""
     match = False
     with ZipFile(crx) as crxobj:
@@ -169,8 +171,8 @@ def analyze_crx(conf, crx):
         for jsfile in js_files:
             with crxobj.open(jsfile) as js_file_obj:
                 data = js_file_obj.read()
-                path = js_file_obj.name
-            if jsstrings_data(conf, crx + "/" + path, data):
+                path = path + "/" + js_file_obj.name
+            if jsstrings_data(conf, path, data):
                 match = True
 
     return match
@@ -206,7 +208,7 @@ def analyze_tar(conf, tarfilename):
         else:
             with tarfile.open(tarfilename, 'r') as archive:
                 with archive.extractfile(last_crx_file) as crx:
-                    match = analyze_crx(conf, crx)
+                    match = analyze_crx(conf, crx, last_crx_file)
     else:
         if latest_dateobj is None:
             # only from date is given
@@ -217,7 +219,7 @@ def analyze_tar(conf, tarfilename):
             else:
                 with tarfile.open(tarfilename, 'r') as archive:
                     with archive.extractfile(first_crx_file) as crx:
-                        match = analyze_crx(conf, crx)
+                        match = analyze_crx(conf, crx, last_crx_file)
         else:
             # both dates are given
             all_crx_files = all_crx(
@@ -228,7 +230,8 @@ def analyze_tar(conf, tarfilename):
                 with tarfile.open(tarfilename, 'r') as archive:
                     for crx_file in all_crx_files:
                         with archive.extractfile(crx_file) as crx:
-                            match = analyze_crx(conf, crx) or match
+                            match = analyze_crx(conf, crx, last_crx_file) or match
+    return match
 
 
 def analyze_file(conf, filename):
@@ -277,7 +280,8 @@ def analyze_task(conf, task):
     elif task.endswith('.tar'):
         retval = analyze_tar(conf, task)
     elif extid_re.match(task):
-        retval = analyze_tar(conf, task + '.tar')
+        tarfile = "data/" + get_local_archive_dir(task) + "/" + task + '.tar'
+        retval = analyze_tar(conf, conf.archive_dir + "/" + tarfile)
     else:
         retval = analyze_file(conf, task)
     return retval
@@ -303,7 +307,7 @@ def main(conf):
     tasks = compute_tasks(conf.FILE_OR_EXTID, conf.taskid, conf.max_taskid)
     with Pool(conf.parallel) as p:
         retvals = p.map(partial(analyze_task, conf), tasks)
-    return reduce(operator.or_, retvals, False)
+    return not reduce(operator.or_, retvals, False)
 
 
 if __name__ == "__main__":
@@ -330,6 +334,7 @@ if __name__ == "__main__":
         metavar='L',
         choices=[0, 1, 2, 3],
         type=int,
+        default=2,
         help='show only matching files, crx, tar')
     main_parser.add_argument(
         '-p',
@@ -429,4 +434,4 @@ if __name__ == "__main__":
         help='search string literals for regular expression')
     main_conf = main_parser.parse_args()
 
-    main(main_conf)
+    sys.exit(main(main_conf))
