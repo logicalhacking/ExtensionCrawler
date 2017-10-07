@@ -17,7 +17,6 @@
 #
 """Tool for extracting crx file from a tar archive."""
 
-
 import datetime
 import argparse
 import io
@@ -116,16 +115,17 @@ def analyze_block(conf, block):
     regexps = []
     if not conf.reg_exp is None:
         for regexp in conf.reg_exp:
-            regexps.append(re.compile('('+regexp+')'))
+            regexps.append(re.compile('(' + regexp + ')'))
     if block.is_comment():
         content = block.content
         if not conf.reg_exp_comments is None:
             for regexp in conf.reg_exp_comments:
-                regexps.append(re.compile('('+regexp+')'))
+                regexps.append(re.compile('(' + regexp + ')'))
         for regexp in regexps:
             if regexp.search(block.content):
                 if conf.colorize:
-                    content = regexp.sub(Fore.RED + r'\1' + Fore.RESET, content)
+                    content = regexp.sub(Fore.RED + r'\1' + Fore.RESET,
+                                         content)
                 match = True
         if match:
             block.content = content
@@ -136,23 +136,26 @@ def analyze_block(conf, block):
         regexps_code = regexps.copy()
         if not conf.reg_exp_string_literals is None:
             for regexp in conf.reg_exp_string_literals:
-                regexps_string.append(re.compile('('+regexp+')'))
+                regexps_string.append(re.compile('(' + regexp + ')'))
         if not conf.reg_exp_source is None:
             for regexp in conf.reg_exp_source:
-                regexps_code.append(re.compile('('+regexp+')'))
+                regexps_code.append(re.compile('(' + regexp + ')'))
         string_match = False
         for regexp in regexps_string:
             string_literals = block.string_literals.copy()
-            for idx,string in enumerate(block.string_literals):
+            for idx, string in enumerate(block.string_literals):
                 if regexp.search(string):
                     if conf.colorize:
-                        string_literals[idx] = regexp.sub(Fore.BLUE + r'\1' + Fore.RESET, string_literals[idx])
+                        string_literals[idx] = regexp.sub(
+                            Fore.BLUE + r'\1' + Fore.RESET,
+                            string_literals[idx])
                     string_match = True
         code_match = False
         for regexp in regexps_code:
             if regexp.search(block.content):
                 if conf.colorize:
-                    content = regexp.sub(Fore.CYAN + r'\1' + Fore.RESET, content)
+                    content = regexp.sub(Fore.CYAN + r'\1' + Fore.RESET,
+                                         content)
                 code_match = True
         match = string_match or code_match
         block.content = content
@@ -230,7 +233,8 @@ def analyze_tar(conf, tarfilename):
                 with tarfile.open(tarfilename, 'r') as archive:
                     for crx_file in all_crx_files:
                         with archive.extractfile(crx_file) as crx:
-                            match = analyze_crx(conf, crx, last_crx_file) or match
+                            match = analyze_crx(conf, crx,
+                                                last_crx_file) or match
     return match
 
 
