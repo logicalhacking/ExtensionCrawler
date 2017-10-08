@@ -187,6 +187,7 @@ def analyze_block(conf, path, block, first=False):
                 code_match = True
         match = string_match or code_match
         block.content = content
+        block.string_literals = string_literals
         if match:
             print_block(conf, path, block, first, string_match, code_match)
     return match
