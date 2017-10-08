@@ -94,22 +94,38 @@ def jsstrings_data(conf, path, data):
         str_data = jsbeautifier.beautify(str_data)
 
     with io.StringIO(str_data) as str_obj:
+        first = True
         for block in mince_js(
                 str_obj,
                 single_line_comments_block=conf.group_single_line_comments):
-            if analyze_block(conf, block):
+            if analyze_block(conf, path, block, first):
                 match = True
-    if match and conf.output_decoration > 0:
+                first = False
+    if match and conf.output_decoration > 0 and conf.output_decoration < 2:
         print(path)
     return match
 
 
-def print_block(conf, block, string_match=False, code_match=False):
+def print_block(conf, path, block, first = False, string_match=False, code_match=False):
     if conf.output_decoration > 1:
-        print(block)
+        line_no = block.start[0]
+        prefix = " " * (block.start[1]-1)
+        classifier = "X"
+        sep = "-" * (len(path)+12)
+        if not first:
+            print(sep)
+        if block.is_code:
+            classifier = "C"
+        else:
+            classifier = "S" 
+        for line in block.content.splitlines(True):
+            if line_no == block.start[0]:
+                line = prefix + line
+            line = '{0} {1:6d} [{2}]: {3}'.format(path, line_no, classifier, line.rstrip())
+            print(line) 
+            line_no  += 1
 
-
-def analyze_block(conf, block):
+def analyze_block(conf, path, block, first=False): 
     """Print code/comment blocks."""
     match = False
     regexps = []
@@ -129,7 +145,7 @@ def analyze_block(conf, block):
                 match = True
         if match:
             block.content = content
-            print_block(conf, block)
+            print_block(conf, path, block, first)
     elif block.is_code():
         content = block.content
         regexps_string = regexps.copy()
@@ -160,7 +176,7 @@ def analyze_block(conf, block):
         match = string_match or code_match
         block.content = content
         if match:
-            print_block(conf, block, string_match, code_match)
+            print_block(conf, path, block, first, string_match, code_match)
     return match
 
 
