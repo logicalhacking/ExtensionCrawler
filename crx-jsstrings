@@ -120,8 +120,8 @@ def print_block(conf, path, block, first = False, string_match=False, code_match
             classifier = "C" 
 
         if block.is_code and string_match:
-            for str in block.string_literals:
-                loc = '({0[0]:d}/{0[1]:d})'.format(block.start)
+            for (pos,str) in block.string_literals:
+                loc = '({0[0]:d}/{0[1]:d})'.format(pos)
                 loc = (' '*(11-len(loc))) + loc
                 line = '{0} {1} [L]: {2}'.format(path, loc, str.rstrip())
                 print (line)
@@ -172,12 +172,12 @@ def analyze_block(conf, path, block, first=False):
         match_idxs=set()
         string_literals = block.string_literals.copy()
         for regexp in regexps_string:
-            for idx, string in enumerate(block.string_literals):
+            for idx, (pos, string) in enumerate(block.string_literals):
                 if regexp.search(string):
                     if conf.colorize:
-                        string_literals[idx] = regexp.sub(
+                        string_literals[idx] = ((string_literals[idx])[0], regexp.sub(
                             Fore.BLUE + r'\1' + Fore.RESET,
-                            string_literals[idx])
+                            (string_literals[idx])[1]))
                         match_idxs.add(idx)
                     string_match = True
         block.string_literals = []

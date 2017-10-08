@@ -167,14 +167,14 @@ def mince_js_fileobj(fileobj):
                 elif is_string_literal_dq(state):
                     if char == '"':
                         suc_state = JsBlockType.CODE_BLOCK
-                        string_literals.append(current_string_literal)
+                        string_literals.append(((line, cpos),current_string_literal))
                         current_string_literal = ""
                     else:
                         current_string_literal += char
                 elif is_string_literal_sq(state):
                     if char == "'":
                         suc_state = JsBlockType.CODE_BLOCK
-                        string_literals.append(current_string_literal)
+                        string_literals.append(((line, cpos),current_string_literal))
                         current_string_literal = ""
                     else:
                         current_string_literal += char
