@@ -119,7 +119,7 @@ def print_block(conf,
         sep = "=" * (len(path) + 17)
         if not first:
             print(sep)
-        if block.is_code:
+        if block.is_code():
             classifier = "S"
         else:
             classifier = "C"
