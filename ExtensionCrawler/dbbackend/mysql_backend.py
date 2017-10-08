@@ -96,10 +96,7 @@ class MysqlBackend:
                               ).format(t + 1,
                                        self.maxtries,
                                        self.try_wait, factor * 100)
-                    if t == 0:
-                        log_exception(logmsg, 3, self.ext_id)
-                    else:
-                        log_error(logmsg, 3, self.ext_id)
+                    log_warning(logmsg, 3, self.ext_id)
                     time.sleep(self.try_wait * uniform(
                         1 - factor, 1 + factor))
 
