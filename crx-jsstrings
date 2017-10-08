@@ -106,44 +106,52 @@ def jsstrings_data(conf, path, data):
     return match
 
 
-def print_block(conf, path, block, first = False, string_match=False, code_match=False):
+def print_block(conf,
+                path,
+                block,
+                first=False,
+                string_match=False,
+                code_match=False):
     if conf.output_decoration > 1:
         line_no = block.start[0]
-        prefix = " " * (block.start[1]-1)
+        prefix = " " * (block.start[1] - 1)
         classifier = "X"
-        sep = "=" * (len(path)+17)
+        sep = "=" * (len(path) + 17)
         if not first:
             print(sep)
         if block.is_code:
             classifier = "S"
         else:
-            classifier = "C" 
+            classifier = "C"
 
         if block.is_code and string_match:
             if conf.join_string_literals:
                 loc = '({0:d} - {1:d})'.format(block.start[0], block.start[1])
-                loc = (' '*(11-len(loc))) + loc
-                line = '{0} {1} [L]: {2}'.format(path, loc, block.string_literals[0].rstrip())
-                print (line)
+                loc = (' ' * (11 - len(loc))) + loc
+                line = '{0} {1} [L]: {2}'.format(
+                    path, loc, block.string_literals[0].rstrip())
+                print(line)
             else:
-                for (pos,str) in block.string_literals:
+                for (pos, str) in block.string_literals:
                     loc = '({0[0]:d}/{0[1]:d})'.format(pos)
-                    loc = (' '*(11-len(loc))) + loc
+                    loc = (' ' * (11 - len(loc))) + loc
                     line = '{0} {1} [L]: {2}'.format(path, loc, str.rstrip())
-                    print (line)
+                    print(line)
             if code_match:
-                print("-" * (len(path)+17))
+                print("-" * (len(path) + 17))
 
         if block.is_comment or (block.is_code and code_match):
             for line in block.content.splitlines(True):
                 if line_no == block.start[0]:
                     line = prefix + line
-                line = '{0} {1:11d} [{2}]: {3}'.format(path, line_no, classifier, line.rstrip())
-                print(line) 
-                line_no  += 1
+                line = '{0} {1:11d} [{2}]: {3}'.format(path, line_no,
+                                                       classifier,
+                                                       line.rstrip())
+                print(line)
+                line_no += 1
 
 
-def analyze_block(conf, path, block, first=False): 
+def analyze_block(conf, path, block, first=False):
     """Print code/comment blocks."""
     match = False
     regexps = []
@@ -181,32 +189,31 @@ def analyze_block(conf, path, block, first=False):
         if conf.join_string_literals:
             joined_string = ""
             for (_, string) in block.string_literals:
-                joined_string = joined_string+string
-            joined_cstring = joined_string    
+                joined_string = joined_string + string
+            joined_cstring = joined_string
             for regexp in regexps_string:
                 if regexp.search(joined_string):
                     if conf.colorize:
                         joined_cstring = regexp.sub(
-                            Fore.BLUE + r'\1' + Fore.RESET,
-                            joined_cstring)
+                            Fore.BLUE + r'\1' + Fore.RESET, joined_cstring)
                     string_match = True
-            
+
             block.string_literals = [joined_cstring]
         else:
             for regexp in regexps_string:
                 for idx, (pos, string) in enumerate(block.string_literals):
                     if regexp.search(string):
                         if conf.colorize:
-                            string_literals[idx] = ((string_literals[idx])[0], regexp.sub(
-                                Fore.BLUE + r'\1' + Fore.RESET,
-                                (string_literals[idx])[1]))
+                            string_literals[idx] = ((
+                                string_literals[idx])[0], regexp.sub(
+                                    Fore.BLUE + r'\1' + Fore.RESET,
+                                    (string_literals[idx])[1]))
                             match_idxs.add(idx)
                         string_match = True
             block.string_literals = []
             for idx, str in enumerate(string_literals):
                 if idx in match_idxs:
                     block.string_literals.append(str)
-
 
         code_match = False
         for regexp in regexps_code:
