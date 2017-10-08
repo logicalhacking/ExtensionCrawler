@@ -183,7 +183,6 @@ def analyze_block(conf, path, block, first=False):
             for (_, string) in block.string_literals:
                 joined_string = joined_string+string
             joined_cstring = joined_string    
-            print(joined_string)
             for regexp in regexps_string:
                 if regexp.search(joined_string):
                     if conf.colorize:
