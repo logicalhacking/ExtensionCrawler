@@ -21,6 +21,7 @@ import gc
 import hashlib
 import mimetypes
 import os
+import re
 import zlib
 from io import StringIO
 
@@ -44,13 +45,24 @@ def normalize_jsdata(str_data):
 
 def get_data_identifiers(data):
     """Get basic data identifiers (size, hashes, normalized hashes, etc.)."""
+    magic_desc = ""
+    try:  
+        magic_desc = magic.from_buffer(data)
+    except magic.MagicException as exp:
+        rgx = re.compile(r' name use count.*$')
+        msg = str(exp.message)
+        if re.search(rgx, msg):
+            magic_desc = re.sub(rgx, '', msg)
+        else:
+            raise exp
+
     data_identifier = {
         'md5': hashlib.md5(data).digest(),
         'sha1': hashlib.sha1(data).digest(),
         'sha256': hashlib.sha256(data).digest(),
         'size': len(data),
         'loc': len(data.splitlines()),
-        'description': magic.from_buffer(data),
+        'description': magic_desc,
         'encoding': chardet.detect(data)['encoding'],
     }
     try:
