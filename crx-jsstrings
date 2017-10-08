@@ -378,6 +378,7 @@ def main(conf):
 
 if __name__ == "__main__":
     main_parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
         description=
         'A combination of strings and grep for JavaScript and CSS files.')
     main_parser.add_argument(
@@ -401,7 +402,11 @@ if __name__ == "__main__":
         choices=[0, 1, 2, 3],
         type=int,
         default=2,
-        help='show only matching files, crx, tar')
+        help= 'select level L of details shown for matches:\n'
+              + '  0: exit 0 in case of match found, 1 otherwise\n'
+              + '  1: show only matching filename\n'
+              + '  2: show matching lines (NOT YET SUPPORTED)\n'
+              + '  3: show matching blocks')
     main_parser.add_argument(
         '-p',
         '--parallel',
@@ -415,7 +420,9 @@ if __name__ == "__main__":
         metavar='DATE',
         type=str,
         help=
-        'select latest crx from tar, released before DATE. Together with --from-date, specifies all crx released in specified date range.'
+        'select latest crx from tar, released before DATE.\n' 
+        + 'Together with --latest-date, specifies all crx released in specified\n'
+        + 'date range.'
     )
 
     main_parser.add_argument(
@@ -424,7 +431,9 @@ if __name__ == "__main__":
         metavar='DATE',
         type=str,
         help=
-        'select oldest crx from tar released after DATE. Together with --from-date, specifies all crx released in specified date range.'
+        'select oldest crx from tar released after DATE.\n'
+        + 'Together with --from-date, specifies all crx released in specified\n'
+        + 'date range.'
     )
 
     main_parser.add_argument(
