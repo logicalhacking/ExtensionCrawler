@@ -120,11 +120,17 @@ def print_block(conf, path, block, first = False, string_match=False, code_match
             classifier = "C" 
 
         if block.is_code and string_match:
-            for (pos,str) in block.string_literals:
-                loc = '({0[0]:d}/{0[1]:d})'.format(pos)
+            if conf.join_string_literals:
+                loc = '({0:d} - {1:d})'.format(block.start[0], block.start[1])
                 loc = (' '*(11-len(loc))) + loc
-                line = '{0} {1} [L]: {2}'.format(path, loc, str.rstrip())
+                line = '{0} {1} [L]: {2}'.format(path, loc, block.string_literals[0].rstrip())
                 print (line)
+            else:
+                for (pos,str) in block.string_literals:
+                    loc = '({0[0]:d}/{0[1]:d})'.format(pos)
+                    loc = (' '*(11-len(loc))) + loc
+                    line = '{0} {1} [L]: {2}'.format(path, loc, str.rstrip())
+                    print (line)
             if code_match:
                 print("-" * (len(path)+17))
 
@@ -169,22 +175,40 @@ def analyze_block(conf, path, block, first=False):
             for regexp in conf.reg_exp_source:
                 regexps_code.append(re.compile('(' + regexp + ')'))
         string_match = False
-        match_idxs=set()
+        match_idxs = set()
         string_literals = block.string_literals.copy()
-        for regexp in regexps_string:
-            for idx, (pos, string) in enumerate(block.string_literals):
-                if regexp.search(string):
+
+        if conf.join_string_literals:
+            joined_string = ""
+            for (_, string) in block.string_literals:
+                joined_string = joined_string+string
+            joined_cstring = joined_string    
+            print(joined_string)
+            for regexp in regexps_string:
+                if regexp.search(joined_string):
                     if conf.colorize:
-                        string_literals[idx] = ((string_literals[idx])[0], regexp.sub(
+                        joined_cstring = regexp.sub(
                             Fore.BLUE + r'\1' + Fore.RESET,
-                            (string_literals[idx])[1]))
-                        match_idxs.add(idx)
+                            joined_cstring)
                     string_match = True
-        block.string_literals = []
-        for idx, str in enumerate(string_literals):
-            if idx in match_idxs:
-                block.string_literals.append(str)
-        
+            
+            block.string_literals = [joined_cstring]
+        else:
+            for regexp in regexps_string:
+                for idx, (pos, string) in enumerate(block.string_literals):
+                    if regexp.search(string):
+                        if conf.colorize:
+                            string_literals[idx] = ((string_literals[idx])[0], regexp.sub(
+                                Fore.BLUE + r'\1' + Fore.RESET,
+                                (string_literals[idx])[1]))
+                            match_idxs.add(idx)
+                        string_match = True
+            block.string_literals = []
+            for idx, str in enumerate(string_literals):
+                if idx in match_idxs:
+                    block.string_literals.append(str)
+
+
         code_match = False
         for regexp in regexps_code:
             if regexp.search(block.content):
@@ -339,9 +363,6 @@ def main(conf):
 
     if conf.colorize:
         init()
-
-    if conf.join_string_literals:
-        logging.warning("Joining of string literals not yet supported!")
 
     tasks = compute_tasks(conf.FILE_OR_EXTID, conf.taskid, conf.max_taskid)
     with Pool(conf.parallel) as p:
