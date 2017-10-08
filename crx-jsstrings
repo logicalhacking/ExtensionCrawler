@@ -169,15 +169,22 @@ def analyze_block(conf, path, block, first=False):
             for regexp in conf.reg_exp_source:
                 regexps_code.append(re.compile('(' + regexp + ')'))
         string_match = False
+        match_idxs=set()
+        string_literals = block.string_literals.copy()
         for regexp in regexps_string:
-            string_literals = block.string_literals.copy()
             for idx, string in enumerate(block.string_literals):
                 if regexp.search(string):
                     if conf.colorize:
                         string_literals[idx] = regexp.sub(
                             Fore.BLUE + r'\1' + Fore.RESET,
                             string_literals[idx])
+                        match_idxs.add(idx)
                     string_match = True
+        block.string_literals = []
+        for idx, str in enumerate(string_literals):
+            if idx in match_idxs:
+                block.string_literals.append(str)
+        
         code_match = False
         for regexp in regexps_code:
             if regexp.search(block.content):
@@ -187,7 +194,6 @@ def analyze_block(conf, path, block, first=False):
                 code_match = True
         match = string_match or code_match
         block.content = content
-        block.string_literals = string_literals
         if match:
             print_block(conf, path, block, first, string_match, code_match)
     return match
