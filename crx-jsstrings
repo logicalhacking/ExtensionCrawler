@@ -111,19 +111,31 @@ def print_block(conf, path, block, first = False, string_match=False, code_match
         line_no = block.start[0]
         prefix = " " * (block.start[1]-1)
         classifier = "X"
-        sep = "-" * (len(path)+12)
+        sep = "=" * (len(path)+17)
         if not first:
             print(sep)
         if block.is_code:
-            classifier = "C"
+            classifier = "S"
         else:
-            classifier = "S" 
-        for line in block.content.splitlines(True):
-            if line_no == block.start[0]:
-                line = prefix + line
-            line = '{0} {1:6d} [{2}]: {3}'.format(path, line_no, classifier, line.rstrip())
-            print(line) 
-            line_no  += 1
+            classifier = "C" 
+
+        if block.is_code and string_match:
+            for str in block.string_literals:
+                loc = '({0[0]:d}/{0[1]:d})'.format(block.start)
+                loc = (' '*(11-len(loc))) + loc
+                line = '{0} {1} [L]: {2}'.format(path, loc, str.rstrip())
+                print (line)
+            if code_match:
+                print("-" * (len(path)+17))
+
+        if block.is_comment or (block.is_code and code_match):
+            for line in block.content.splitlines(True):
+                if line_no == block.start[0]:
+                    line = prefix + line
+                line = '{0} {1:11d} [{2}]: {3}'.format(path, line_no, classifier, line.rstrip())
+                print(line) 
+                line_no  += 1
+
 
 def analyze_block(conf, path, block, first=False): 
     """Print code/comment blocks."""
