@@ -126,7 +126,7 @@ def print_block(conf,
 
         if block.is_code() and string_match:
             if conf.join_string_literals:
-                loc = '({0:d} - {1:d})'.format(block.start[0], block.start[1])
+                loc = '({0:d} - {1:d})'.format(block.start[0], block.end[0])
                 loc = (' ' * (11 - len(loc))) + loc
                 line = '{0} {1} [L]: {2}'.format(
                     path, loc, block.string_literals[0].rstrip())
