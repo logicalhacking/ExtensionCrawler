@@ -48,7 +48,7 @@ class MysqlBackend:
         log_info(
             "* Database batch insert finished after {}".format(
                 datetime.timedelta(seconds=int(time.time() - start))),
-            3,
+            2,
             self.ext_id)
         self._close_conn()
 

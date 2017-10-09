@@ -288,32 +288,27 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
         d = json.JSONDecoder().raw_decode(stripped)
         annotations = get(next(iter(d), None), "annotations")
         if annotations:
-            results = []
             for review in d[0]["annotations"]:
-                results += [{
-                    "extid":
-                    ext_id,
-                    "date":
-                    con.convert_date(date),
-                    "commentdate":
-                    datetime.datetime.utcfromtimestamp(
-                        get(review, "timestamp")).isoformat()
-                    if "timestamp" in review else None,
-                    "rating":
-                    get(review, "starRating"),
-                    "comment":
-                    get(review, "comment"),
-                    "displayname":
-                    get(get(review, "entity"), "displayName"),
-                    "author":
-                    get(get(review, "entity"), "author"),
-                    "language":
-                    get(review, "language"),
-                    "shortauthor":
-                    get(get(review, "entity"), "shortAuthor")
-                }]
-
-            con.insertmany("review", results)
+                comment = get(review, "comment")
+                if comment is not None:
+                    commentmd5 = hashlib.md5(comment.encode()).digest()
+                    con.insert(
+                        "review",
+                        extid=ext_id,
+                        date=con.convert_date(date),
+                        commentdate=datetime.datetime.utcfromtimestamp(
+                            get(review, "timestamp")).isoformat()
+                        if "timestamp" in review else None,
+                        rating=get(review, "starRating"),
+                        commentmd5=commentmd5,
+                        displayname=get(get(review, "entity"), "displayName"),
+                        author=get(get(review, "entity"), "author"),
+                        language=get(review, "language"),
+                        shortauthor=get(get(review, "entity"), "shortAuthor"))
+                    con.insert(
+                        "review_comment",
+                        comment=comment,
+                        commentmd5=commentmd5)
 
 
 def parse_and_insert_support(ext_id, date, supportpath, con):
@@ -324,32 +319,27 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
         d = json.JSONDecoder().raw_decode(stripped)
         annotations = get(next(iter(d), None), "annotations")
         if annotations:
-            results = []
             for review in d[0]["annotations"]:
-                results += [{
-                    "extid":
-                    ext_id,
-                    "date":
-                    con.convert_date(date),
-                    "commentdate":
-                    datetime.datetime.utcfromtimestamp(
-                        get(review, "timestamp")).isoformat()
-                    if "timestamp" in review else None,
-                    "title":
-                    get(review, "title"),
-                    "comment":
-                    get(review, "comment"),
-                    "displayname":
-                    get(get(review, "entity"), "displayName"),
-                    "author":
-                    get(get(review, "entity"), "author"),
-                    "language":
-                    get(review, "language"),
-                    "shortauthor":
-                    get(get(review, "entity"), "shortAuthor")
-                }]
-
-            con.insertmany("support", results)
+                comment = get(review, "comment")
+                if comment is not None:
+                    commentmd5 = hashlib.md5(comment.encode()).digest()
+                    con.insert(
+                        "support",
+                        extid=ext_id,
+                        date=con.convert_date(date),
+                        commentdate=datetime.datetime.utcfromtimestamp(
+                            get(review, "timestamp")).isoformat()
+                        if "timestamp" in review else None,
+                        title=get(review, "title"),
+                        commentmd5=commentmd5,
+                        displayname=get(get(review, "entity"), "displayName"),
+                        author=get(get(review, "entity"), "author"),
+                        language=get(review, "language"),
+                        shortauthor=get(get(review, "entity"), "shortAuthor"))
+                    con.insert(
+                        "support_comment",
+                        comment=comment,
+                        commentmd5=commentmd5)
 
 
 def parse_and_insert_replies(ext_id, date, repliespath, con):
@@ -360,37 +350,34 @@ def parse_and_insert_replies(ext_id, date, repliespath, con):
             log_warning("* WARNING: there are no search results in {}".format(
                 repliespath), 3, ext_id)
             return
-        results = []
         for result in d["searchResults"]:
             if "annotations" not in result:
                 continue
             for annotation in result["annotations"]:
-                results += [{
-                    "extid":
-                    ext_id,
-                    "date":
-                    con.convert_date(date),
-                    "commentdate":
-                    datetime.datetime.utcfromtimestamp(
-                        get(annotation, "timestamp")).isoformat()
-                    if "timestamp" in annotation else None,
-                    "replyto":
-                    get(
-                        get(get(annotation, "entity"), "annotation"),
-                        "author"),
-                    "comment":
-                    get(annotation, "comment"),
-                    "displayname":
-                    get(get(annotation, "entity"), "displayName"),
-                    "author":
-                    get(get(annotation, "entity"), "author"),
-                    "language":
-                    get(annotation, "language"),
-                    "shortauthor":
-                    get(get(annotation, "entity"), "shortAuthor")
-                }]
-        con.insertmany("reply", results)
-    return ""
+                comment = get(annotation, "comment")
+                if comment is not None:
+                    commentmd5 = hashlib.md5(comment.encode()).digest()
+                    con.insert(
+                        "reply",
+                        extid=ext_id,
+                        date=con.convert_date(date),
+                        commentdate=datetime.datetime.utcfromtimestamp(
+                            get(annotation, "timestamp")).isoformat()
+                        if "timestamp" in annotation else None,
+                        replyto=get(
+                            get(get(annotation, "entity"), "annotation"),
+                            "author"),
+                        commentmd5=commentmd5,
+                        displayname=get(
+                            get(annotation, "entity"), "displayName"),
+                        author=get(get(annotation, "entity"), "author"),
+                        language=get(annotation, "language"),
+                        shortauthor=get(
+                            get(annotation, "entity"), "shortAuthor"))
+                    con.insert(
+                        "reply_comment",
+                        commentmd5=commentmd5,
+                        comment=comment)
 
 
 def parse_and_insert_status(ext_id, date, datepath, con):
