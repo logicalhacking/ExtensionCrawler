@@ -124,7 +124,7 @@ def print_block(conf,
         else:
             classifier = "C"
 
-        if block.is_code and string_match:
+        if block.is_code() and string_match:
             if conf.join_string_literals:
                 loc = '({0:d} - {1:d})'.format(block.start[0], block.start[1])
                 loc = (' ' * (11 - len(loc))) + loc
@@ -139,8 +139,7 @@ def print_block(conf,
                     print(line)
             if code_match:
                 print("-" * (len(path) + 17))
-
-        if block.is_comment or (block.is_code and code_match):
+        if block.is_comment() or (block.is_code() and code_match):
             for line in block.content.splitlines(True):
                 if line_no == block.start[0]:
                     line = prefix + line
