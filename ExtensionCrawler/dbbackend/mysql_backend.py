@@ -24,7 +24,7 @@ import MySQLdb
 import _mysql_exceptions
 
 import ExtensionCrawler.config as config
-from ExtensionCrawler.util import log_info, log_error, log_exception
+from ExtensionCrawler.util import log_info, log_error, log_exception, log_warning
 
 
 class MysqlBackend:
