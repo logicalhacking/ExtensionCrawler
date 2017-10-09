@@ -15,7 +15,9 @@ date +'* Start Updating Extensions Archive (%c)' | tee $LOG
 
 date +'* Update Finished (%c)' | tee -a $LOG
 
-echo "ERROR LOG:"
+ERRORS=`$LOGPREFIX.log | sort -k 5,5 -u| wc -l`
+EXTENSIONS=`grep "Updating db" $LOGPREFIX.log | wc -l`
+echo "ERROR LOG: $ERRORS (out of $EXTENSIONS)"
 echo "=========="
 grep ERROR $LOGPREFIX.log | sort -k 5,5 -u 
 
