@@ -46,7 +46,7 @@ def normalize_jsdata(str_data):
 def get_data_identifiers(data):
     """Get basic data identifiers (size, hashes, normalized hashes, etc.)."""
     magic_desc = ""
-    try:  
+    try:
         magic_desc = magic.from_buffer(data)
     except magic.MagicException as exp:
         rgx = re.compile(r' name use count.*$')
@@ -72,11 +72,27 @@ def get_data_identifiers(data):
         normalized_data = None
 
     if normalized_data is None:
+        data_identifier['normalized_encoding'] = None
+        data_identifier['normalized_description'] = None
+        data_identifier['normalized_size'] = None
         data_identifier['normalized_loc'] = None
         data_identifier['normalized_md5'] = None
         data_identifier['normalized_sha1'] = None
         data_identifier['normalized_sha256'] = None
     else:
+        normalized_magic_desc = ""
+        try:
+            normalized_magic_desc = magic.from_buffer(normalized_data)
+        except magic.MagicException as exp:
+            rgx = re.compile(r' name use count.*$')
+            msg = str(exp.message)
+            if re.search(rgx, msg):
+                magic_desc = re.sub(rgx, '', msg)
+            else:
+                raise exp
+        data_identifier['normalized_encoding'] = chardet.detect(normalized_data)['encoding']
+        data_identifier['normalized_description'] = normalized_magic_desc
+        data_identifier['normalized_size'] = len(normalized_data)
         data_identifier['normalized_loc'] = normalized_loc
         data_identifier['normalized_md5'] = hashlib.md5(
             normalized_data).digest()
@@ -128,6 +144,9 @@ def get_file_identifiers(path, data=None):
         'loc': data_identifier['loc'],
         'description': data_identifier['description'],
         'encoding': data_identifier['encoding'],
+        'normalized_encoding': data_identifier['normalized_encoding'],
+        'normalized_description': data_identifier['normalized_description'],
+        'normalized_size': data_identifier['normalized_size'],
         'normalized_loc': data_identifier['normalized_loc'],
         'normalized_md5': data_identifier['normalized_md5'],
         'normalized_sha1': data_identifier['normalized_sha1'],

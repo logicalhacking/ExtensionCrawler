@@ -32,6 +32,8 @@ import dateutil.parser
 import git
 
 from ExtensionCrawler.file_identifiers import get_file_identifiers
+from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
+import ExtensionCrawler.config as config
 
 
 def get_add_date(git_path, filename):
@@ -74,7 +76,7 @@ def pull_list_changed_files(git_path):
 
 
 def hackish_pull_list_changed_files(git_path):
-    """Pull new updates from remote origin (hack, using git binary - 
+    """Pull new updates from remote origin (hack, using git binary -
        faster but not as safe as GitPython)."""
     git_repo = git.Repo(git_path)
     logging.info(" HEAD: " + str(git_repo.head.commit))
@@ -182,8 +184,8 @@ def get_all_lib_files(cdnjs_git_path, localpath=None):
     return files, list(libvers)
 
 
-def update_database_for_file(create_csv, release_dic, cdnjs_git_path,
-                             filename):
+def update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
+                             con):
     """Update database for all file."""
     if os.path.isfile(filename):
         logging.info("Updating database for file " + filename)
@@ -207,9 +209,51 @@ def update_database_for_file(create_csv, release_dic, cdnjs_git_path,
                 csv_writer.writeheader()
                 csv_writer.writerow(file_info)
             else:
-                logging.info("Updating database (TODO) ...")
+                logging.info("Updating database ...")
+                for prefix, typ in [("", "AS_IS"), ("normalized_",
+                                                    "NORMALIZED"),
+                                    ("dec_", "DECOMPRESSED"),
+                                    ("dec_normalized_",
+                                     "DECOMPRESSED_NORMALIZED")]:
+                    if file_info[prefix + "md5"] is not None:
+                        con.insert(
+                            "cdnjs",
+                            md5=file_info[prefix + "md5"],
+                            sha1=file_info[prefix + "sha1"],
+                            sha256=file_info[prefix + "sha256"],
+                            size=file_info[prefix + "size"],
+                            loc=file_info[prefix + "loc"],
+                            description=file_info[prefix + "description"],
+                            encoding=file_info[prefix + "encoding"],
+                            mimetype=file_info["mimetype"][0] if "mimetype" in file_info else None,
+                            mimetype_detail=file_info["mimetype"][1] if "mimetype" in file_info else None,
+                            path=file_info["path"],
+                            filename=file_info["filename"],
+                            add_date=file_info["add_date"],
+                            library=file_info["library"],
+                            version=file_info["version"],
+                            typ=typ)
+
     else:
         logging.info("Skipping update for deleted file " + filename)
+
+
+def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
+                                     filenames):
+    with MysqlBackend(
+            None,
+            read_default_file=config.const_mysql_config_file(),
+            charset='utf8mb4',
+            compress=True) as con:
+        for filename in filenames:
+            update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
+                            con)
+
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
 
 def update_database(create_csv,
@@ -220,8 +264,8 @@ def update_database(create_csv,
     """Update database for all files in files."""
     with Pool(poolsize) as pool:
         pool.map(
-            partial(update_database_for_file, create_csv, release_dic,
-                    cdnjs_git_path), files)
+            partial(update_database_for_file_chunked, create_csv, release_dic,
+                    cdnjs_git_path), chunks(list(files), 200))
 
 
 def get_release_triple(git_path, libver):
