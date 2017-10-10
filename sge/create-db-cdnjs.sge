@@ -1,0 +1,19 @@
+#!/bin/bash
+#$ -V
+#$ -l rmem=4G
+#$ -t 1-10000
+#$ -j yes
+#$ -o /shared/brucker_research1/Shared/BrowserExtensions/archive/filedb/log 
+set -o nounset
+set -x
+
+SING_IMG=/shared/brucker_research1/Shared/BrowserExtensions/archive/filedb/ExtensionCrawler-cdnjs.img
+
+SING_EXEC="singularity exec -w --pwd /opt/ExtensionCrawler -B $TMPDIR:/tmp $SING_IMG"
+
+printenv
+echo "The following parameter were passed: $*"
+ls "$SING_IMG" > /dev/null
+
+/usr/bin/time $SING_EXEC ./cdnjs-git-miner -v -p 1 -i -a /opt/archive -n $SGE_TASK_ID -N 10000 $*
+
