@@ -332,7 +332,7 @@ def update_db_all_libs(cdnjs_git_path,
         libvers = set()
         versionidx = len(path_to_list(cdnjs_git_path)) + 4
         for path in files:
-            libvers.add(path[:versionidx + 5])
+            libvers.add(path_to_list(path)[:versionidx + 5])
         libvers = list(libvers)
         logging.info("This task has  " + str(len(files)) + " files from  " +
                      str(len(libvers)) + " library version(s).")
