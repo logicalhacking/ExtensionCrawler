@@ -76,6 +76,10 @@ def main(argv):
     logger.addHandler(ch)
     logger.setLevel(loglevel)
 
+    # Surpressing these "Starting HTTPS connection ..." log messages
+    # Older versions of requests use loglevel INFO for that, newer ones DEBUG
+    logging.getLogger("requests").setLevel(logging.WARNING)
+
     update_jslib_archive(force, clean, basedir)
     update_sha1_map_file(basedir)
     update_md5_map_file(basedir)
