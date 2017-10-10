@@ -94,7 +94,7 @@ chmod -R go+u-w /usr/local/bin/
 
 ###################################################################
 # Clone cdnjs repository or crate link to external archive dir
-ARCHIVE=/shared/brucker_research1/Shared/BrowserExtensions/archive/
+ARCHIVE=/shared/brucker_research1/Shared/BrowserExtensions/archive
 case ${SINGULARITY_IMAGE} in 
   *-cdnjs.img)
     mkdir -p /opt/archive/filedb
@@ -102,15 +102,16 @@ case ${SINGULARITY_IMAGE} in
     git clone https://github.com/cdnjs/cdnjs.git cdnjs-git
     cd cdnjs-git
     git pull
-    cd  /opt/archive/ 
-    ln -s ${ARCHIVE}/* . > /dev/null
-    chmod -R go+u-w /opt/archive 
+    ln -s ${ARCHIVE}/conf . > /dev/null
+    ln -s ${ARCHIVE}/data > /dev/null
+    ln -s ${ARCHIVE}/log > /dev/null
     ;;
   *)
     cd  /opt/
     ln -s ${ARCHIVE} .
     ;;
 esac
+chmod -R go+u /opt
 ###################################################################
 
 ###################################################################
