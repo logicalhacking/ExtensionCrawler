@@ -11,7 +11,7 @@ LOG=$LOGPREFIX-global.log
 date +'* Start Updating Extensions Archive (%c)' | tee $LOG
 
 # Update extensions
-(cd $CRAWLERHOME; (./crawler -p 24 -d -a $ARCHIVE > $LOGPREFIX.log))
+(cd $CRAWLERHOME; (./crawler -p 32 -d -a $ARCHIVE > $LOGPREFIX.log))
 
 date +'* Update Finished (%c)' | tee -a $LOG
 
