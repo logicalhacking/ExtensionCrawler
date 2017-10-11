@@ -227,7 +227,7 @@ def mince_js_fileobj_slc_blocks(fileobj):
     """Mince JavaScript file object into code and comment blocks (join subsequent
        single line comments)."""
     for block in mince_js_fileobj(fileobj):
-         if block.typ == JsBlockType.SINGLE_LINE_COMMENT:
+        if block.typ == JsBlockType.SINGLE_LINE_COMMENT:
             start = block.start
             end = block.end
             content = block.content
