@@ -172,7 +172,7 @@ def check_md5_normalized(con, file_info):
             file_info['lib'] = libver[0]
             file_info['version'] = libver[1]
             file_info['lib_filename'] = libver[2]
-            file_info['type'] = FileClassification.LIBRARY
+            file_info['type'] = FileClassification.VERY_LIKELY_LIBRARY
             file_info['detectionMethod'] = DetectionType.MD5_NORMALIZED
             return file_info
 
@@ -188,7 +188,7 @@ def check_md5_decompressed_normalized(con, file_info):
             file_info['lib'] = libver[0]
             file_info['version'] = libver[1]
             file_info['lib_filename'] = libver[2]
-            file_info['type'] = FileClassification.LIBRARY
+            file_info['type'] = FileClassification.VERY_LIKELY_LIBRARY
             file_info['detectionMethod'] = DetectionType.MD5_DECOMPRESSED_NORMALIZED
             return file_info
 
