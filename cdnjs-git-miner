@@ -107,13 +107,21 @@ def main(argv):
     cdnjs_git_path = os.path.join(os.path.join(basedir, "filedb"), "cdnjs-git")
 
     if initialize:
+        logging.info("Starting update of all db libs")
         update_db_all_libs(cdnjs_git_path, csv, taskid, maxtaskid,
                            parallel_updates)
+        logging.info("Finished update of all db libs")
     if update:
+        logging.info("Starting update of new db libs")
         pull_and_update_db(cdnjs_git_path, csv, parallel_updates)
+        logging.info("Finished update of new db libs")
     if not listfile is None:
+        logging.info("Starting update from list file")
         update_db_from_listfile(cdnjs_git_path, listfile, csv,
                                 parallel_updates)
+        logging.info("Finished update from list file")
+
+    logging.info("Successfully updated cdnjs table")
 
 
 if __name__ == "__main__":
