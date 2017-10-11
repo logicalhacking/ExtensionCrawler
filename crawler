@@ -129,8 +129,8 @@ def log_summary(res, runtime=0):
         log_info("")
         log_info("List of extensions with corrupted files/archives:")
         list(
-            map(lambda x: log_info("    " + x.id + ": " + str(x.exception), corrupt_tar_archives)
-                ))
+            map(lambda x: log_info("    " + x.id + ": " + str(x.exception)), corrupt_tar_archives)
+                )
         log_info("")
 
 
