@@ -411,6 +411,7 @@ if __name__ == "__main__":
         '--parallel',
         metavar='P',
         type=int,
+        default=1,
         help='run P  threads in parallel')
 
     main_parser.add_argument(
