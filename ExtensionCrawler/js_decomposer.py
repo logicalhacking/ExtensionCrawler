@@ -32,17 +32,20 @@ import ExtensionCrawler.config as config
 class DetectionType(Enum):
     """Enumeration for detection types."""
     # EMPTY_FILE
-    FILE_SIZE = "file_size"
+    FILE_SIZE = "file size"
+    DEC_FILE_SIZE = "file size (after decompression)"
+    STRIPPED_FILE_SIZE = "file size (after stripping)"
+    DEC_STRIPPED_FILE_SIZE = "file size (after decompression and stripping)"
     # LIBRARY 
     SHA1 = "sha1"
     MD5 = "md5"
     SHA1_DECOMPRESSED = "sha1 (after decompression)"
     MD5_DECOMPRESSED = "md5 (after decompression)"
+    # VERY_LIKELY_LIBRARY
     SHA1_NORMALIZED = "sha1 (after normalization)"
     MD5_NORMALIZED = "md5 (after normalization)"
     SHA1_DECOMPRESSED_NORMALIZED = "sha1 (after decompression and normalization)"
     MD5_DECOMPRESSED_NORMALIZED = "md5 (after decompression and normalization)"
-    # VERY_LIKELY_LIBRARY
     FILENAME_COMMENTBLOCK = "filename and witness in comment block"
     FILENAME_CODEBLOCK = "filename and witness in code block"
     # LIKELY_LIBRARY
@@ -120,7 +123,19 @@ def check_empty_file(file_info):
     if file_info['size'] == 0:
         file_info['detectionMethod'] = DetectionType.FILE_SIZE
         file_info['type'] = FileClassification.EMPTY_FILE
+    elif file_info['dec_size'] == 0:
+        file_info['detectionMethod'] = DetectionType.DEC_FILE_SIZE
+        file_info['type'] = FileClassification.EMPTY_FILE
+    elif file_info['size_stripped'] == 0:
+        file_info['detectionMethod'] = DetectionType.STRIPPED_FILE_SIZE
+        file_info['type'] = FileClassification.EMPTY_FILE
+    elif file_info['dec_size_stripped'] == 0:
+        file_info['detectionMethod'] = DetectionType.DEC_STRIPPED_FILE_SIZE
+        file_info['type'] = FileClassification.EMPTY_FILE
+    
     return file_info
+
+
 
 def check_metadata(file_info):
     """Check for metadata (based on filename/path)."""
@@ -164,6 +179,8 @@ def check_md5_normalized(con, file_info):
     """Check for known md5 hash (normalized file content)."""
     if file_info['normalized_md5'] is None:
         return file_info
+    elif file_info['normalized_size'] == 0:
+        return file_info
     else:
         libver = con.get_cdnjs_info(file_info['normalized_md5'])
         if libver is None: 
@@ -179,6 +196,8 @@ def check_md5_normalized(con, file_info):
 def check_md5_decompressed_normalized(con, file_info):
     """Check for known md5 hash (decompressed normalized file content)."""
     if file_info['dec_normalized_md5'] is None:
+        return file_info
+    elif file_info['dec_normalized_size'] == 0:
         return file_info
     else:
         libver = con.get_cdnjs_info(file_info['dec_normalized_md5'])
