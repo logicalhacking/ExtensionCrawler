@@ -156,12 +156,18 @@ def analyze_block(conf, path, block, first=False):
     regexps = []
     if not conf.reg_exp is None:
         for regexp in conf.reg_exp:
-            regexps.append(re.compile('(' + regexp + ')'))
+            if conf.case_insensitive:
+                regexps.append(re.compile('(' + regexp + ')', re.IGNORECASE))
+            else:
+                regexps.append(re.compile('(' + regexp + ')'))
     if block.is_comment():
         content = block.content
         if not conf.reg_exp_comments is None:
             for regexp in conf.reg_exp_comments:
-                regexps.append(re.compile('(' + regexp + ')'))
+                if conf.case_insensitive:
+                    regexps.append(re.compile('(' + regexp + ')', re.IGNORECASE))
+                else:
+                    regexps.append(re.compile('(' + regexp + ')'))
         for regexp in regexps:
             if regexp.search(block.content):
                 if conf.colorize:
@@ -177,10 +183,16 @@ def analyze_block(conf, path, block, first=False):
         regexps_code = regexps.copy()
         if not conf.reg_exp_string_literals is None:
             for regexp in conf.reg_exp_string_literals:
-                regexps_string.append(re.compile('(' + regexp + ')'))
+                if conf.case_insensitive:
+                    regexps.append(re.compile('(' + regexp + ')', re.IGNORECASE))
+                else:
+                    regexps.append(re.compile('(' + regexp + ')'))
         if not conf.reg_exp_source is None:
             for regexp in conf.reg_exp_source:
-                regexps_code.append(re.compile('(' + regexp + ')'))
+                if conf.case_insensitive:
+                    regexps.append(re.compile('(' + regexp + ')', re.IGNORECASE))
+                else:
+                    regexps.append(re.compile('(' + regexp + ')'))
         string_match = False
         match_idxs = set()
         string_literals = block.string_literals.copy()
@@ -393,6 +405,12 @@ if __name__ == "__main__":
         action='store_true',
         default=False,
         help='increase verbosity')
+    main_parser.add_argument(
+        '-i',
+        '--case-insensitive',
+        action='store_true',
+        default=False,
+        help='match case insensitive')
 
     main_parser.add_argument(
         '-o',
