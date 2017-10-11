@@ -49,7 +49,7 @@ done
 
 if [ "$CDNJS" = "true" ]; then
     IMAGE=${BASE}-cdnjs.img
-    BASESIZE=$((BASESIZE+124400))
+    BASESIZE=$((BASESIZE+134400))
 else
     IMAGE=${BASE}.img
 fi
