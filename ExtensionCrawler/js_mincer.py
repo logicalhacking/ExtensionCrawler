@@ -14,8 +14,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-""" A mostly correct JavaScript analyser that separted comments from code. The
-    implementation priotizes speed over correctness. """
+""" A mostly correct JavaScript analyzer that separates comments from code. The
+    implementation prioritizes speed over correctness. """
 
 from enum import Enum
 
@@ -31,17 +31,17 @@ class JsBlockType(Enum):
 
 
 def is_string_literal_sq(state):
-    """Check if block is a single quote tring literal."""
+    """Check if block is a single quote string literal."""
     return state == JsBlockType.STRING_SQ
 
 
 def is_string_literal_dq(state):
-    """Check if block is a double quote tring literal."""
+    """Check if block is a double quote string literal."""
     return state == JsBlockType.STRING_DQ
 
 
 def is_string_literal(state):
-    """Check if block is a quote tring literal."""
+    """Check if block is a quote string literal."""
     return is_string_literal_sq(state) or is_string_literal_dq(state)
 
 
