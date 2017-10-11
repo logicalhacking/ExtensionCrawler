@@ -68,12 +68,12 @@ def main(argv):
 
     fieldnames = [
         'filename', 'path', 'size', 'dec_size', 'md5', 'sha1', 'mimetype', 'description', 'encoding', 'type',
-        'detectionMethod', 'detectionMethodDetails', 'lib', 'version', 'evidenceText', 
+        'detectionMethod', 'detectionMethodDetails', 'lib', 'version', 'lib_filename', 'evidenceText', 
         'evidenceStartPos', 'evidenceEndPos'
     ]
 
     brief_fieldnames = [
-        'filename', 'md5', 'type', 'detectionMethod',  'lib', 'version'
+        'filename', 'md5', 'type', 'detectionMethod',  'lib', 'version', 'lib_filename'
     ]
 
     if filename.endswith('.crx'):

@@ -112,6 +112,7 @@ def init_file_info(path, data):
     file_info['evidenceStartPos'] = None
     file_info['evidenceEndPos'] = None
     file_info['evidenceText'] = None
+    file_info['lib_filename'] = None
     return file_info
 
 def check_empty_file(file_info):
@@ -129,7 +130,7 @@ def check_metadata(file_info):
     return file_info
 
 def check_md5(con, file_info):
-    """Check for known sha1 hash (file content)."""
+    """Check for known md5 hash (file content)."""
     # (library, version, add_date, typ) = con.get_cdnjs_info(file_info['md5'])
     libver = con.get_cdnjs_info(file_info['md5'])
     if libver is None: 
@@ -137,12 +138,13 @@ def check_md5(con, file_info):
     else:
         file_info['lib'] = libver[0]
         file_info['version'] = libver[1]
+        file_info['lib_filename'] = libver[2]
         file_info['type'] = FileClassification.LIBRARY
         file_info['detectionMethod'] = DetectionType.MD5
         return file_info
 
 def check_md5_decompressed(con, file_info):
-    """Check for known sha1 hash (decompressed file content)."""
+    """Check for known md5 hash (decompressed file content)."""
     if file_info['dec_md5'] is None:
         return file_info
     else:
@@ -152,13 +154,14 @@ def check_md5_decompressed(con, file_info):
         else:
             file_info['lib'] = libver[0]
             file_info['version'] = libver[1]
+            file_info['lib_filename'] = libver[2]
             file_info['type'] = FileClassification.LIBRARY
             file_info['detectionMethod'] = DetectionType.MD5_DECOMPRESSED
             return file_info
     return file_info
 
 def check_md5_normalized(con, file_info):
-    """Check for known sha1 hash (normalized file content)."""
+    """Check for known md5 hash (normalized file content)."""
     if file_info['normalized_md5'] is None:
         return file_info
     else:
@@ -168,14 +171,26 @@ def check_md5_normalized(con, file_info):
         else:
             file_info['lib'] = libver[0]
             file_info['version'] = libver[1]
+            file_info['lib_filename'] = libver[2]
             file_info['type'] = FileClassification.LIBRARY
             file_info['detectionMethod'] = DetectionType.MD5_NORMALIZED
             return file_info
 
 def check_md5_decompressed_normalized(con, file_info):
-    """Check for known sha1 hash (decompressed normalized file content)."""
-    # TODO
-    return file_info
+    """Check for known md5 hash (decompressed normalized file content)."""
+    if file_info['dec_normalized_md5'] is None:
+        return file_info
+    else:
+        libver = con.get_cdnjs_info(file_info['dec_normalized_md5'])
+        if libver is None: 
+            return file_info
+        else:
+            file_info['lib'] = libver[0]
+            file_info['version'] = libver[1]
+            file_info['lib_filename'] = libver[2]
+            file_info['type'] = FileClassification.LIBRARY
+            file_info['detectionMethod'] = DetectionType.MD5_DECOMPRESSED_NORMALIZED
+            return file_info
 
 def check_filename(file_info):
     """Check for known filename and typical library filename patterns."""

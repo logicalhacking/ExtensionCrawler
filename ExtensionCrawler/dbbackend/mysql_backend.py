@@ -135,7 +135,7 @@ class MysqlBackend:
             (extid, date))
 
     def get_cdnjs_info(self, md5):
-        query = """SELECT library, version, add_date, typ from cdnjs where md5=%s"""
+        query = """SELECT library, version, filename, add_date, typ from cdnjs where md5=%s"""
         args = [md5]
         self.retry(lambda: self.cursor.execute(query, args))
         result = self.retry(lambda: self.cursor.fetchone())
