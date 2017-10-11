@@ -96,7 +96,7 @@ class JsBlock:
 
     def is_code(self):
         """Check if block is a code block."""
-        return is_code(self.typ)
+        return not is_comment(self.typ)
 
     def is_comment(self):
         """Check if block is a comment."""
