@@ -130,6 +130,7 @@ def get_file_libinfo(release_dic, git_path, libfile):
     idx = plist.index("libs")
     lib = plist[idx + 1]
     version = plist[idx + 2]
+    file_info['path'] = os.path.relpath(file_info['path'], git_path+"/ajax/libs")
     file_info['library'] = lib
     file_info['version'] = version
     file_info['add_date'] = release_dic[(lib, version)]
@@ -235,7 +236,7 @@ def update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
                             typ=typ)
 
     else:
-        logging.info("Skipping update for deleted file " + filename)
+        logging.ERROR("Skipping update for deleted file " + filename)
 
 
 def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
