@@ -23,7 +23,7 @@ import os
 import glob
 import re
 import json
-from multiprocessing import Pool
+from multiprocessing import Pool, Lock
 from functools import partial
 import shutil
 import tempfile
@@ -34,12 +34,13 @@ import datetime
 import dateutil
 import dateutil.parser
 import requests
+import random
 
 from ExtensionCrawler.config import (
     const_review_payload, const_review_search_url, const_download_url,
     get_local_archive_dir, const_overview_url, const_support_url,
     const_support_payload, const_review_search_payload, const_review_url)
-from ExtensionCrawler.util import google_dos_protection, value_of, log_info, log_exception
+from ExtensionCrawler.util import google_dos_protection, value_of, log_info, log_exception, log_warning
 from ExtensionCrawler.db import update_db_incremental
 
 
@@ -343,23 +344,37 @@ def update_crx(archivedir, tmptardir, ext_id, date):
     return RequestResult(res)
 
 
-def iterate_authors(pages):
+def iterate_authors(ext_id, pages):
     for page in pages:
-        json_page = json.loads(page[page.index("{\""):page.rindex("}}},") + 1])
-        for annotation in json_page["annotations"]:
-            if "attributes" in annotation and "replyExists" in annotation["attributes"] and annotation["attributes"]["replyExists"]:
-                yield (annotation["entity"]["author"],
-                       annotation["entity"]["groups"])
+        try:
+            json_page = json.loads(page[page.index("{\""):page.rindex("}}},") + 1])
+            for annotation in json_page["annotations"]:
+                if "attributes" in annotation and "replyExists" in annotation["attributes"] and annotation["attributes"]["replyExists"]:
+                    yield (annotation["entity"]["author"],
+                        annotation["entity"]["groups"])
+        except ValueError as e:
+            log_warning("Could not read review/store/reply page: " + str(e), 3, ext_id)
 
 
-def update_reviews(tar, date, ext_id):
+def restricted_post(url, proxy, **kwargs):
+    kwargs.update(proxies={"http": proxy, "https": proxy})
+    if 'lock' in globals():
+        with lock:
+            google_dos_protection()
+            return requests.post(url, **kwargs)
+    else:
+        google_dos_protection()
+        return requests.post(url, **kwargs)
+
+
+def update_reviews(tar, date, proxy, ext_id):
     res = None
     try:
         pages = []
 
-        google_dos_protection()
-        res = requests.post(
+        res = restricted_post(
             const_review_url(),
+            proxy,
             data=const_review_payload(ext_id, "0", "100"),
             timeout=10)
         log_info("* review page   0-100: {}".format(str(res.status_code)), 2,
@@ -367,9 +382,9 @@ def update_reviews(tar, date, ext_id):
         store_request_text(tar, date, 'reviews000-099.text', res)
         pages += [res.text]
 
-        google_dos_protection()
-        res = requests.post(
+        res = restricted_post(
             const_review_url(),
+            proxy,
             data=const_review_payload(ext_id, "100", "100"),
             timeout=10)
         log_info("* review page   100-200: {}".format(str(res.status_code)), 2,
@@ -377,13 +392,13 @@ def update_reviews(tar, date, ext_id):
         store_request_text(tar, date, 'reviews100-199.text', res)
         pages += [res.text]
 
-        google_dos_protection()
         # Always start with reply number 0 and request 10 replies
         ext_id_author_tups = [(ext_id, author, 0, 10, groups)
-                              for author, groups in iterate_authors(pages)]
+                              for author, groups in iterate_authors(ext_id, pages)]
         if ext_id_author_tups:
-            res = requests.post(
+            res = restricted_post(
                 const_review_search_url(),
+                proxy,
                 data=const_review_search_payload(ext_id_author_tups),
                 timeout=10)
             log_info("* review page replies: {}".format(str(res.status_code)),
@@ -396,14 +411,14 @@ def update_reviews(tar, date, ext_id):
     return RequestResult(res)
 
 
-def update_support(tar, date, ext_id):
+def update_support(tar, date, proxy, ext_id):
     res = None
     try:
         pages = []
 
-        google_dos_protection()
-        res = requests.post(
+        res = restricted_post(
             const_support_url(),
+            proxy,
             data=const_support_payload(ext_id, "0", "100"),
             timeout=10)
         log_info("* support page   0-100: {}".format(str(res.status_code)), 2,
@@ -411,9 +426,9 @@ def update_support(tar, date, ext_id):
         store_request_text(tar, date, 'support000-099.text', res)
         pages += [res.text]
 
-        google_dos_protection()
-        res = requests.post(
+        res = restricted_post(
             const_support_url(),
+            proxy,
             data=const_support_payload(ext_id, "100", "100"),
             timeout=10)
         log_info("* support page 100-200: {}".format(str(res.status_code)), 2,
@@ -421,13 +436,13 @@ def update_support(tar, date, ext_id):
         store_request_text(tar, date, 'support100-199.text', res)
         pages += [res.text]
 
-        google_dos_protection()
         # Always start with reply number 0 and request 10 replies
         ext_id_author_tups = [(ext_id, author, 0, 10, groups)
-                              for author, groups in iterate_authors(pages)]
+                              for author, groups in iterate_authors(ext_id, pages)]
         if ext_id_author_tups:
-            res = requests.post(
+            res = restricted_post(
                 const_review_search_url(),
+                proxy,
                 data=const_review_search_payload(ext_id_author_tups),
                 timeout=10)
             log_info("* support page replies: {}".format(str(res.status_code)),
@@ -440,7 +455,9 @@ def update_support(tar, date, ext_id):
     return RequestResult(res)
 
 
-def update_extension(archivedir, forums, ext_id):
+def update_extension(archivedir, forums_ext_ids, proxy, ext_id):
+    forums = ext_id in forums_ext_ids
+
     log_info("Updating extension {}".format(" (including forums)"
                                             if forums else ""), 1, ext_id)
     is_new = False
@@ -472,12 +489,12 @@ def update_extension(archivedir, forums, ext_id):
     res_reviews = None
     res_support = None
     if forums:
-        res_reviews = update_reviews(tmptardir, date, ext_id)
+        res_reviews = update_reviews(tmptardir, date, proxy, ext_id)
 
     res_crx = update_crx(archivedir, tmptardir, ext_id, date)
 
     if forums:
-        res_support = update_support(tmptardir, date, ext_id)
+        res_support = update_support(tmptardir, date, proxy, ext_id)
 
     backup = False
     if backup:
@@ -548,8 +565,11 @@ def update_extension(archivedir, forums, ext_id):
     return UpdateResult(ext_id, is_new, tar_exception, res_overview, res_crx,
                         res_reviews, res_support, sql_exception, sql_success)
 
+def init_child(lock_):
+    global lock
+    lock = lock_
 
-def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
+def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, proxy):
     ext_with_forums = []
     ext_without_forums = []
     ext_ids = (list(set(ext_ids) - set(forums_ext_ids)))
@@ -557,23 +577,33 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
     log_info("Updating {} extensions ({} including forums)".format(
         len(ext_ids), len(forums_ext_ids)))
 
-    # First, update all extensions without forums in parallel (increased speed).
-    # parallel_ids = list(set(ext_ids) - set(forums_ext_ids))
-    parallel_ids = ext_ids
-    log_info("Updating {} extensions excluding forums (parallel)".format(
-        len(parallel_ids)), 1)
-    with Pool(parallel) as p:
+    if proxy is None:
+        # First, update all extensions without forums in parallel (increased speed).
+        # parallel_ids = list(set(ext_ids) - set(forums_ext_ids))
+        parallel_ids = ext_ids
+        log_info("Updating {} extensions excluding forums (parallel)".format(
+            len(parallel_ids)), 1)
+    else:
+        parallel_ids = ext_ids + forums_ext_ids
+        random.shuffle(parallel_ids)
+        log_info("Updating {} extensions including forums (parallel)".format(
+            len(parallel_ids)), 1)
+
+    with Pool(parallel, initializer=init_child, initargs=(Lock(),)) as p:
         ext_without_forums = list(
-            p.map(partial(update_extension, archivedir, False), parallel_ids))
+            p.map(partial(update_extension, archivedir, set(forums_ext_ids), proxy), parallel_ids))
 
 
     # Second, update extensions with forums sequentially (and with delays) to
     # avoid running into Googles DDOS detection.
-    log_info("Updating {} extensions including forums (sequentially)".format(
-        len(forums_ext_ids)), 1)
+    if proxy is None:
+        log_info("Updating {} extensions including forums (sequentially)".format(
+            len(forums_ext_ids)), 1)
 
-    ext_with_forums = list(
-        map(partial(update_extension, archivedir, True), forums_ext_ids))
+        ext_with_forums = list(
+            map(partial(update_extension, archivedir, set(forums_ext_ids), proxy), forums_ext_ids))
+    else:
+        log_info("Skipping sequential forum download")
 
 
     return ext_with_forums + ext_without_forums

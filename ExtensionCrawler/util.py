@@ -26,7 +26,7 @@ import logging
 def google_dos_protection(maxrange=0.3):
     """Wait a random number of seconds (between 0.5 to 0.5+maxrange)
        to avoid Google's bot detection"""
-    sleep(0.5+(random()*maxrange))
+    sleep(1+(random()*maxrange))
 
 def value_of(value, default):
     """Get value or default value if None."""

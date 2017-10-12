@@ -42,14 +42,15 @@ class MysqlBackend:
         return self
 
     def __exit__(self, *args):
-        start = time.time()
-        self.retry(self._commit_cache)
-        self.db.commit()
-        log_info(
-            "* Database batch insert finished after {}".format(
-                datetime.timedelta(seconds=int(time.time() - start))),
-            2,
-            self.ext_id)
+        if self.cache is not {}:
+            start = time.time()
+            self.retry(self._commit_cache)
+            self.db.commit()
+            log_info(
+                "* Database batch insert finished after {}".format(
+                    datetime.timedelta(seconds=int(time.time() - start))),
+                2,
+                self.ext_id)
         self._close_conn()
 
     def _commit_cache(self):
