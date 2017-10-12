@@ -36,7 +36,7 @@ class DetectionType(Enum):
     DEC_FILE_SIZE = "file size (after decompression)"
     STRIPPED_FILE_SIZE = "file size (after stripping)"
     DEC_STRIPPED_FILE_SIZE = "file size (after decompression and stripping)"
-    # LIBRARY 
+    # LIBRARY
     SHA1 = "sha1"
     MD5 = "md5"
     SHA1_DECOMPRESSED = "sha1 (after decompression)"
@@ -55,7 +55,7 @@ class DetectionType(Enum):
     URL = "known URL"
     # LIKELY_APPLICATION
     DEFAULT = "default"
-    
+
 class FileClassification(Enum):
     """ Enumeration for file classification"""
     EMPTY_FILE = "other (empty file)"
@@ -132,7 +132,7 @@ def check_empty_file(file_info):
     elif file_info['dec_size_stripped'] == 0:
         file_info['detectionMethod'] = DetectionType.DEC_STRIPPED_FILE_SIZE
         file_info['type'] = FileClassification.EMPTY_FILE
-    
+
     return file_info
 
 
@@ -148,7 +148,7 @@ def check_md5(con, file_info):
     """Check for known md5 hash (file content)."""
     # (library, version, add_date, typ) = con.get_cdnjs_info(file_info['md5'])
     libver = con.get_cdnjs_info(file_info['md5'])
-    if libver is None: 
+    if libver is None:
         return file_info
     else:
         file_info['lib'] = libver[0]
@@ -164,7 +164,7 @@ def check_md5_decompressed(con, file_info):
         return file_info
     else:
         libver = con.get_cdnjs_info(file_info['dec_md5'])
-        if libver is None: 
+        if libver is None:
             return file_info
         else:
             file_info['lib'] = libver[0]
@@ -183,7 +183,7 @@ def check_md5_normalized(con, file_info):
         return file_info
     else:
         libver = con.get_cdnjs_info(file_info['normalized_md5'])
-        if libver is None: 
+        if libver is None:
             return file_info
         else:
             file_info['lib'] = libver[0]
@@ -201,7 +201,7 @@ def check_md5_decompressed_normalized(con, file_info):
         return file_info
     else:
         libver = con.get_cdnjs_info(file_info['dec_normalized_md5'])
-        if libver is None: 
+        if libver is None:
             return file_info
         else:
             file_info['lib'] = libver[0]
@@ -379,6 +379,15 @@ def analyse_comment_blocks(zipfile, js_file, js_info):
     return libs
 
 def decompose_js(path_or_zipfileobj):
+    with MysqlBackend(
+            None,
+            read_default_file=config.const_mysql_config_file(),
+            charset='utf8mb4',
+            compress=True) as con:
+        return decompose_js_with_connection(path_or_zipfileobj, con)
+
+
+def decompose_js_with_connection(path_or_zipfileobj, con):
     """JavaScript decomposition analysis for extensions."""
     zipfile = None
     inventory = []
@@ -387,80 +396,73 @@ def decompose_js(path_or_zipfileobj):
     else:
         zipfile = path_or_zipfileobj
         path_list = list(filter(lambda x: os.path.basename(x.filename) != "", zipfile.infolist()))
-    
-    with MysqlBackend(
-            None,
-            read_default_file=config.const_mysql_config_file(),
-            charset='utf8mb4',
-            compress=True) as con:
 
+    for path_or_zipentry in path_list:
 
-        for path_or_zipentry in path_list:
+        if zipfile is not None:
+            with zipfile.open(path_or_zipentry) as js_file_obj:
+                data = js_file_obj.read()
+            path = path_or_zipentry.filename
+        else:
+            with open(path_or_zipentry, mode='rb') as js_file_obj:
+                data = js_file_obj.read()
+            path = path_or_zipentry
 
-            if zipfile is not None:
-                with zipfile.open(path_or_zipentry) as js_file_obj:
-                    data = js_file_obj.read()
-                path = path_or_zipentry.filename
-            else:
-                with open(path_or_zipentry, mode='rb') as js_file_obj:
-                    data = js_file_obj.read()
-                path = path_or_zipentry
+        file_info = init_file_info(path, data)
 
-            file_info = init_file_info(path, data)
-
-            file_info = check_empty_file(file_info)
-            if not file_info['detectionMethod'] is None:
-                inventory.append(file_info)
-                continue
-            file_info = check_metadata(file_info)
-            if not file_info['detectionMethod'] is None:
-                inventory.append(file_info)
-                continue
-            file_info = check_md5(con, file_info)
-            if not file_info['detectionMethod'] is None:
-                inventory.append(file_info)
-                continue
-            file_info = check_md5_decompressed(con, file_info)
-            if not file_info['detectionMethod'] is None:
-                inventory.append(file_info)
-                continue
-            file_info = check_md5_normalized(con, file_info)
-            if not file_info['detectionMethod'] is None:
-                inventory.append(file_info)
-                continue
-            file_info = check_md5_decompressed_normalized(con, file_info)
-            if not file_info['detectionMethod'] is None:
-                inventory.append(file_info)
-                continue
-            file_info = check_filename(file_info)
-            if not file_info['detectionMethod'] is None:
-                if not file_info['dec_decoding'] is None:
-                    try:
-                        with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
-                            dec_data = dec.decompress(data, 100 * file_info['size'])
-                        str_data = dec_data.decode(file_info['dec_encoding'])
-                        del dec_data
-                    except Exception:
-                        return [file_info]
-                else:
-                    str_data = data.decode(file_info['encoding'])
-
-                info_comment_blocks= check_comment_blocks(file_info, str_data)
-                info_comment_code_blocks = check_code_blocks(file_info, str_data)
-                del str_data
-                
-                # js_info_file = analyse_checksum(zipfile, js_file, js_info)
-                # if not js_info_file:
-                #     js_info_file = analyse_filename(zipfile, js_file, js_info)
-                #     js_info_file += analyse_comment_blocks(zipfile, js_file, js_info)
-                inventory = inventory + info_comment_blocks + info_comment_code_blocks
-                continue
-
-            # if no library could be detected, we report the JavaScript file as 'application'.
-            file_info['lib'] = None
-            file_info['version'] = None
-            file_info['detectionMethod'] = DetectionType.DEFAULT
-            file_info['type'] = FileClassification.LIKELY_APPLICATION
+        file_info = check_empty_file(file_info)
+        if not file_info['detectionMethod'] is None:
             inventory.append(file_info)
+            continue
+        file_info = check_metadata(file_info)
+        if not file_info['detectionMethod'] is None:
+            inventory.append(file_info)
+            continue
+        file_info = check_md5(con, file_info)
+        if not file_info['detectionMethod'] is None:
+            inventory.append(file_info)
+            continue
+        file_info = check_md5_decompressed(con, file_info)
+        if not file_info['detectionMethod'] is None:
+            inventory.append(file_info)
+            continue
+        file_info = check_md5_normalized(con, file_info)
+        if not file_info['detectionMethod'] is None:
+            inventory.append(file_info)
+            continue
+        file_info = check_md5_decompressed_normalized(con, file_info)
+        if not file_info['detectionMethod'] is None:
+            inventory.append(file_info)
+            continue
+        file_info = check_filename(file_info)
+        if not file_info['detectionMethod'] is None:
+            if not file_info['dec_decoding'] is None:
+                try:
+                    with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
+                        dec_data = dec.decompress(data, 100 * file_info['size'])
+                    str_data = dec_data.decode(file_info['dec_encoding'])
+                    del dec_data
+                except Exception:
+                    return [file_info]
+            else:
+                str_data = data.decode(file_info['encoding'])
+
+            info_comment_blocks= check_comment_blocks(file_info, str_data)
+            info_comment_code_blocks = check_code_blocks(file_info, str_data)
+            del str_data
+
+            # js_info_file = analyse_checksum(zipfile, js_file, js_info)
+            # if not js_info_file:
+            #     js_info_file = analyse_filename(zipfile, js_file, js_info)
+            #     js_info_file += analyse_comment_blocks(zipfile, js_file, js_info)
+            inventory = inventory + info_comment_blocks + info_comment_code_blocks
+            continue
+
+        # if no library could be detected, we report the JavaScript file as 'application'.
+        file_info['lib'] = None
+        file_info['version'] = None
+        file_info['detectionMethod'] = DetectionType.DEFAULT
+        file_info['type'] = FileClassification.LIKELY_APPLICATION
+        inventory.append(file_info)
 
     return inventory

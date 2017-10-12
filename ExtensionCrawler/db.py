@@ -19,7 +19,7 @@ from ExtensionCrawler.config import *
 from ExtensionCrawler.util import *
 from ExtensionCrawler.crx import *
 from ExtensionCrawler.archive import *
-from ExtensionCrawler.js_decomposer import decompose_js, DetectionType, FileClassification
+from ExtensionCrawler.js_decomposer import decompose_js_with_connection, DetectionType, FileClassification
 
 from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
 
@@ -254,7 +254,7 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                                     str(urlpattern).encode()).digest(),
                                 url=str(urlpattern))
 
-        js_files = decompose_js(f)
+        js_files = decompose_js_with_connection(f, con)
         for file_info in js_files:
             for prefix, typ in [("", "AS_IS"), ("normalized_", "NORMALIZED"),
                                 ("dec_",
