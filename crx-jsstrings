@@ -157,17 +157,17 @@ def analyze_block(conf, path, block, first=False):
     if not conf.reg_exp is None:
         for regexp in conf.reg_exp:
             if conf.case_insensitive:
-                regexps.append(re.compile('(' + regexp + ')', re.IGNORECASE))
+                regexps.append(re.compile(r'(' + regexp + ')', re.IGNORECASE))
             else:
-                regexps.append(re.compile('(' + regexp + ')'))
+                regexps.append(re.compile(r'(' + regexp + ')'))
     if block.is_comment():
         content = block.content
         if not conf.reg_exp_comments is None:
             for regexp in conf.reg_exp_comments:
                 if conf.case_insensitive:
-                    regexps.append(re.compile('(' + regexp + ')', re.IGNORECASE))
+                    regexps.append(re.compile(r'(' + regexp + ')', re.IGNORECASE))
                 else:
-                    regexps.append(re.compile('(' + regexp + ')'))
+                    regexps.append(re.compile(r'(' + regexp + ')'))
         for regexp in regexps:
             if regexp.search(block.content):
                 if conf.colorize:
@@ -184,15 +184,15 @@ def analyze_block(conf, path, block, first=False):
         if not conf.reg_exp_string_literals is None:
             for regexp in conf.reg_exp_string_literals:
                 if conf.case_insensitive:
-                    regexps.append(re.compile('(' + regexp + ')', re.IGNORECASE))
+                    regexps.append(re.compile(r'(' + regexp + ')', re.IGNORECASE))
                 else:
-                    regexps.append(re.compile('(' + regexp + ')'))
+                    regexps.append(re.compile(r'(' + regexp + ')'))
         if not conf.reg_exp_source is None:
             for regexp in conf.reg_exp_source:
                 if conf.case_insensitive:
-                    regexps.append(re.compile('(' + regexp + ')', re.IGNORECASE))
+                    regexps.append(re.compile(r'(' + regexp + ')', re.IGNORECASE))
                 else:
-                    regexps.append(re.compile('(' + regexp + ')'))
+                    regexps.append(re.compile(r'(' + regexp + ')'))
         string_match = False
         match_idxs = set()
         string_literals = block.string_literals.copy()
@@ -322,7 +322,7 @@ def analyze_file(conf, filename):
 
 def compute_tasks(file_or_extids, taskid=1, maxtaskid=1):
     """Function for computing list of tasks."""
-    extid_re = re.compile('^[a-p]+$')
+    extid_re = re.compile(r'^[a-p]+$')
     tasks = []
     for file_or_extid in file_or_extids:
         if is_file_with_c_style_comments(file_or_extid):
