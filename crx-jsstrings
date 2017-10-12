@@ -250,8 +250,8 @@ def analyze_crx(conf, crx, path=""):
         for jsfile in js_files:
             with crxobj.open(jsfile) as js_file_obj:
                 data = js_file_obj.read()
-                path = path + "/" + js_file_obj.name
-            if jsstrings_data(conf, path, data):
+                file_path = path + "/" + js_file_obj.name
+            if jsstrings_data(conf, file_path, data):
                 match = True
 
     return match
