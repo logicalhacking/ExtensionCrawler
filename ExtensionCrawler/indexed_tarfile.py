@@ -711,7 +711,7 @@ class Cache:
         self.tarfile = tarfile
         os.makedirs(Cache.CACHEDIR, exist_ok=True)
         self.cache = {}
-        if os.path.exists(self._get_cache_filename()) and os.path.getmtime(self.tarfile.name) <= os.path.getmtime(self._get_cache_filename()):
+        if os.path.exists(self._get_cache_filename()) and int(os.path.getmtime(self.tarfile.name)) <= int(os.path.getmtime(self._get_cache_filename())):
             with bltn_open(self._get_cache_filename(), 'rb') as f:
                 self.cache = pickle.load(f)
 
@@ -723,14 +723,16 @@ class Cache:
             pickle.dump(self.cache, f)
 
     def get(self, cls):
-        if self.cache == {} or self.tarfile._extfileobj:
+        if self.tarfile._extfileobj:
             return None
-        if self.tarfile.offset not in self.cache:
+        if self.tarfile.fileobj.tell() not in self.cache:
+            print("MISS")
             return None
 
-        print("Served tarinfo from cache")
+        #print("Served tarinfo from cache")
+        print("HIT")
 
-        return self.cache[self.tarfile.offset]
+        return self.cache[self.tarfile.fileobj.tell()]
 
     def set(self, buf):
         self.cache[self.tarfile.offset] = buf
