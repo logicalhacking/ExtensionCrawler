@@ -29,7 +29,7 @@ import shutil
 import tempfile
 import time
 import traceback
-import tarfile
+import ExtensionCrawler.indexed_tarfile as tarfile
 import datetime
 import dateutil
 import dateutil.parser
