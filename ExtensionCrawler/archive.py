@@ -561,7 +561,7 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
     parallel_ids = ext_ids
     log_info("Updating {} extensions excluding forums (parallel)".format(
         len(parallel_ids)), 1)
-    with Pool(parallel) as p:
+    with Pool(parallel, maxtasksperchild=100) as p:
         ext_without_forums = list(
             p.map(partial(update_extension, archivedir, False), parallel_ids))
 
