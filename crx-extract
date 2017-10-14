@@ -25,7 +25,7 @@ import tarfile
 import datetime
 import dateutil
 import dateutil.parser
-from ExtensionCrawler.archive import last_crx, get_local_archive_dir, last_etag
+from ExtensionCrawler.archive import last_crx, get_local_archive_dir
 from ExtensionCrawler.config import  const_basedir
 
 
@@ -100,13 +100,11 @@ def main(argv):
         dateobj = dateutil.parser.parse(date)
         if dateobj.tzinfo is None or dateobj.tzinfo.utcoffset(dateobj) is None:
             dateobj = dateobj.replace(tzinfo=datetime.timezone.utc)
-        last = last_crx(os.path.join(basedir, "data"), extid, dateobj)
+        last, etag = last_crx(os.path.join(basedir, "data"), extid, dateobj)
     else:
-        last = last_crx(os.path.join(basedir, "data"), extid)
+        last, etag = last_crx(os.path.join(basedir, "data"), extid)
 
-    if useetag:
-        etag = last_etag(os.path.join(basedir, "data"), extid, last)
-    else:
+    if not useetag:
         etag = None   
     tar = os.path.join(basedir, "data",
                       get_local_archive_dir(extid), extid + ".tar")

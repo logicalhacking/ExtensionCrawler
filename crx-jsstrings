@@ -280,7 +280,7 @@ def analyze_tar(conf, tarfilename):
     match = False
 
     if from_dateobj is None:
-        last_crx_file = last_crx(
+        last_crx_file, _ = last_crx(
             os.path.join(conf.archive_dir, "data"), extid, latest_dateobj)
         if last_crx_file == "" or last_crx_file is None:
             logging.warning("No crx in  " + extid)
@@ -438,7 +438,7 @@ if __name__ == "__main__":
         metavar='DATE',
         type=str,
         help=
-        'select latest crx from tar, released before DATE.\n' 
+        'select latest crx from tar, released before DATE.\n'
         + 'Together with --latest-date, specifies all crx released in specified\n'
         + 'date range.'
     )

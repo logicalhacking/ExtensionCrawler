@@ -186,21 +186,24 @@ def last_modified_http_date(path):
 
 def last_crx(archivedir, extid, date=None):
     last_crx = ""
+    last_crx_etag = ""
     tar = os.path.join(archivedir, get_local_archive_dir(extid),
                        extid + ".tar")
     if os.path.exists(tar):
-        t = tarfile.open(tar, 'r')
-        old_crxs = sorted([
-            x.name for x in t.getmembers()
-            if x.name.endswith(".crx") and x.size > 0 and (
-                date is None or (dateutil.parser.parse(
-                    os.path.split(os.path.split(x.name)[0])[1]) <= date))
-        ])
-        t.close()
-        if old_crxs != []:
-            last_crx = old_crxs[-1]
+        with tarfile.open(tar, 'r') as t:
+            old_crxs = sorted([
+                x.name for x in t.getmembers()
+                if x.name.endswith(".crx") and x.size > 0 and (
+                    date is None or (dateutil.parser.parse(
+                        os.path.split(os.path.split(x.name)[0])[1]) <= date))
+            ])
+            if old_crxs != []:
+                last_crx = old_crxs[-1]
+                headers_content = t.extractfile(last_crx + ".headers").read().decode().replace('"', '\\"').replace("'", '"')
+                headers_json = json.loads(headers_content)
+                last_crx_etag = headers_json["ETag"]
 
-    return last_crx
+    return last_crx, last_crx_etag
 
 def first_crx(archivedir, extid, date=None):
     first_crx = ""
@@ -220,6 +223,7 @@ def first_crx(archivedir, extid, date=None):
 
     return first_crx
 
+
 def all_crx(archivedir, extid, date=None):
     tar = os.path.join(archivedir, get_local_archive_dir(extid),
                        extid + ".tar")
@@ -232,23 +236,6 @@ def all_crx(archivedir, extid, date=None):
         ])
         t.close()
     return all_crxs
-
-
-
-
-def last_etag(archivedir, extid, crxfile):
-    etag = ""
-    tar = os.path.join(archivedir, get_local_archive_dir(extid),
-                       extid + ".tar")
-    try:
-        if os.path.exists(tar):
-            t = tarfile.open(tar, 'r')
-            headers = eval((t.extractfile(crxfile + ".headers")).read())
-            etag = headers['ETag']
-            t.close()
-    except Exception:
-        return ""
-    return etag
 
 
 def update_overview(tar, date, ext_id):
@@ -285,8 +272,7 @@ def validate_crx_response(res, extid, extfilename):
 def update_crx(archivedir, tmptardir, ext_id, date):
     res = None
     extfilename = "default_ext_archive.crx"
-    last_crx_file = last_crx(archivedir, ext_id)
-    last_crx_etag = last_etag(archivedir, ext_id, last_crx_file)
+    last_crx_file, last_crx_etag = last_crx(archivedir, ext_id)
     last_crx_http_date = last_modified_http_date(last_crx_file)
     headers = ""
     if last_crx_file is not "":
@@ -505,9 +491,8 @@ def update_extension(archivedir, forums, ext_id):
     if not os.path.exists(tar):
         is_new = True
     try:
-        ar = tarfile.open(tar, mode='a:')
-        ar.add(tmptardir, arcname=ext_id)
-        ar.close()
+        with tarfile.open(tar, mode='a:') as ar:
+            ar.add(tmptardir, arcname=ext_id)
     except Exception as e:
         log_exception("* FATAL: cannot create tar archive", 3, ext_id)
         tar_exception = e
