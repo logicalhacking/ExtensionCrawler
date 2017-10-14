@@ -50,6 +50,7 @@ import copy
 import re
 import pickle
 import hashlib
+import bz2
 
 try:
     import grp, pwd
@@ -711,31 +712,41 @@ class Cache:
         self.tarfile = tarfile
         os.makedirs(Cache.CACHEDIR, exist_ok=True)
         self.cache = {}
-        if os.path.exists(self._get_cache_filename()) and int(os.path.getmtime(self.tarfile.name)) <= int(os.path.getmtime(self._get_cache_filename())):
+        self.cache_changed = False
+        if os.path.exists(self._get_cache_filename()):
             with bltn_open(self._get_cache_filename(), 'rb') as f:
-                self.cache = pickle.load(f)
+                self.cache = pickle.loads(bz2.decompress(f.read()))
+
+            if self.cache["tar_size"] != self._get_filesize():
+                self.cache = {}
+                self.cache_changed = True
+
+    def _get_filesize(self):
+        old_pos = self.tarfile.fileobj.tell()
+        self.tarfile.fileobj.seek(0, 2)
+        size = self.tarfile.fileobj.tell()
+        self.tarfile.fileobj.seek(old_pos)
+        return size
 
     def _get_cache_filename(self):
         return os.path.join(Cache.CACHEDIR, hashlib.md5(self.tarfile.name.encode()).hexdigest())
 
     def save(self):
-        with bltn_open(self._get_cache_filename(), 'wb') as f:
-            pickle.dump(self.cache, f)
+        if self.cache_changed:
+            self.cache["tar_size"] = self._get_filesize()
+            with bltn_open(self._get_cache_filename(), 'wb') as f:
+                f.write(bz2.compress(pickle.dumps(self.cache)))
 
-    def get(self, cls):
-        if self.tarfile._extfileobj:
+    def get(self, pos):
+        if pos not in self.cache:
             return None
-        if self.tarfile.fileobj.tell() not in self.cache:
-            print("MISS")
-            return None
 
-        #print("Served tarinfo from cache")
-        print("HIT")
+        return self.cache[pos]
 
-        return self.cache[self.tarfile.fileobj.tell()]
-
-    def set(self, buf):
-        self.cache[self.tarfile.offset] = buf
+    def set(self, pos, buf):
+        for i in range(int(len(buf) / BLOCKSIZE)):
+            self.cache[pos + i * BLOCKSIZE] = buf[i * BLOCKSIZE:(i + 1) * BLOCKSIZE]
+        self.cache_changed = True
 
 class ExFileObject(io.BufferedReader):
 
@@ -1113,12 +1124,13 @@ class TarInfo(object):
         """Return the next TarInfo object from TarFile object
            tarfile.
         """
-        buf = tarfile.cache.get(cls)
+        buf = tarfile.cache.get(tarfile.fileobj.tell())
         if buf is not None:
             tarfile.fileobj.seek(BLOCKSIZE, 1)
         else:
             buf = tarfile.fileobj.read(BLOCKSIZE)
-            tarfile.cache.set(buf)
+            tarfile.cache.set(tarfile.fileobj.tell() - BLOCKSIZE, buf)
+
         obj = cls.frombuf(buf, tarfile.encoding, tarfile.errors)
         obj.offset = tarfile.fileobj.tell() - BLOCKSIZE
         return obj._proc_member(tarfile)
@@ -1168,7 +1180,12 @@ class TarInfo(object):
         """Process the blocks that hold a GNU longname
            or longlink member.
         """
-        buf = tarfile.fileobj.read(self._block(self.size))
+        buf = tarfile.cache.get(tarfile.fileobj.tell())
+        if buf is not None:
+            tarfile.fileobj.seek(self._block(self.size), 1)
+        else:
+            buf = tarfile.fileobj.read(self._block(self.size))
+            tarfile.cache.set(tarfile.fileobj.tell() - self._block(self.size), buf)
 
         # Fetch the next header and process it.
         try:
@@ -1766,12 +1783,9 @@ class TarFile(object):
                 blocks, remainder = divmod(self.offset, RECORDSIZE)
                 if remainder > 0:
                     self.fileobj.write(NUL * (RECORDSIZE - remainder))
-                self.cache.save()
-            else:
-                if self.cache.cache == {}:
-                    self.cache.save()
         finally:
             if not self._extfileobj:
+                self.cache.save()
                 self.fileobj.close()
 
     def getmember(self, name):
@@ -2005,6 +2019,7 @@ class TarFile(object):
         tarinfo = copy.copy(tarinfo)
 
         buf = tarinfo.tobuf(self.format, self.encoding, self.errors)
+        self.cache.set(self.fileobj.tell(), buf)
         self.fileobj.write(buf)
         self.offset += len(buf)
 
@@ -2315,9 +2330,10 @@ class TarFile(object):
 
         # Advance the file pointer.
         if self.offset != self.fileobj.tell():
-            self.fileobj.seek(self.offset - 1)
-            if not self.fileobj.read(1):
-                raise ReadError("unexpected end of data")
+            self.fileobj.seek(self.offset)
+            # self.fileobj.seek(self.offset - 1)
+            # if not self.fileobj.read(1):
+            #     raise ReadError("unexpected end of data")
 
         # Read the next block.
         tarinfo = None
