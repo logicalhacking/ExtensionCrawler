@@ -146,7 +146,8 @@ def check_metadata(file_info):
 
 def check_md5(con, file_info):
     """Check for known md5 hash (file content)."""
-    # (library, version, add_date, typ) = con.get_cdnjs_info(file_info['md5'])
+    if con is None:
+        return file_info
     libver = con.get_cdnjs_info(file_info['md5'])
     if libver is None:
         return file_info
@@ -160,6 +161,8 @@ def check_md5(con, file_info):
 
 def check_md5_decompressed(con, file_info):
     """Check for known md5 hash (decompressed file content)."""
+    if con is None:
+        return file_info
     if file_info['dec_md5'] is None:
         return file_info
     else:
@@ -177,6 +180,8 @@ def check_md5_decompressed(con, file_info):
 
 def check_md5_normalized(con, file_info):
     """Check for known md5 hash (normalized file content)."""
+    if con is None:
+        return file_info
     if file_info['normalized_md5'] is None:
         return file_info
     elif file_info['normalized_size'] == 0:
@@ -195,6 +200,8 @@ def check_md5_normalized(con, file_info):
 
 def check_md5_decompressed_normalized(con, file_info):
     """Check for known md5 hash (decompressed normalized file content)."""
+    if con is None:
+        return file_info
     if file_info['dec_normalized_md5'] is None:
         return file_info
     elif file_info['dec_normalized_size'] == 0:
@@ -378,13 +385,17 @@ def analyse_comment_blocks(zipfile, js_file, js_info):
         libs = list()
     return libs
 
-def decompose_js(path_or_zipfileobj):
-    with MysqlBackend(
-            None,
-            read_default_file=config.const_mysql_config_file(),
-            charset='utf8mb4',
-            compress=True) as con:
-        return decompose_js_with_connection(path_or_zipfileobj, con)
+def decompose_js(path_or_zipfileobj, use_db = True):
+    if use_db:
+        with MysqlBackend(
+                None,
+                read_default_file=config.const_mysql_config_file(),
+                charset='utf8mb4',
+                compress=True) as con:
+            return decompose_js_with_connection(path_or_zipfileobj, con)
+    else:
+            return decompose_js_with_connection(path_or_zipfileobj, None)
+
 
 
 def decompose_js_with_connection(path_or_zipfileobj, con):
