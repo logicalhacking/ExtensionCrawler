@@ -35,6 +35,7 @@ def helpmsg():
     print("    -h        print this help text")
     print("    -c=<FILE> cvs file (output)")
     print("    -v        verbose")
+    print("    -d        disable use of database with file information (not recommended)")
     print("    -s        silent")
 
 
@@ -44,8 +45,9 @@ def main(argv):
     silent = False
     filename = None
     csvfile = None
+    database = True
     try:
-        opts, args = getopt.getopt(argv, "hvsc:", ["cvs="])
+        opts, args = getopt.getopt(argv, "hvdsc:", ["cvs="])
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -57,6 +59,8 @@ def main(argv):
             verbose = True
         elif opt == '-s':
             silent = True
+        elif opt == '-d':
+            database = False
         elif opt in ('-c', "--cvs"):
             csvfile = arg
 
@@ -78,9 +82,9 @@ def main(argv):
 
     if filename.endswith('.crx'):
         with ZipFile(filename) as crxobj:
-            inventory = decompose_js(crxobj)
+            inventory = decompose_js(crxobj, database)
     else:
-        inventory = decompose_js(filename)
+        inventory = decompose_js(filename, database)
 
     if not silent:
         if verbose:
