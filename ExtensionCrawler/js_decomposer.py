@@ -61,9 +61,13 @@ class FileClassification(Enum):
     EMPTY_FILE = "other (empty file)"
     METADATA = "metadata"
     LIBRARY = "known library"
+    LIBRARY_RSC = "known library ressource"
     VERY_LIKELY_LIBRARY = "very likely known library"
+    VERY_LIKELY_LIBRARY_RSC = "very likely known library"
     LIKELY_LIBRARY = "likely known library"
+    LIKELY_LIBRARY_RSC = "likely known library ressource"
     LIKELY_APPLICATION = "likely application"
+    LIKELY_APPLICATION_RSC = "likely application ressource"
     ERROR = "error"
 
 def load_lib_identifiers():
@@ -74,6 +78,19 @@ def load_lib_identifiers():
     with open(regex_file, 'r') as json_file:
         json_content = json_file.read()
     return json.loads(json_content)
+
+def is_ressource(file_info):
+    ressource_identifiers = ["Media", "Audio", "Image", "PDF"]
+
+    if file_info['description'] is not None:
+        for ressource_id in ressource_identifiers:
+            if re.search(ressource_id, file_info['description'], re.IGNORECASE):
+                return True
+    elif file_info['dec_description'] is not None:
+        for ressource_id in ressource_identifiers:
+            if re.search(ressource_id, file_info['dec_description'], re.IGNORECASE):
+                return True
+    return False
 
 
 def unknown_filename_identifier():
@@ -155,7 +172,10 @@ def check_md5(con, file_info):
         file_info['lib'] = libver[0]
         file_info['version'] = libver[1]
         file_info['lib_filename'] = libver[2]
-        file_info['type'] = FileClassification.LIBRARY
+        if is_ressource(file_info):
+            file_info['type'] = FileClassification.LIBRARY_RSC
+        else:
+            file_info['type'] = FileClassification.LIBRARY
         file_info['detectionMethod'] = DetectionType.MD5
         return file_info
 
@@ -173,7 +193,10 @@ def check_md5_decompressed(con, file_info):
             file_info['lib'] = libver[0]
             file_info['version'] = libver[1]
             file_info['lib_filename'] = libver[2]
-            file_info['type'] = FileClassification.LIBRARY
+            if is_ressource(file_info):
+                file_info['type'] = FileClassification.LIBRARY_RSC
+            else:
+                file_info['type'] = FileClassification.LIBRARY
             file_info['detectionMethod'] = DetectionType.MD5_DECOMPRESSED
             return file_info
     return file_info
@@ -194,7 +217,10 @@ def check_md5_normalized(con, file_info):
             file_info['lib'] = libver[0]
             file_info['version'] = libver[1]
             file_info['lib_filename'] = libver[2]
-            file_info['type'] = FileClassification.VERY_LIKELY_LIBRARY
+            if is_ressource(file_info):
+                file_info['type'] = FileClassification.VERY_LIKELY_LIBRARY_RSC
+            else:
+                file_info['type'] = FileClassification.VERY_LIKELY_LIBRARY
             file_info['detectionMethod'] = DetectionType.MD5_NORMALIZED
             return file_info
 
@@ -214,7 +240,10 @@ def check_md5_decompressed_normalized(con, file_info):
             file_info['lib'] = libver[0]
             file_info['version'] = libver[1]
             file_info['lib_filename'] = libver[2]
-            file_info['type'] = FileClassification.VERY_LIKELY_LIBRARY
+            if is_ressource(file_info):
+                file_info['type'] = FileClassification.VERY_LIKELY_LIBRARY_RSC
+            else:
+                file_info['type'] = FileClassification.VERY_LIKELY_LIBRARY
             file_info['detectionMethod'] = DetectionType.MD5_DECOMPRESSED_NORMALIZED
             return file_info
 
@@ -473,7 +502,10 @@ def decompose_js_with_connection(path_or_zipfileobj, con):
         file_info['lib'] = None
         file_info['version'] = None
         file_info['detectionMethod'] = DetectionType.DEFAULT
-        file_info['type'] = FileClassification.LIKELY_APPLICATION
+        if is_ressource(file_info):
+            file_info['type'] = FileClassification.LIKELY_APPLICATION_RSC
+        else:
+            file_info['type'] = FileClassification.LIKELY_APPLICATION
         inventory.append(file_info)
 
     return inventory
