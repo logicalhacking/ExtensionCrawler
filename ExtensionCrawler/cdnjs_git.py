@@ -132,7 +132,8 @@ def get_file_libinfo(release_dic, git_path, libfile):
     idx = plist.index("libs")
     lib = plist[idx + 1]
     version = plist[idx + 2]
-    file_info['path'] = os.path.relpath(file_info['path'], git_path+"/ajax/libs")
+    file_info['path'] = os.path.relpath(file_info['path'],
+                                        git_path + "/ajax/libs")
     file_info['library'] = lib
     file_info['version'] = version
     file_info['add_date'] = release_dic[(lib, version)]
@@ -228,8 +229,10 @@ def update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
                             loc=file_info[prefix + "loc"],
                             description=file_info[prefix + "description"],
                             encoding=file_info[prefix + "encoding"],
-                            mimetype=file_info["mimetype"][0] if "mimetype" in file_info else None,
-                            mimetype_detail=file_info["mimetype"][1] if "mimetype" in file_info else None,
+                            mimetype=file_info["mimetype"][0]
+                            if "mimetype" in file_info else None,
+                            mimetype_detail=file_info["mimetype"][1]
+                            if "mimetype" in file_info else None,
                             path=file_info["path"],
                             filename=file_info["filename"],
                             add_date=file_info["add_date"],
@@ -242,15 +245,15 @@ def update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
 
 
 def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
-                                     filenames):                                     
+                                     filenames):
     with MysqlBackend(
             None,
             read_default_file=config.const_mysql_config_file(),
             charset='utf8mb4',
             compress=True) as con:
         for filename in filenames:
-            update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
-                            con)
+            update_database_for_file(create_csv, release_dic, cdnjs_git_path,
+                                     filename, con)
 
 
 def chunks(l, n):
