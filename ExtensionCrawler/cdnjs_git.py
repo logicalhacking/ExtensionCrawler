@@ -44,6 +44,7 @@ def get_add_date(git_path, filename):
                                      filename).splitlines()[0]
         del gitobj
         gc.collect()
+        logging.info(filename + " was added on " + add_date_string)
         return dateutil.parser.parse(add_date_string)
     except Exception as e:
         logging.debug("Exception during git log for " + filename + ":\n" +
@@ -240,7 +241,7 @@ def update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
 
 
 def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
-                                     filenames):
+                                     filenames):                                     
     with MysqlBackend(
             None,
             read_default_file=config.const_mysql_config_file(),
@@ -263,6 +264,7 @@ def update_database(create_csv,
                     files,
                     poolsize=16):
     """Update database for all files in files."""
+    logging.info("Updating data base")
     with Pool(poolsize) as pool:
         pool.map(
             partial(update_database_for_file_chunked, create_csv, release_dic,
@@ -274,7 +276,7 @@ def get_release_triple(git_path, libver):
     ver = plist[-1]
     lib = plist[-2]
     date = get_add_date(git_path, libver)
-    logging.info(lib + " " + ver + ": " + str(date))
+    logging.info("Release information:" + lib + " " + ver + ": " + str(date))
     return (lib, ver, date)
 
 
@@ -291,6 +293,7 @@ def build_release_date_dic(git_path, libvers, poolsize=16):
 
 def pull_and_update_db(cdnjs_git_path, create_csv, poolsize=16):
     """Pull repo and update database."""
+    logging.info("Pulling and updating data base")
     files, libvers = pull_get_updated_lib_files(cdnjs_git_path)
     release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
     del libvers
