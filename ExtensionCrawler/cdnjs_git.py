@@ -18,23 +18,22 @@
 """ Module for obtaining md5/sha1/sha256 hashes for all files available
     at CDNJS.com by mining the cdnjs git repository."""
 
+import csv
 import gc
 import glob
 import logging
 import os
 import re
+import sys
 from functools import partial, reduce
 from multiprocessing import Pool
-import csv
-import sys
 
 import dateutil.parser
 import git
-import logging
 
-from ExtensionCrawler.file_identifiers import get_file_identifiers
-from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
 import ExtensionCrawler.config as config
+from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
+from ExtensionCrawler.file_identifiers import get_file_identifiers
 
 
 def get_add_date(git_path, filename):
@@ -246,11 +245,10 @@ def update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
 
 def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
                                      filenames):
-    with MysqlBackend(
-            None,
-            read_default_file=config.const_mysql_config_file(),
-            charset='utf8mb4',
-            compress=True) as con:
+    with MysqlBackend(None,
+                      read_default_file=config.const_mysql_config_file(),
+                      charset='utf8mb4',
+                      compress=True) as con:
         for filename in filenames:
             update_database_for_file(create_csv, release_dic, cdnjs_git_path,
                                      filename, con)
