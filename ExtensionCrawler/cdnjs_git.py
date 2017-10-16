@@ -30,6 +30,7 @@ import sys
 
 import dateutil.parser
 import git
+import logging
 
 from ExtensionCrawler.file_identifiers import get_file_identifiers
 from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
@@ -237,7 +238,7 @@ def update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
                             typ=typ)
 
     else:
-        logging.ERROR("Skipping update for deleted file " + filename)
+        logging.error("Skipping update for deleted file " + filename)
 
 
 def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
@@ -254,6 +255,7 @@ def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
 
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
+    logging.info("Computing junk " + str(n))
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
