@@ -245,10 +245,14 @@ def update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
 
 def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
                                      filenames):
-    with MysqlBackend(None,
-                      read_default_file=config.const_mysql_config_file(),
-                      charset='utf8mb4',
-                      compress=True) as con:
+    logging.info("Creating MariaDB Connection")
+    with MysqlBackend(
+            None,
+            read_default_file=config.const_mysql_config_file(),
+            charset='utf8mb4',
+            compress=True) as con:
+        logging.info("Created MariaDB connection - start to update data base ("
+                     + str(len(filenames)) + "files)")
         for filename in filenames:
             update_database_for_file(create_csv, release_dic, cdnjs_git_path,
                                      filename, con)
