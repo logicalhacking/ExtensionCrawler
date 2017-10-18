@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/archive}
+TMPDIR=${TMPDIR:-/tmp}
 LOGPREFIX=$ARCHIVE/log/`date --iso-8601=ns`
 LOG=$LOGPREFIX-cdnjs.log 
 
