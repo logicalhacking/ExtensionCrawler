@@ -243,13 +243,14 @@ def update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
         logging.error("Skipping update for deleted file " + filename)
 
 
-def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
+def update_database_for_file_chunked_timeout(create_csv, release_dic, cdnjs_git_path,
                                      filenames):
     logging.info("Creating MariaDB Connection")
     with MysqlBackend(
             None,
             read_default_file=config.const_mysql_config_file(),
             charset='utf8mb4',
+            connection_timeout=600,
             compress=True) as con:
         logging.info("Created MariaDB connection - start to update data base ("
                      + str(len(filenames)) + "files)")
@@ -257,6 +258,25 @@ def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
             update_database_for_file(create_csv, release_dic, cdnjs_git_path,
                                      filename, con)
 
+def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
+                                     filenames):
+    logging.info("Creating MariaDB Connection")
+    retries = 0
+    success = False
+    max_retries = 4
+    while (not success and (retries < max_retries)):
+        try:
+            update_database_for_file_chunked_timeout(create_csv, release_dic, cdnjs_git_path,
+                                    filenames)
+            logging.info("Updated data base chunk successfully")
+            success = True
+        except Exception as e:
+            logging.warning("Exception during data base chunk update: " + (str(e)))
+            retries = retries + 1
+            if retries < max_retries:
+                logging.warning(" Retrying")
+            else:
+                logging.warning(" Giving up")
 
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
