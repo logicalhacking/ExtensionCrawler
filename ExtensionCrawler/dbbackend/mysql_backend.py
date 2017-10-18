@@ -19,6 +19,7 @@ import time
 import datetime
 from random import uniform
 from itertools import starmap
+import logging
 
 import MySQLdb
 import _mysql_exceptions
@@ -57,10 +58,15 @@ class MysqlBackend:
             self.cursor.executemany(query, args)
 
     def _create_conn(self):
+        logging.info("Creating DB Connection")
         if self.db is None:
+            logging.info("    self.db is None,  open new connection ...")
             self.db = MySQLdb.connect(**self.dbargs)
+            logging.info("        success")
         if self.cursor is None:
+            logging.info("    self.cursor is None,  assing new cursor ...")
             self.cursor = self.db.cursor()
+            logging.info("        success")
 
     def _close_conn(self):
         if self.cursor is not None:
