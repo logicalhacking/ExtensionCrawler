@@ -165,7 +165,8 @@ def analyze_block(conf, path, block, first=False):
         if not conf.reg_exp_comments is None:
             for regexp in conf.reg_exp_comments:
                 if conf.case_insensitive:
-                    regexps.append(re.compile(r'(' + regexp + ')', re.IGNORECASE))
+                    regexps.append(
+                        re.compile(r'(' + regexp + ')', re.IGNORECASE))
                 else:
                     regexps.append(re.compile(r'(' + regexp + ')'))
         for regexp in regexps:
@@ -184,13 +185,15 @@ def analyze_block(conf, path, block, first=False):
         if not conf.reg_exp_string_literals is None:
             for regexp in conf.reg_exp_string_literals:
                 if conf.case_insensitive:
-                    regexps.append(re.compile(r'(' + regexp + ')', re.IGNORECASE))
+                    regexps.append(
+                        re.compile(r'(' + regexp + ')', re.IGNORECASE))
                 else:
                     regexps.append(re.compile(r'(' + regexp + ')'))
         if not conf.reg_exp_source is None:
             for regexp in conf.reg_exp_source:
                 if conf.case_insensitive:
-                    regexps.append(re.compile(r'(' + regexp + ')', re.IGNORECASE))
+                    regexps.append(
+                        re.compile(r'(' + regexp + ')', re.IGNORECASE))
                 else:
                     regexps.append(re.compile(r'(' + regexp + ')'))
         string_match = False
@@ -419,11 +422,11 @@ if __name__ == "__main__":
         choices=[0, 1, 2, 3],
         type=int,
         default=2,
-        help= 'select level L of details shown for matches:\n'
-              + '  0: exit 0 in case of match found, 1 otherwise\n'
-              + '  1: show only matching filename\n'
-              + '  2: show matching lines (NOT YET SUPPORTED)\n'
-              + '  3: show matching blocks')
+        help='select level L of details shown for matches:\n' +
+        '  0: exit 0 in case of match found, 1 otherwise\n' +
+        '  1: show only matching filename\n' +
+        '  2: show matching lines (NOT YET SUPPORTED)\n' +
+        '  3: show matching blocks')
     main_parser.add_argument(
         '-p',
         '--parallel',
@@ -437,22 +440,18 @@ if __name__ == "__main__":
         '--latest-date',
         metavar='DATE',
         type=str,
-        help=
-        'select latest crx from tar, released before DATE.\n'
-        + 'Together with --latest-date, specifies all crx released in specified\n'
-        + 'date range.'
-    )
+        help='select latest crx from tar, released before DATE.\n' +
+        'Together with --latest-date, specifies all crx released in specified\n'
+        + 'date range.')
 
     main_parser.add_argument(
         '-d',
         '--from-date',
         metavar='DATE',
         type=str,
-        help=
-        'select oldest crx from tar released after DATE.\n'
-        + 'Together with --from-date, specifies all crx released in specified\n'
-        + 'date range.'
-    )
+        help='select oldest crx from tar released after DATE.\n' +
+        'Together with --from-date, specifies all crx released in specified\n'
+        + 'date range.')
 
     main_parser.add_argument(
         '-f',
