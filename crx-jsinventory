@@ -35,7 +35,9 @@ def helpmsg():
     print("    -h        print this help text")
     print("    -c=<FILE> cvs file (output)")
     print("    -v        verbose")
-    print("    -d        disable use of database with file information (not recommended)")
+    print(
+        "    -d        disable use of database with file information (not recommended)"
+    )
     print("    -s        silent")
 
 
@@ -71,13 +73,15 @@ def main(argv):
         sys.exit()
 
     fieldnames = [
-        'filename', 'path', 'size', 'dec_size', 'md5', 'sha1', 'mimetype', 'description', 'encoding', 'type',
-        'detectionMethod', 'detectionMethodDetails', 'lib', 'version', 'lib_filename', 'evidenceText', 
-        'evidenceStartPos', 'evidenceEndPos'
+        'filename', 'path', 'size', 'dec_size', 'md5', 'sha1', 'mimetype',
+        'description', 'encoding', 'type', 'detectionMethod',
+        'detectionMethodDetails', 'lib', 'version', 'lib_filename',
+        'evidenceText', 'evidenceStartPos', 'evidenceEndPos'
     ]
 
     brief_fieldnames = [
-        'filename', 'md5', 'type', 'detectionMethod',  'lib', 'version', 'lib_filename'
+        'filename', 'md5', 'type', 'detectionMethod', 'lib', 'version',
+        'lib_filename'
     ]
 
     if filename.endswith('.crx'):
@@ -103,7 +107,7 @@ def main(argv):
                 tmp['md5'] = tmp['md5'].hex()
             if 'sha1' in tmp:
                 tmp['sha1'] = tmp['sha1'].hex()
-            
+
             print_inventory.append(
                 OrderedDict(
                     sorted(
