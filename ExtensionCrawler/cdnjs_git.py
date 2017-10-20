@@ -99,6 +99,8 @@ def hackish_pull_list_changed_files(git_path):
             changed_files = match.group(1).split('=>')
             for changed_file in changed_files:
                 files.add(changed_file.strip())
+    del git_obj
+    gc.collect()
     return list(files)
 
 
