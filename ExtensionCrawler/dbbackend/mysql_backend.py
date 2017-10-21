@@ -64,7 +64,7 @@ class MysqlBackend:
             self.db = MySQLdb.connect(**self.dbargs)
             logging.info("        success")
         if self.cursor is None:
-            logging.info("    self.cursor is None,  assing new cursor ...")
+            logging.info("    self.cursor is None,  assigning new cursor ...")
             self.cursor = self.db.cursor()
             logging.info("        success")
 
