@@ -31,9 +31,6 @@ from multiprocessing import Pool
 
 import requests
 
-# Script should run with python 3.4 or 3.5
-assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
-
 
 def get_cdnjs_all_libs_url():
     """URL for obtaining list of all available libraries, see https://cdnjs.com/api for details."""

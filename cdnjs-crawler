@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3.6
 #
 # Copyright (C) 2016,2017 The University of Sheffield, UK
 #
@@ -25,9 +25,6 @@ import sys
 from ExtensionCrawler.cdnjs_crawler import (
     update_jslib_archive, update_md5_map_file, update_sha1_map_file)
 from ExtensionCrawler.config import (const_log_format, const_basedir)
-
-# Script should run with python 3.4 or 3.5
-assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
 
 
 def helpmsg():
