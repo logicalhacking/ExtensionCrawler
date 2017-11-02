@@ -5,13 +5,14 @@
 
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/archive}
 CRAWLERHOME=${2:-~/ExtensionCrawler}
+IMAGE=${3:-~/shared/brucker_research1/Shared/BrowserExtensions/bin/ExtensionCrawler.img}
 LOGPREFIX=$ARCHIVE/log/`date --iso-8601=ns`
 LOG=$LOGPREFIX-global.log 
 
 date +'* Start Updating Extensions Archive (%c)' | tee $LOG
 
 # Update extensions
-(cd $CRAWLERHOME; (./crawler -p 32 -d -a $ARCHIVE > $LOGPREFIX.log))
+singularity exec $IMAGE crawler -p 32 -d -a $ARCHIVE > $LOGPREFIX.log
 
 date +'* Update Finished (%c)' | tee -a $LOG
 
