@@ -5,7 +5,7 @@
 
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/archive}
 CRAWLERHOME=${2:-~/ExtensionCrawler}
-IMAGE=${3:-~/shared/brucker_research1/Shared/BrowserExtensions/bin/ExtensionCrawler.img}
+IMAGE=${3:-/shared/brucker_research1/Shared/BrowserExtensions/bin/ExtensionCrawler.img}
 LOGPREFIX=$ARCHIVE/log/`date --iso-8601=ns`
 LOG=$LOGPREFIX-global.log 
 
