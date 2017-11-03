@@ -14,6 +14,7 @@ ls "$SING_IMG" > /dev/null
 $SING_EXEC git fetch > $LOG
 $SING_EXEC git checkout production >> $LOG
 $SING_EXEC git pull >> $LOG
+$SING_EXEC pip3 install --system -e ../ExtensionCrawler
 
 # Update cdnjs git repository and update cdnjs data base table
 $SING_EXEC ./cdnjs-git-miner -v -p 1 -u -a /opt/archive >> $LOG
