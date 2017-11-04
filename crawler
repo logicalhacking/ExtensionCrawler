@@ -129,8 +129,8 @@ def log_summary(res, runtime=0):
         log_info("")
         log_info("List of extensions with corrupted files/archives:")
         list(
-            map(lambda x: log_info("    " + x.id + ": " + str(x.exception)), corrupt_tar_archives)
-                )
+            map(lambda x: log_info("    " + x.id + ": " + str(x.exception)),
+                corrupt_tar_archives))
         log_info("")
 
 
@@ -225,7 +225,8 @@ def main(argv):
         log_info("Discovering new ids {}...".format("(at most {}) ".format(
             max_discover) if max_discover is not None else ""))
         try:
-            discovered_ids = list(itertools.islice(get_new_ids(known_ids), max_discover))
+            discovered_ids = list(
+                itertools.islice(get_new_ids(known_ids), max_discover))
         except Exception:
             log_exception("Exception when discovering new ids")
         log_info("Discovered {} new extensions".format(len(discovered_ids)), 1)
