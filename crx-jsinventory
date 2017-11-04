@@ -25,6 +25,7 @@ from zipfile import ZipFile
 from tabulate import tabulate
 from ExtensionCrawler.js_decomposer import decompose_js
 
+
 def helpmsg():
     """Print help message."""
     print("crx-jsinventory [OPTION] crx-file|js-file")
