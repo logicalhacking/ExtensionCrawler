@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3.6
 #
 # Copyright (C) 2017 The University of Sheffield, UK
 #
@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
 """Tool for extracting crx file from a tar archive."""
 
 import os
@@ -26,11 +25,7 @@ import datetime
 import dateutil
 import dateutil.parser
 from ExtensionCrawler.archive import last_crx, get_local_archive_dir
-from ExtensionCrawler.config import  const_basedir
-
-
-# Script should run with python 3.4 or 3.5
-assert sys.version_info >= (3, 4) and sys.version_info < (3, 6)
+from ExtensionCrawler.config import const_basedir
 
 
 def helpmsg():
@@ -45,18 +40,17 @@ def helpmsg():
     print("    -a=<DIR>  archive directory")
 
 
-def get_tarinfo(members, name, winfs = False, etag = None):
+def get_tarinfo(members, name, winfs=False, etag=None):
     """Select tarinfo object with a specified path/name."""
     for tarinfo in members:
         if tarinfo.name == name:
             if winfs:
-                tarinfo.name = name.replace(":","-")
+                tarinfo.name = name.replace(":", "-")
             if etag is not None:
                 (path, crx) = os.path.split(tarinfo.name)
                 (path, _) = os.path.split(path)
-                tarinfo.name = os.path.join(path,etag,crx)
+                tarinfo.name = os.path.join(path, etag, crx)
             yield tarinfo
-
 
 
 def main(argv):
@@ -69,7 +63,8 @@ def main(argv):
     output = ""
     winfs = False
     try:
-        opts, args = getopt.getopt(argv, "hsed:a:o:w", ["date=", "archive=", "output="])
+        opts, args = getopt.getopt(argv, "hsed:a:o:w",
+                                   ["date=", "archive=", "output="])
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -105,15 +100,17 @@ def main(argv):
         last, etag = last_crx(os.path.join(basedir, "data"), extid)
 
     if not useetag:
-        etag = None   
+        etag = None
     tar = os.path.join(basedir, "data",
-                      get_local_archive_dir(extid), extid + ".tar")
+                       get_local_archive_dir(extid), extid + ".tar")
     if last != "":
         if os.path.exists(tar):
             if verbose:
-                print("Extracting "+os.path.join(output, last))
+                print("Extracting " + os.path.join(output, last))
             with tarfile.open(tar, 'r') as archive:
-                archive.extractall(path=output, members=get_tarinfo(archive, last, winfs, etag))
+                archive.extractall(
+                    path=output,
+                    members=get_tarinfo(archive, last, winfs, etag))
         elif verbose:
             print("Cannot find archive " + tar)
     elif verbose:
@@ -121,6 +118,7 @@ def main(argv):
             print("CRX not in archive" + tar)
         else:
             print("CRX does not exist: cannot find archive " + tar)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

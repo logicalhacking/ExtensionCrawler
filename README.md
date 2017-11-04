@@ -40,7 +40,7 @@ They will use the host, datebase, and credentials found in `~/.my.cnf`.
 Since they make use of various JSON features, it is recommended to use at
 least version 10.2.8 of MariaDB.
 
-All utilities are written in Python 3.x. The required modules are listed
+All utilities are written in Python 3.6. The required modules are listed
 in the file `requirements.txt`.
 
 ## Installation
