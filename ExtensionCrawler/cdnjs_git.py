@@ -92,7 +92,7 @@ def hackish_pull_list_changed_files(git_path):
     
     files = set()
     git_obj = git.Git(git_path)
-    pull_lines = git_obj.pull().splitlines():
+    pull_lines = git_obj.pull().splitlines()
     del git_obj
     gc.collect()
 
