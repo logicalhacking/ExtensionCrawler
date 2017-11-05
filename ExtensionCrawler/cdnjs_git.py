@@ -89,11 +89,14 @@ def hackish_pull_list_changed_files(git_path):
         raise Exception("Dirty repository")
     del git_repo
     gc.collect()
-
+    
     files = set()
     git_obj = git.Git(git_path)
+    pull_lines = git_obj.pull().splitlines():
+    del git_obj
+    gc.collect()
 
-    for line in git_obj.pull().splitlines():
+    for line in pull_lines:
         match = re.search(r'^ (.+) \| .*$', line)
         if not match is None:
             changed_files = match.group(1).split('=>')
