@@ -253,7 +253,6 @@ def update_database_for_file_chunked_timeout(create_csv, release_dic,
             None,
             read_default_file=config.const_mysql_config_file(),
             charset='utf8mb4',
-            connection_timeout=600,
             compress=True) as con:
         logging.info("Created MariaDB connection - start to update data base ("
                      + str(len(filenames)) + "files)")
