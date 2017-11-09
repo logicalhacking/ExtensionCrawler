@@ -297,10 +297,12 @@ def update_database(create_csv,
                     poolsize=16):
     """Update database for all files in files."""
     logging.info("Updating data base")
-    with Pool(poolsize) as pool:
-        pool.map(
-            partial(update_database_for_file_chunked, create_csv, release_dic,
-                    cdnjs_git_path), chunks(list(files), 200))
+    for chunk in chunks(list(files), 200):
+        update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path, chunk)
+#    with Pool(poolsize) as pool:
+#        pool.map(
+#            partial(update_database_for_file_chunked, create_csv, release_dic,
+#                    cdnjs_git_path), chunks(list(files), 200))
 
 
 def get_release_triple(git_path, libver):
@@ -315,8 +317,12 @@ def get_release_triple(git_path, libver):
 def build_release_date_dic(git_path, libvers, poolsize=16):
     """"Build dictionary of release date with the tuple (library, version) as key."""
     logging.info("Building release dictionary")
-    with Pool(poolsize) as pool:
-        libverdates = pool.map(partial(get_release_triple, git_path), libvers)
+    libverdates = []
+    for libver in libvers:
+        libverdates = libverdates.append(get_release_triple(git_path, libver))
+    release_date_dic = {}
+#    with Pool(poolsize) as pool:
+#        libverdates = pool.map(partial(get_release_triple, git_path), libvers)
     release_date_dic = {}
     for (lib, ver, date) in libverdates:
         release_date_dic[(lib, ver)] = date
