@@ -255,7 +255,7 @@ def update_database_for_file_chunked_timeout(create_csv, release_dic,
             charset='utf8mb4',
             compress=True) as con:
         logging.info("Created MariaDB connection - start to update data base ("
-                     + str(len(filenames)) + "files)")
+                     + str(len(filenames)) + " files)")
         for filename in filenames:
             update_database_for_file(create_csv, release_dic, cdnjs_git_path,
                                      filename, con)
