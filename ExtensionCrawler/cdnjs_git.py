@@ -319,7 +319,7 @@ def build_release_date_dic(git_path, libvers, poolsize=16):
     logging.info("Building release dictionary")
     libverdates = []
     for libver in libvers:
-        libverdates = libverdates.append(get_release_triple(git_path, libver))
+        libverdates.append(get_release_triple(git_path, libver))
     release_date_dic = {}
 #    with Pool(poolsize) as pool:
 #        libverdates = pool.map(partial(get_release_triple, git_path), libvers)
