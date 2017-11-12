@@ -34,7 +34,6 @@ def helpmsg():
         "    -i               initialize/update database with all libraries in the repository"
     )
     print("    -u               update: pull repository and update database")
-    print("    -p n             update n files in parallel")
     print(
         "    -l <PATHFILE>    read list of libraries to update from file (recusively)"
     )
@@ -54,7 +53,6 @@ def main(argv):
     verbose = False
     initialize = False
     update = False
-    parallel_updates = 5
     taskid = 1
     listfile = None
     maxtaskid = 1
@@ -83,8 +81,6 @@ def main(argv):
             update = True
         elif opt == '-c':
             csv = True
-        elif opt == "-p":
-            parallel_updates = int(arg)
         elif opt in ("-n", "--taskid"):
             taskid = int(arg)
         elif opt in ("-N", "--maxtaskid"):
@@ -105,17 +101,15 @@ def main(argv):
 
     if initialize:
         logging.info("Starting update of all db libs")
-        update_db_all_libs(cdnjs_git_path, csv, taskid, maxtaskid,
-                           parallel_updates)
+        update_db_all_libs(cdnjs_git_path, csv, taskid, maxtaskid)
         logging.info("Finished update of all db libs")
     if update:
         logging.info("Starting update of new db libs")
-        pull_and_update_db(cdnjs_git_path, csv, parallel_updates)
+        pull_and_update_db(cdnjs_git_path, csv)
         logging.info("Finished update of new db libs")
     if not listfile is None:
         logging.info("Starting update from list file")
-        update_db_from_listfile(cdnjs_git_path, listfile, csv,
-                                parallel_updates)
+        update_db_from_listfile(cdnjs_git_path, listfile, csv)
         logging.info("Finished update from list file")
 
     logging.info("Successfully updated cdnjs table")

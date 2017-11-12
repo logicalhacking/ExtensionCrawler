@@ -293,16 +293,11 @@ def chunks(l, n):
 def update_database(create_csv,
                     release_dic,
                     cdnjs_git_path,
-                    files,
-                    poolsize=16):
+                    files):
     """Update database for all files in files."""
     logging.info("Updating data base")
     for chunk in chunks(list(files), 200):
         update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path, chunk)
-#    with Pool(poolsize) as pool:
-#        pool.map(
-#            partial(update_database_for_file_chunked, create_csv, release_dic,
-#                    cdnjs_git_path), chunks(list(files), 200))
 
 
 def get_release_triple(git_path, libver):
@@ -314,32 +309,29 @@ def get_release_triple(git_path, libver):
     return (lib, ver, date)
 
 
-def build_release_date_dic(git_path, libvers, poolsize=16):
+def build_release_date_dic(git_path, libvers):
     """"Build dictionary of release date with the tuple (library, version) as key."""
     logging.info("Building release dictionary")
     libverdates = []
     for libver in libvers:
         libverdates.append(get_release_triple(git_path, libver))
     release_date_dic = {}
-#    with Pool(poolsize) as pool:
-#        libverdates = pool.map(partial(get_release_triple, git_path), libvers)
-    release_date_dic = {}
     for (lib, ver, date) in libverdates:
         release_date_dic[(lib, ver)] = date
     return release_date_dic
 
 
-def pull_and_update_db(cdnjs_git_path, create_csv, poolsize=16):
+def pull_and_update_db(cdnjs_git_path, create_csv):
     """Pull repo and update database."""
     logging.info("Pulling and updating data base")
     files, libvers = pull_get_updated_lib_files(cdnjs_git_path)
-    release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
+    release_dic = build_release_date_dic(cdnjs_git_path, libvers)
     del libvers
     gc.collect()
-    update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
+    update_database(create_csv, release_dic, cdnjs_git_path, files)
 
 
-def update_db_from_listfile(cdnjs_git_path, listfile, create_csv, poolsize=16):
+def update_db_from_listfile(cdnjs_git_path, listfile, create_csv):
     """Update database (without pull) for files in listfile)"""
     paths = []
     with open(listfile) as listfileobj:
@@ -352,15 +344,14 @@ def update_db_from_listfile(cdnjs_git_path, listfile, create_csv, poolsize=16):
         files = files + path_files
     logging.info("In total, found " + str(len(files)) + " files in " +
                  str(len(libvers)) + " liberies/versions.")
-    release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
-    update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
+    release_dic = build_release_date_dic(cdnjs_git_path, libvers)
+    update_database(create_csv, release_dic, cdnjs_git_path, files)
 
 
 def update_db_all_libs(cdnjs_git_path,
                        create_csv,
                        taskid=1,
-                       maxtaskid=1,
-                       poolsize=16):
+                       maxtaskid=1):
     """Update database entries for all libs in git repo."""
     files, libvers = get_all_lib_files(cdnjs_git_path)
 
@@ -379,7 +370,7 @@ def update_db_all_libs(cdnjs_git_path,
         logging.info("This task has  " + str(len(files)) + " files from  " +
                      str(len(libvers)) + " library version(s).")
 
-    release_dic = build_release_date_dic(cdnjs_git_path, libvers, poolsize)
+    release_dic = build_release_date_dic(cdnjs_git_path, libvers)
     del libvers
     gc.collect()
-    update_database(create_csv, release_dic, cdnjs_git_path, files, poolsize)
+    update_database(create_csv, release_dic, cdnjs_git_path, files)
