@@ -475,21 +475,23 @@ def decompose_js_with_connection(path_or_zipfileobj, con):
             inventory.append(file_info)
             continue
         file_info = check_filename(file_info)
-        if not file_info['detectionMethod'] is None:
-            if not file_info['dec_decoding'] is None:
+        if file_info['detectionMethod'] is None:
+            if not file_info['dec_encoding'] is None:
                 try:
                     with zlib.decompressobj(zlib.MAX_WBITS | 16) as dec:
                         dec_data = dec.decompress(data, 100 * file_info['size'])
                     str_data = dec_data.decode(file_info['dec_encoding'])
                     del dec_data
                 except Exception:
-                    return [file_info]
+                    str_data = ''
             else:
-                str_data = data.decode(file_info['encoding'])
+                try:
+                    str_data = data.decode(file_info['encoding'])
+                except Exception:
+                    str_data = ''
 
             info_comment_blocks= check_comment_blocks(file_info, str_data)
             info_comment_code_blocks = check_code_blocks(file_info, str_data)
-            del str_data
 
             # js_info_file = analyse_checksum(zipfile, js_file, js_info)
             # if not js_info_file:
