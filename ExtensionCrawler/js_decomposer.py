@@ -252,24 +252,16 @@ def check_filename(file_info):
     # TODO
     return file_info
 
-def check_comment_blocks(file_info, str_data):
-    """Check for known pattern in comment blocks."""
+def check_data_blocks(file_info, str_data):
+    """Check for known pattern in data (comment or code) blocks."""
     # TODO
     with StringIO(str_data) as str_obj:
         for block in mince_js(str_obj, single_line_comments_block=True):
             if block.is_comment():
                 pass # TODO
-    return [file_info]
-
-def check_code_blocks(file_info, str_data):
-    """Check for known pattern in code blocks."""
-    # TODO
-    with StringIO(str_data) as str_obj:
-        for block in mince_js(str_obj, single_line_comments_block=False):
-            if block.is_code():
+            else:   
                 pass # TODO
-    return [file_info]
-
+    return []
 
 def analyse_checksum(zipfile, js_file, js_info):
     """Check for known md5 hashes (file content)."""
@@ -425,7 +417,10 @@ def decompose_js(path_or_zipfileobj, use_db = True):
     else:
             return decompose_js_with_connection(path_or_zipfileobj, None)
 
-
+def merge_filename_and_data_info(file_filename_info, info_data_blocks):
+    """Merge file information based on filename heuristics and data block analysis."""
+    # TODO
+    return info_data_blocks
 
 def decompose_js_with_connection(path_or_zipfileobj, con):
     """JavaScript decomposition analysis for extensions."""
@@ -474,7 +469,8 @@ def decompose_js_with_connection(path_or_zipfileobj, con):
         if not file_info['detectionMethod'] is None:
             inventory.append(file_info)
             continue
-        file_info = check_filename(file_info)
+
+        file_filename_info = check_filename(file_info)
         if file_info['detectionMethod'] is None:
             if not file_info['dec_encoding'] is None:
                 try:
@@ -490,24 +486,24 @@ def decompose_js_with_connection(path_or_zipfileobj, con):
                 except Exception:
                     str_data = ''
 
-            info_comment_blocks= check_comment_blocks(file_info, str_data)
-            info_comment_code_blocks = check_code_blocks(file_info, str_data)
-
-            # js_info_file = analyse_checksum(zipfile, js_file, js_info)
-            # if not js_info_file:
-            #     js_info_file = analyse_filename(zipfile, js_file, js_info)
-            #     js_info_file += analyse_comment_blocks(zipfile, js_file, js_info)
-            inventory = inventory + info_comment_blocks + info_comment_code_blocks
+            info_data_blocks = check_data_blocks(file_info, str_data)
+ 
+        if info_data_blocks: 
+            inventory = inventory + merge_filename_and_data_info(file_filename_info, info_data_blocks)
             continue
+        else:
+            file_info = file_filename_info
+
 
         # if no library could be detected, we report the JavaScript file as 'application'.
-        file_info['lib'] = None
-        file_info['version'] = None
-        file_info['detectionMethod'] = DetectionType.DEFAULT
-        if is_ressource(file_info):
-            file_info['type'] = FileClassification.LIKELY_APPLICATION_RSC
-        else:
-            file_info['type'] = FileClassification.LIKELY_APPLICATION
-        inventory.append(file_info)
+        if file_info['detectionMethod'] is None:
+            file_info['lib'] = None
+            file_info['version'] = None
+            file_info['detectionMethod'] = DetectionType.DEFAULT
+            if is_ressource(file_info):
+                file_info['type'] = FileClassification.LIKELY_APPLICATION_RSC
+            else:
+                file_info['type'] = FileClassification.LIKELY_APPLICATION
+            inventory.append(file_info)
 
     return inventory
