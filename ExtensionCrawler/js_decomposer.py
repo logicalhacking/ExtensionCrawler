@@ -23,6 +23,7 @@ from io import StringIO
 import re
 import json
 import zlib
+import logging
 from enum import Enum
 from ExtensionCrawler.js_mincer import mince_js
 from ExtensionCrawler.file_identifiers import get_file_identifiers
@@ -479,11 +480,13 @@ def decompose_js_with_connection(path_or_zipfileobj, con):
                     str_data = dec_data.decode(file_info['dec_encoding'])
                     del dec_data
                 except Exception:
+                    logging.info("Exception during data decoding (decompressed) for entry " + file_info['filename'])
                     str_data = ''
             else:
                 try:
                     str_data = data.decode(file_info['encoding'])
                 except Exception:
+                    logging.info("Exception during data decoding for entry " + file_info['filename'])
                     str_data = ''
 
             info_data_blocks = check_data_blocks(file_info, str_data)
