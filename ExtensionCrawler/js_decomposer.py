@@ -400,41 +400,6 @@ def analyse_comment_generic_libs(zipfile, js_file, js_info, comment):
             libs.append(js_info)
     return libs
 
-
-def analyse_comment_blocks(zipfile, js_file, js_info):
-    """Search for library identifiers in comment."""
-
-    def mince_js_fileobj(js_text_file_obj):
-        """Mince JavaScript file using a file object."""
-        libs = list()
-        for block in mince_js(
-                js_text_file_obj, single_line_comments_block=True):
-            block_libs = list()
-            if block.is_comment():
-                block_libs = analyse_comment_known_libs(
-                    zipfile, js_file, js_info, block)
-                if block_libs is None:
-                    block_libs = analyse_comment_generic_libs(
-                        zipfile, js_file, js_info, block)
-                if block_libs is not None:
-                    libs += block_libs
-        return libs
-
-    libs = []
-    try:
-        if zipfile is not None:
-            with zipfile.open(js_file) as js_file_obj:
-                with io.TextIOWrapper(js_file_obj,
-                                      js_info['encoding']) as js_text_file_obj:
-                    libs = mince_js_fileobj(js_text_file_obj)
-        else:
-            with open(js_file) as js_text_file_obj:
-                libs = mince_js_fileobj(js_text_file_obj)
-    except:
-        libs = list()
-    return libs
-
-
 def decompose_js(path_or_zipfileobj, use_db=True):
     if use_db:
         with MysqlBackend(
