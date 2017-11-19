@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-""" Module for obtaining (normalized) md5/sha1/sha256 hashes for files."""
+""" Module for obtaining (normalized) hashes for files."""
 
 import gc
 import hashlib
@@ -24,11 +24,13 @@ import os
 import re
 import zlib
 from io import StringIO
+from simhash import Simhash
 
 import cchardet as chardet
 import magic
 
 from ExtensionCrawler.js_mincer import mince_js
+
 
 def normalize_jsdata(str_data):
     """Compute normalized code blocks of a JavaScript file"""
@@ -42,6 +44,26 @@ def normalize_jsdata(str_data):
                     loc += 1
     return txt.encode(), loc
 
+def get_features(s):
+    """Compute feature set of text (represented as string)."""
+    width = 3
+    s = s.lower()
+    s = re.sub(r'[^\w]+', '', s)
+    return [s[i:i + width] for i in range(max(len(s) - width + 1, 1))]
+
+def get_simhash(s):
+    """Compute simhash of text."""
+    return Simhash(get_features(s)).value
+
+def compute_difference(hx, hy):
+    """Compute difference between two simhashes."""
+    assert hx.bit_length() == hy.bit_length()
+    h = (hx ^ hy) & ((1 << 64) - 1)
+    d = 0
+    while h:
+        d += 1
+        h &= h - 1
+    return d
 
 def get_data_identifiers(data):
     """Get basic data identifiers (size, hashes, normalized hashes, etc.)."""
