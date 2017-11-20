@@ -85,6 +85,7 @@ def load_lib_identifiers():
 
 
 def is_ressource(file_info):
+    """Chedk if file info indicates that it represents a ressource type."""
     ressource_identifiers = ["Media", "Audio", "Image", "PDF"]
 
     if file_info['description'] is not None:
