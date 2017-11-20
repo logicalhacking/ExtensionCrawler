@@ -51,9 +51,14 @@ def get_features(s):
     s = re.sub(r'[^\w]+', '', s)
     return [s[i:i + width] for i in range(max(len(s) - width + 1, 1))]
 
-def get_simhash(s):
+def get_simhash(encoding, data):
     """Compute simhash of text."""
-    return Simhash(get_features(s)).value
+    simhash = None
+    if not encoding is None:
+        str_data = data.decode(encoding)
+        simhash = Simhash(get_features(str_data)).value
+    return simhash
+
 
 def compute_difference(hx, hy):
     """Compute difference between two simhashes."""
@@ -78,15 +83,17 @@ def get_data_identifiers(data):
         else:
             raise exp
 
+    encoding = chardet.detect(data)['encoding']
     data_identifier = {
         'md5': hashlib.md5(data).digest(),
         'sha1': hashlib.sha1(data).digest(),
         'sha256': hashlib.sha256(data).digest(),
+        'simhash': get_simhash(encoding, data),
         'size': len(data),
         'size_stripped': len(data.strip()),
         'loc': len(data.splitlines()),
         'description': magic_desc,
-        'encoding': chardet.detect(data)['encoding'],
+        'encoding': encoding, 
     }
     try:
         normalized_data, normalized_loc = normalize_jsdata(
@@ -102,6 +109,7 @@ def get_data_identifiers(data):
         data_identifier['normalized_md5'] = None
         data_identifier['normalized_sha1'] = None
         data_identifier['normalized_sha256'] = None
+        data_identifier['normalized_simhash'] = None
     else:
         normalized_magic_desc = ""
         try:
@@ -113,7 +121,8 @@ def get_data_identifiers(data):
                 magic_desc = re.sub(rgx, '', msg)
             else:
                 raise exp
-        data_identifier['normalized_encoding'] = chardet.detect(normalized_data)['encoding']
+        normalized_encoding = chardet.detect(normalized_data)['encoding']
+        data_identifier['normalized_encoding'] = normalized_encoding
         data_identifier['normalized_description'] = normalized_magic_desc
         data_identifier['normalized_size'] = len(normalized_data)
         data_identifier['normalized_loc'] = normalized_loc
@@ -123,6 +132,7 @@ def get_data_identifiers(data):
             normalized_data).digest()
         data_identifier['normalized_sha256'] = hashlib.sha256(
             normalized_data).digest()
+        data_identifier['normalized_simhash'] = get_simhash(normalized_encoding, normalized_data)    
     return data_identifier
 
 
@@ -132,6 +142,7 @@ def get_file_identifiers(path, data=None):
         'md5': None,
         'sha1': None,
         'sha256': None,
+        'simhash': None,
         'size': None,
         'size_stripped': None,
         'loc': None,
@@ -143,7 +154,8 @@ def get_file_identifiers(path, data=None):
         'normalized_size': None,
         'normalized_md5': None,
         'normalized_sha1': None,
-        'normalized_sha256': None
+        'normalized_sha256': None,
+        'normalized_simhash': None
     }
     if data is None:
         with open(path, 'rb') as fileobj:
@@ -167,6 +179,7 @@ def get_file_identifiers(path, data=None):
         'md5': data_identifier['md5'],
         'sha1': data_identifier['sha1'],
         'sha256': data_identifier['sha256'],
+        'simhash': data_identifier['simhash'],
         'size': data_identifier['size'],
         'size_stripped': data_identifier['size_stripped'],
         'loc': data_identifier['loc'],
@@ -179,9 +192,11 @@ def get_file_identifiers(path, data=None):
         'normalized_md5': data_identifier['normalized_md5'],
         'normalized_sha1': data_identifier['normalized_sha1'],
         'normalized_sha256': data_identifier['normalized_sha256'],
+        'normalized_simhash': data_identifier['normalized_simhash'],
         'dec_md5': dec_data_identifier['md5'],
         'dec_sha1': dec_data_identifier['sha1'],
         'dec_sha256': dec_data_identifier['sha256'],
+        'dec_simhash': dec_data_identifier['simhash'],
         'dec_size': dec_data_identifier['size'],
         'dec_size_stripped': dec_data_identifier['size_stripped'],
         'dec_loc': dec_data_identifier['loc'],
@@ -193,7 +208,8 @@ def get_file_identifiers(path, data=None):
         'dec_normalized_loc': dec_data_identifier['normalized_loc'],
         'dec_normalized_md5': dec_data_identifier['normalized_md5'],
         'dec_normalized_sha1': dec_data_identifier['normalized_sha1'],
-        'dec_normalized_sha256': dec_data_identifier['normalized_sha256']
+        'dec_normalized_sha256': dec_data_identifier['normalized_sha256'],
+        'dec_normalized_simhash': dec_data_identifier['normalized_simhash']
     }
 
     return file_identifier
