@@ -55,12 +55,13 @@ def get_features(s):
 
 def get_simhash(encoding, data):
     """Compute simhash of text."""
-    simhash = None
+    str_data = ""
     if not encoding is None:
         str_data = data.decode(encoding)
-        simhash = Simhash(get_features(str_data)).value
+    else:
+        str_data = str(data)
+    simhash = Simhash(get_features(str_data)).value
     return simhash
-
 
 def compute_difference(hx, hy):
     """Compute difference between two simhashes."""
