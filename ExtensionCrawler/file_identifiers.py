@@ -63,6 +63,7 @@ def get_simhash(encoding, data):
     simhash = Simhash(get_features(str_data)).value
     return simhash
 
+
 def compute_difference(hx, hy):
     """Compute difference between two simhashes."""
     assert hx.bit_length() == hy.bit_length()
