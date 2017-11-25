@@ -401,6 +401,7 @@ def analyse_comment_generic_libs(zipfile, js_file, js_info, comment):
             libs.append(js_info)
     return libs
 
+
 def decompose_js(path_or_zipfileobj, use_db=True):
     if use_db:
         with MysqlBackend(
