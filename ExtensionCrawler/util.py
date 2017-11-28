@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
 """ Various utility methods."""
 
 from time import sleep
@@ -23,10 +22,12 @@ from random import random
 import traceback
 import logging
 
+
 def google_dos_protection(maxrange=0.3):
     """Wait a random number of seconds (between 0.5 to 0.5+maxrange)
        to avoid Google's bot detection"""
-    sleep(0.5+(random()*maxrange))
+    sleep(0.5 + (random() * maxrange))
+
 
 def value_of(value, default):
     """Get value or default value if None."""
@@ -35,17 +36,22 @@ def value_of(value, default):
     else:
         return default
 
+
 def log_debug(msg, indent_level=0, extid="-" * 32):
     logging.debug(str(extid) + " " + 4 * indent_level * " " + str(msg))
+
 
 def log_info(msg, indent_level=0, extid="-" * 32):
     logging.info(str(extid) + " " + 4 * indent_level * " " + str(msg))
 
+
 def log_warning(msg, indent_level=0, extid="-" * 32):
     logging.warning(str(extid) + " " + 4 * indent_level * " " + str(msg))
 
+
 def log_error(msg, indent_level=0, extid="-" * 32):
     logging.error(str(extid) + " " + 4 * indent_level * " " + str(msg))
+
 
 def log_exception(msg, indent_level=0, extid="-" * 32):
     logging.error(str(extid) + " " + 4 * indent_level * " " + str(msg))
