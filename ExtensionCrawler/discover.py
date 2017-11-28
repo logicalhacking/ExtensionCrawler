@@ -30,8 +30,8 @@ def crawl_nearly_all_of_ext_ids():
 
     def get_inner_elems(doc):
         """Get inner element."""
-        return ET.fromstring(doc).iterfind(
-            r".//{{{}}}loc".format(config.const_sitemap_scheme()))
+        return ET.fromstring(doc).iterfind(r".//{{{}}}loc".format(
+            config.const_sitemap_scheme()))
 
     def is_generic_url(url):
         """Check if URL is a generic extension URL."""
