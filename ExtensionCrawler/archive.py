@@ -48,7 +48,7 @@ class Error(Exception):
 
 
 class CrawlError(Error):
-    def __init__(self, extid, message, pagecontent=""):
+    def __init__(self, extid="", message="", pagecontent=""):
         self.extid = extid
         self.message = message
         self.pagecontent = pagecontent
