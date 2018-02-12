@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 2017 The University of Sheffield, UK
+# Copyright 2017,2018 The University of Sheffield, UK
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,6 +65,11 @@ if [ -f ${IMAGE} ]; then
     fi
 fi
 
-echo "Creating $IMAGE ($BASESIZE MiB) using ${BASE}.def"
-singularity create --size ${BASESIZE} ${IMAGE}
-sudo singularity bootstrap ${IMAGE} ${BASE}.def
+if [ "$CDNJS" = "true" ]; then
+    echo "Creating writable $IMAGE ($BASESIZE MiB) using ${BASE}.def"
+    sudo singularity build --writable ${IMAGE} ${BASE}.def
+    sudo singularity image.expand --size ${BASESIZE} --writable ${IMAGE} ${BASE}.def
+else 
+    echo "Creating read-only $IMAGE using ${BASE}.def"
+    sudo singularity build --writable ${IMAGE} ${BASE}.def
+fi
