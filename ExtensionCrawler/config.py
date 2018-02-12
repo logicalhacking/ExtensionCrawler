@@ -92,8 +92,8 @@ def const_review_payload(ext_id, start, end):
         '"url":"http%3A%2F%2Fchrome.google.com%2Fextensions%2Fpermalink%3Fid%3D{}",'
         + '"groups":"chrome_webstore",' + '"sortby":"cws_qscore",' +
         '"startindex":"{}",' + '"numresults":"{}",' + '"id":"428"}}],' +
-        '"internedKeys":[],' + '"internedValues":[]}}').format(ext_id, start,
-                                                               end)
+        '"internedKeys":[],' + '"internedValues":[]}}').format(
+            ext_id, start, end)
 
 
 def const_review_search_payload(params):
@@ -133,27 +133,32 @@ def const_basedir():
         return "archive"
 
 
-
 def const_parallel_downloads():
     """Number of parallel downloads."""
     return 36
+
 
 def const_verbose():
     """Default verbosity."""
     return True
 
+
 def const_log_format():
     return '%(process)6s %(asctime)s %(levelname)8s %(message)s'
+
 
 def const_discover():
     """Default configuration of discovery mode"""
     return False
 
+
 def const_mysql_config_file():
     return os.path.expanduser("~/.my.cnf")
 
+
 def const_mysql_maxtries():
     return 3
+
 
 def const_mysql_try_wait():
     return 1

@@ -66,9 +66,9 @@ def update_lib(force, archive, lib):
         return
 
     if not lib_res.status_code == 200:
-        logging.error("  Cannot access overview for " + name +
-                      "(status codce: " + str(lib_res.status_code) + ") " +
-                      str(lib_res.url))
+        logging.error(
+            "  Cannot access overview for " + name + "(status codce: " + str(
+                lib_res.status_code) + ") " + str(lib_res.url))
         logging.error(str(lib_res.content))
         return
     cdnjs_lib_json = lib_res.json()
@@ -122,9 +122,9 @@ def update_lib(force, archive, lib):
 
                 if res_jsfile.status_code == 403 or res_jsfile.status_code == 404:
                     logging.warning("Access denied: cannot access assests of "
-                                    + name + " (status code: " +
-                                    str(res_jsfile.status_code) + ") " +
-                                    str(res_jsfile.url))
+                                    + name + " (status code: " + str(
+                                        res_jsfile.status_code) + ") " + str(
+                                            res_jsfile.url))
                     files_with_hashes.append({
                         'filename':
                         jsfile,
@@ -157,9 +157,9 @@ def update_lib(force, archive, lib):
                     })
                 else:
                     logging.error("Unknown error: cannot access assests of " +
-                                  name + " (status code: " +
-                                  str(res_jsfile.status_code) + ") " +
-                                  str(res_jsfile.url))
+                                  name + " (status code: " + str(
+                                      res_jsfile.status_code) + ") " + str(
+                                          res_jsfile.url))
                     logging.error(str(res_jsfile.content))
                     return
 

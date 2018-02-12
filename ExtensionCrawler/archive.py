@@ -48,7 +48,7 @@ class Error(Exception):
 
 
 class CrawlError(Error):
-    def __init__(self, extid, message, pagecontent=""):
+    def __init__(self, extid="", message="", pagecontent=""):
         self.extid = extid
         self.message = message
         self.pagecontent = pagecontent
@@ -199,11 +199,14 @@ def last_crx(archivedir, extid, date=None):
             ])
             if old_crxs != []:
                 last_crx = old_crxs[-1]
-                headers_content = t.extractfile(last_crx + ".headers").read().decode().replace('"', '\\"').replace("'", '"')
+                headers_content = t.extractfile(
+                    last_crx + ".headers").read().decode().replace(
+                        '"', '\\"').replace("'", '"')
                 headers_json = json.loads(headers_content)
                 last_crx_etag = headers_json["ETag"]
 
     return last_crx, last_crx_etag
+
 
 def first_crx(archivedir, extid, date=None):
     first_crx = ""
@@ -255,8 +258,8 @@ def update_overview(tar, date, ext_id):
 def validate_crx_response(res, extid, extfilename):
     regex_extfilename = re.compile(r'^extension[_0-9]+\.crx$')
     if not 'Content-Type' in res.headers:
-        raise CrawlError(extid, 'Did not find Content-Type header.',
-                         '\n'.join(res.iter_lines()))
+        raise CrawlError(extid, 'Did not find Content-Type header.', '\n'.join(
+            res.iter_lines()))
     if not res.headers['Content-Type'] == 'application/x-chrome-extension':
         text = [line.decode('utf-8') for line in res.iter_lines()]
         raise CrawlError(
@@ -550,7 +553,6 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
         ext_without_forums = list(
             p.map(partial(update_extension, archivedir, False), parallel_ids))
 
-
     # Second, update extensions with forums sequentially (and with delays) to
     # avoid running into Googles DDOS detection.
     log_info("Updating {} extensions including forums (sequentially)".format(
@@ -558,7 +560,6 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
 
     ext_with_forums = list(
         map(partial(update_extension, archivedir, True), forums_ext_ids))
-
 
     return ext_with_forums + ext_without_forums
 

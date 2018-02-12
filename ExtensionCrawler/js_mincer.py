@@ -105,7 +105,7 @@ class JsBlock:
     def is_comment_single_line(self):
         """Check if block is a single line comment."""
         return is_comment_single_line(self.typ)
-        
+
     def is_comment_single_line_block(self):
         """Check if block is single line comment block."""
         return is_comment_single_line_block(self.typ)
@@ -117,8 +117,8 @@ class JsBlock:
     def __str__(self):
         str_msg = ""
         if is_code(self.typ):
-            str_msg = "** String Literals: " + str(
-                len(self.string_literals)) + "\n"
+            str_msg = "** String Literals: " + str(len(
+                self.string_literals)) + "\n"
         return (
             "***************************************************************\n"
             + "** Type:  " + str(self.typ.name) + "\n" + "** Start: " + str(
@@ -167,14 +167,16 @@ def mince_js_fileobj(fileobj):
                 elif is_string_literal_dq(state):
                     if char == '"':
                         suc_state = JsBlockType.CODE_BLOCK
-                        string_literals.append(((line, cpos),current_string_literal))
+                        string_literals.append(((line, cpos),
+                                                current_string_literal))
                         current_string_literal = ""
                     else:
                         current_string_literal += char
                 elif is_string_literal_sq(state):
                     if char == "'":
                         suc_state = JsBlockType.CODE_BLOCK
-                        string_literals.append(((line, cpos),current_string_literal))
+                        string_literals.append(((line, cpos),
+                                                current_string_literal))
                         current_string_literal = ""
                     else:
                         current_string_literal += char
@@ -197,7 +199,7 @@ def mince_js_fileobj(fileobj):
                             pass
 
         if ((is_comment(state) and is_code_or_string_literal(suc_state)) or
-                (is_code_or_string_literal(state) and is_comment(suc_state))):
+            (is_code_or_string_literal(state) and is_comment(suc_state))):
             if content.strip():
                 yield (JsBlock(state, (block_start_line, block_start_cpos),
                                (line, cpos), content, string_literals))
