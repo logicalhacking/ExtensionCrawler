@@ -20,10 +20,12 @@
 import sys
 import getopt
 import csv
+import logging
 from collections import OrderedDict
 from zipfile import ZipFile
 from tabulate import tabulate
 from ExtensionCrawler.js_decomposer import decompose_js
+from ExtensionCrawler.config import (const_log_format)
 
 
 def helpmsg():
@@ -68,6 +70,17 @@ def main(argv):
     else:
         helpmsg()
         sys.exit()
+
+    if verbose:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.WARNING
+
+    logger = logging.getLogger()
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(logging.Formatter(const_log_format()))
+    logger.addHandler(ch)
+    logger.setLevel(loglevel)
 
     fieldnames = [
         'filename', 'path', 'size', 'dec_size', 'md5', 'sha1', 'mimetype',

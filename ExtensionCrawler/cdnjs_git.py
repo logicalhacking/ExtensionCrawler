@@ -89,7 +89,7 @@ def hackish_pull_list_changed_files(git_path):
         raise Exception("Dirty repository")
     del git_repo
     gc.collect()
-    
+
     files = set()
     git_obj = git.Git(git_path)
     pull_lines = git_obj.pull().splitlines()
@@ -227,6 +227,7 @@ def update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
                             md5=file_info[prefix + "md5"],
                             sha1=file_info[prefix + "sha1"],
                             sha256=file_info[prefix + "sha256"],
+                            simhash=file_info[prefix + "simhash"],
                             size=file_info[prefix + "size"],
                             loc=file_info[prefix + "loc"],
                             description=file_info[prefix + "description"],
@@ -290,14 +291,12 @@ def chunks(l, n):
         yield l[i:i + n]
 
 
-def update_database(create_csv,
-                    release_dic,
-                    cdnjs_git_path,
-                    files):
+def update_database(create_csv, release_dic, cdnjs_git_path, files):
     """Update database for all files in files."""
     logging.info("Updating data base")
     for chunk in chunks(list(files), 200):
-        update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path, chunk)
+        update_database_for_file_chunked(create_csv, release_dic,
+                                         cdnjs_git_path, chunk)
 
 
 def get_release_triple(git_path, libver):
@@ -342,16 +341,13 @@ def update_db_from_listfile(cdnjs_git_path, listfile, create_csv):
         path_files, path_libvers = get_all_lib_files(cdnjs_git_path, path)
         libvers = libvers + path_libvers
         files = files + path_files
-    logging.info("In total, found " + str(len(files)) + " files in " +
-                 str(len(libvers)) + " liberies/versions.")
+    logging.info("In total, found " + str(len(files)) + " files in " + str(
+        len(libvers)) + " liberies/versions.")
     release_dic = build_release_date_dic(cdnjs_git_path, libvers)
     update_database(create_csv, release_dic, cdnjs_git_path, files)
 
 
-def update_db_all_libs(cdnjs_git_path,
-                       create_csv,
-                       taskid=1,
-                       maxtaskid=1):
+def update_db_all_libs(cdnjs_git_path, create_csv, taskid=1, maxtaskid=1):
     """Update database entries for all libs in git repo."""
     files, libvers = get_all_lib_files(cdnjs_git_path)
 
