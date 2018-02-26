@@ -57,7 +57,7 @@ def get_simhash(encoding, data):
     """Compute simhash of text."""
     str_data = ""
     if not encoding is None:
-        str_data = data.decode(encoding)
+        str_data = data.decode(encoding=encoding,errors="replace")
     else:
         str_data = str(data)
     simhash = Simhash(get_features(str_data)).value
@@ -102,7 +102,7 @@ def get_data_identifiers(data):
     }
     try:
         normalized_data, normalized_loc = normalize_jsdata(
-            data.decode(data_identifier['encoding']))
+            data.decode(encoding=data_identifier['encoding'],errors="replace"))
     except Exception:
         normalized_data = None
 
