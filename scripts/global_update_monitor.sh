@@ -9,6 +9,8 @@ echo "# Checking update status"
 if ps u -C global_update.sh > /dev/null; then 
     NUM=`ps u -C global_update.sh | tail -n +2 | wc -l`
     echo "* $NUM instances of global_update.sh still running (WARNING)"
+    PIDS=`ps u -C global_update.sh | tail -n +2  | awk '{print $2}' | xargs`
+    echo "  Running PIDs: $PIDS"
 else
     echo "* global_update.sh not running"
 fi
