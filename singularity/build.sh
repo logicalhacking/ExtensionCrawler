@@ -15,6 +15,7 @@
 
 BASE=ExtensionCrawler
 BASESIZE=600
+BINDIR=/srv/Shared/BrowserExtensions/bin
 
 print_help()
 {
@@ -25,11 +26,13 @@ print_help()
     echo "  --help, -h              display this help message"
     echo "  --force, -f             overwrite existing singularity image"
     echo "  --cdnjs, -c             include cdnjs repository (ca. 125 GB)"
+    echo "  --install, -i           install image into $BINDIR"
 }
 
 
 FORCE="false"
 CDNJS="false"
+INSTALL="false"
 
 while [ $# -gt 0 ]
 do
@@ -38,6 +41,8 @@ do
             FORCE="true";;
         --cdnjs|-c)
             CDNJS="true";;
+        --install|-i)
+            INSTALL="true";;
         --help|-h)
             print_help
             exit 0;;
@@ -72,4 +77,11 @@ if [ "$CDNJS" = "true" ]; then
 else 
     echo "Creating read-only $IMAGE using ${BASE}.def"
     sudo singularity build --writable ${IMAGE} ${BASE}.def
+fi
+
+if [ "$INSTALL" = "true" ]; then
+    if [ -f $BINDIR/$IMAGE ]; then
+        mv $BINDIR/$IMAGE $BINDIR/$IMAGE.bak
+    fi
+    mv $IMAGE $BINDIR
 fi
