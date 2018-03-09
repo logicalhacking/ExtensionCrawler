@@ -16,6 +16,10 @@ else
 fi
 
 echo "* current status"
+DOWNLOADS=`grep 'Updating extension $' $LATESTLOG | wc -l`
+echo "  * parallel downloads finished:   $DOWNLOADS" 
+DOWNLOADS=`grep 'Updating extension  (' $LATESTLOG | wc -l`
+echo "  * sequential downloads finished: $DOWNLOADS" 
 grep 'Updating .* extensions' $LATESTLOG  | sed -e 's/^.*---//'
 
 echo ""
