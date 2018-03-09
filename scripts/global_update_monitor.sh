@@ -2,8 +2,8 @@
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/archive}
 CRAWLERHOME=${2:-~/ExtensionCrawler}
 IMAGE=${3:-/shared/brucker_research1/Shared/BrowserExtensions/bin/ExtensionCrawler.img}
-LATESTLOG=`ls -t $ARCHIVE/log/*0.log | head -n 1`
-LATESTGLOBALLOG=`ls -t $ARCHIVE/log/*-global.log | head -n 1`
+LATESTLOG=`ls $ARCHIVE/log/*0.log | tail -n 1`
+LATESTGLOBALLOG=`ls $ARCHIVE/log/*-global.log | tail -n 1`
 
 echo "# Checking update status"
 if ps u -C global_update.sh > /dev/null; then 
