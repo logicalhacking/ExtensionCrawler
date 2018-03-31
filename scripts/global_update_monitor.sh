@@ -5,6 +5,8 @@ IMAGE=${3:-/shared/brucker_research1/Shared/BrowserExtensions/bin/ExtensionCrawl
 LATESTLOG=`ls $ARCHIVE/log/*0.log | tail -n 1`
 LATESTGLOBALLOG=`ls $ARCHIVE/log/*-global.log | tail -n 1`
 
+
+PIDS=""
 echo "# Checking update status"
 if ps u -C global_update.sh > /dev/null; then 
     NUM=`ps u -C global_update.sh | tail -n +2 | wc -l`
@@ -64,4 +66,4 @@ else
    fi
 fi
 
-echo "\"$DATE\";\"$TIME\";\"$NUM\";$EXTS;\"$PDOWNLOADS\";\"$SDOWNLOADS\";\"$ERRORS\";\"$MAIL\"" >> $ARCHIVE/log/updates.csv
+echo "\"$DATE\";\"$TIME\";\"$NUM\";\"$PIDS\";$EXTS;\"$PDOWNLOADS\";\"$SDOWNLOADS\";\"$ERRORS\";\"$MAIL\"" >> $ARCHIVE/log/updates.csv
