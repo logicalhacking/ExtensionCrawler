@@ -13,13 +13,14 @@ if ps u -C global_update.sh > /dev/null; then
     echo "  Running PIDs: $PIDS"
 else
     echo "* global_update.sh not running"
+    NUM=0
 fi
 
 echo "* current status"
-DOWNLOADS=`grep 'Updating extension $' $LATESTLOG | wc -l`
-echo "  * parallel downloads finished:   $DOWNLOADS" 
-DOWNLOADS=`grep 'Updating extension  (' $LATESTLOG | wc -l`
-echo "  * sequential downloads finished: $DOWNLOADS" 
+PDOWNLOADS=`grep 'Updating extension $' $LATESTLOG | wc -l`
+echo "  * parallel downloads finished:   $PDOWNLOADS" 
+SDOWNLOADS=`grep 'Updating extension  (' $LATESTLOG | wc -l`
+echo "  * sequential downloads finished: $SDOWNLOADS" 
 echo "  * Updating info from log ($LATESTLOG):"
 grep 'Updating .* extensions' $LATESTLOG  | sed -e 's/^.*---//'
 
@@ -34,3 +35,33 @@ grep ERROR $LATESTLOG | sort -k 5,5 -u | sort -k 3,3
 
 echo "# Server utilization"
 top b -n 1 | head -n 15
+
+DATE=`date +%Y-%m-%d`
+TIME=`date +%H:%M:%S`
+
+EXTS=`grep 'Updating .* extensions' $LATESTLOG  \
+ | head -1 \
+ | sed -e 's/^.*---//' \
+ | sed -e 's/Updating/\\"/' \
+ | sed -e 's/extensions (/\\";\\"/' \
+ | sed -e 's/including forums)/\\"/' \
+ | sed -e 's/ //g'`
+
+LASTPDOWNLOADS=`tail -1 $ARCHIVE/log/updates.csv | cut -d'"' -f12`
+LASTSDOWNLOADS=`tail -1 $ARCHIVE/log/updates.csv | cut -d'"' -f14`
+LASTMAIL=`tail -1 $ARCHIVE/log/updates.csv | cut -d'"' -f18`
+
+if [[ "$NUM" == "x0" ]]; then
+MAIL=0
+else
+   if [[ "$LASTPDOWNLOADS$LASTSDOWNLOADS" == "$PDOWNLOADS$SDOWNLOADS" ]]; then 
+       if [[ "$LASTMAIL" == "0" ]]; then 
+           echo "" | mail $USER -s echo "Extension Download Stalled!";
+       fi;
+       MAIL=1;
+   else
+       MAIL=0;
+   fi
+fi
+
+echo "\"$DATE\";\"$TIME\";\"$NUM\";$EXTS;\"$PDOWNLOADS\";\"$SDOWNLOADS\";\"$ERRORS\";\"$MAIL\"" >> $ARCHIVE/log/updates.csv
