@@ -50,11 +50,15 @@ EXTS=`grep 'Updating .* extensions' $LATESTLOG  \
  | sed -e 's/including forums)/\\"/' \
  | sed -e 's/ //g'`
 
+if [[ "$EXTS" == "" ]]; then
+    EXTS=";"
+fi
+
 LASTPDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f14`
 LASTSDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f16`
 LASTMAIL=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f20`
 
-if [[ "$NUM" == "x0" ]]; then
+if [[ "$NUM" == "0" ]]; then
 MAIL=0
 else
    if [[ "$LASTPDOWNLOADS$LASTSDOWNLOADS" == "$PDOWNLOADS$SDOWNLOADS" ]]; then 
