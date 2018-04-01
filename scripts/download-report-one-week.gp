@@ -19,7 +19,7 @@ set yrange [0:200000]
 set ylabel "Parallel Downloads"
 set y2tics
 set y2range [0:4000]
-set y2label "Sequantial Downloads"
+set y2label "Sequential Downloads"
 
 set grid
 
