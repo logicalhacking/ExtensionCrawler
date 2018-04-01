@@ -551,7 +551,7 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
         len(parallel_ids)), 1)
     with Pool(processes=parallel, maxtasksperchild=100) as p:
         ext_without_forums = list(
-            p.map(partial(update_extension, archivedir, False), parallel_ids), chunksize=100)
+            p.map(partial(update_extension, archivedir, False), parallel_ids, chunksize=100))
 
     # Second, update extensions with forums sequentially (and with delays) to
     # avoid running into Googles DDOS detection.
