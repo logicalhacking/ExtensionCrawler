@@ -66,4 +66,4 @@ else
    fi
 fi
 
-echo "\"$DATE\";\"$TIME\";\"$NUM\";\"$PIDS\";$EXTS;\"$PDOWNLOADS\";\"$SDOWNLOADS\";\"$ERRORS\";\"$MAIL\"" >> $ARCHIVE/log/updates.csv
+echo "\"$DATE $TIME\";\"$NUM\";\"$PIDS\";$EXTS;\"$PDOWNLOADS\";\"$SDOWNLOADS\";\"$ERRORS\";\"$MAIL\"" >> $ARCHIVE/log/updates.csv
