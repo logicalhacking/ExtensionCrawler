@@ -17,15 +17,21 @@ set xrange [time(0) - 7*24*60*60:]
 set ytics
 set yrange [0:200000]
 set ylabel "Parallel Downloads"
-set y2tics
+set ytics 25000
+set mytics 2
 set y2range [0:4000]
 set y2label "Sequential Downloads"
+set y2tics 500
+
 
 set grid
 
 set xdata time
 set timefmt '%Y-%m-%d %H:%M:%S'
 set format x "%Y-%m-%d\n%H:%M:%S"
+
+set xtics 28800
+set mxtics 8
 
 set style data lines
 set title sprintf("Extension Downloads (Last Seven Days)")
