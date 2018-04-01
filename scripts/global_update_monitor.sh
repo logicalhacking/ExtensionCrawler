@@ -52,7 +52,7 @@ EXTS=`grep 'Updating .* extensions' $LATESTLOG  \
 
 LASTPDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f14`
 LASTSDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f16`
-LASTMAIL=`tail -1 $ARCHIVE/log/updates.csv | cut -d'"' -f20`
+LASTMAIL=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f20`
 
 if [[ "$NUM" == "x0" ]]; then
 MAIL=0
