@@ -1,7 +1,6 @@
 #!/bin/bash
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/archive}
-CRAWLERHOME=${2:-~/ExtensionCrawler}
-IMAGE=${3:-/shared/brucker_research1/Shared/BrowserExtensions/bin/ExtensionCrawler.img}
+
 LATESTLOG=`ls $ARCHIVE/log/*0.log | tail -n 1`
 LATESTGLOBALLOG=`ls $ARCHIVE/log/*-global.log | tail -n 1`
 BASEDIR=$(dirname "$0")
