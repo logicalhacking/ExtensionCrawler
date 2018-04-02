@@ -44,10 +44,10 @@ TIME=`date +%H:%M:%S`
 EXTS=`grep 'Updating .* extensions' $LATESTLOG  \
  | head -1 \
  | sed -e 's/^.*---//' \
- | sed -e 's/Updating/\\"/' \
- | sed -e 's/extensions (/\\";\\"/' \
- | sed -e 's/including forums)/\\"/' \
- | sed -e 's/ //g'`
+       -e 's/Updating/\\"/' \
+       -e 's/extensions (/\\";\\"/' \
+       -e 's/including forums)/\\"/' \
+       -e 's/ //g'`
 
 if [[ "$EXTS" == "" ]]; then
     EXTS=";"
