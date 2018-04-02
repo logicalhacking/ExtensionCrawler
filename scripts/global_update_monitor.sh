@@ -37,6 +37,7 @@ if ps u -C global_update.sh > /dev/null; then
         echo "  KILL mode enabled, killing running global_update.sh instances"
         echo "       (executing pkill -9 -P $PIDS)"
         pkill -9 -P $PIDS 
+        pkill -f "ExtensionCrawler//crawler "
     fi
 else
     echo "* global_update.sh not running"
