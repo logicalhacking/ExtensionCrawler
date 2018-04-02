@@ -1,10 +1,30 @@
 #!/bin/bash
-ARCHIVE=${1:-/srv/Shared/BrowserExtensions/archive}
+
+KILL="NO"
+ARCHIVE="/srv/Shared/BrowserExtensions/archive"
+
+while [[ $# -gt 0 ]]
+do
+key="$1"
+case $key in
+    -a|--ARCHIVE)
+    ARCHIVE="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --kill)
+    KILL=YES
+    shift # past argument
+    ;;
+    *)    # unknown option
+    shift # past argument
+    ;;
+esac
+done
 
 LATESTLOG=`ls $ARCHIVE/log/*0.log | tail -n 1`
 LATESTGLOBALLOG=`ls $ARCHIVE/log/*-global.log | tail -n 1`
 BASEDIR=$(dirname "$0")
-
 
 PIDS=""
 echo "# Checking update status"
@@ -13,6 +33,11 @@ if ps u -C global_update.sh > /dev/null; then
     echo "* $NUM instances of global_update.sh still running (WARNING)"
     PIDS=`ps u -C global_update.sh | tail -n +2  | awk '{print $2}' | xargs`
     echo "  Running PIDs: $PIDS"
+    if [[ $KILL=="YES" ]];then
+        echo "  KILL mode enabled, killing running global_update.sh instances"
+        echo "       (executing pkill -P $PIDS)"
+        pkill -P $PIDS
+    fi
 else
     echo "* global_update.sh not running"
     NUM=0
