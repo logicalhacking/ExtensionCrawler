@@ -12,7 +12,7 @@ LOG=$LOGPREFIX-global.log
 date +'* Start Updating Extensions Archive (%c)' | tee $LOG
 
 # Update extensions
-singularity exec --bind /srv/:/srv/ $IMAGE crawler -p 30 -d -a $ARCHIVE > $LOGPREFIX.log
+singularity exec --bind /srv/:/srv/ $IMAGE crawler -p 32 -d -a $ARCHIVE > $LOGPREFIX.log
 
 date +'* Update Finished (%c)' | tee -a $LOG
 
