@@ -23,10 +23,10 @@ import traceback
 import logging
 
 
-def google_dos_protection(maxrange=0.3):
-    """Wait a random number of seconds (between 0.5 to 0.5+maxrange)
+def google_dos_protection(maxrange=0.15):
+    """Wait a random number of seconds (between 0.45 to 0.5+maxrange)
        to avoid Google's bot detection"""
-    sleep(0.5 + (random() * maxrange))
+    sleep(0.45 + (random() * maxrange))
 
 
 def value_of(value, default):

@@ -346,7 +346,7 @@ def update_reviews(tar, date, ext_id):
     try:
         pages = []
 
-        google_dos_protection()
+        # google_dos_protection()
         res = requests.post(
             const_review_url(),
             data=const_review_payload(ext_id, "0", "100"),
