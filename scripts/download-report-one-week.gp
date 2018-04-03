@@ -1,5 +1,3 @@
-
-
 if (!exists("monitordir")) monitordir='.'
 filename="updates.csv"
 set terminal png size 3000,800
@@ -46,13 +44,27 @@ data=data_for_day(day, monitordir."/".filename)
 # for plotting all data
 data=monitordir."/".filename
 
+# Trick for plotting first derivative of data:
+# x0=NaN
+# y0=NaN
+# replot data using (dx=$1-x0,x0=$1,$1-dx/2):(dy=$6-y0,y0=$6,dy/dx) w l notitle
+# TODO: support time on x scale
+
+y0p=NaN
+y0s=NaN
+scaling=20
 
 plot data using 1:4 with lines dashtype 4 lt rgb "violet" axes x1y1 \
           title "Parallel Downloads (Target)"  ,\
      data using 1:6 with lines dashtype 1 lt rgb "violet" axes x1y1 \
           title "Parallel Downloads"           ,\
+     data using 1:(dy= $6-y0p < 0 ? 0 : $6-y0p, y0p=$6,scaling*dy) \
+          with lines dashtype 4 lt rgb "violet" axes x1y1 \
+          title sprintf("Derivative of Parallel Downloads (Scaling: %i)", scaling),\
      data using 1:5 with lines dashtype 4 lt rgb "cyan"   axes x1y2 \
           title "Sequential Downloads (Target)",\
      data using 1:7 with lines dashtype 1 lt rgb "cyan"   axes x1y2 \
-          title "Sequential Downloads"
-
+          title "Sequential Downloads",\
+     data using 1:(dy=$7-y0s < 0 ? 0 : $7-y0s, y0s=$7,scaling*dy) \
+          with lines dashtype 4 lt rgb "cyan" axes x1y2 \
+          title sprintf("Derivative of Sequential Downloads (Scaling: %i)", scaling)
