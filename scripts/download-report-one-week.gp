@@ -54,17 +54,17 @@ y0p=NaN
 y0s=NaN
 scaling=20
 
-plot data using 1:4 with lines dashtype 4 lt rgb "violet" axes x1y1 \
+plot data using 1:4 with lines dashtype 0 lt rgb "violet" axes x1y1 \
           title "Parallel Downloads (Target)"  ,\
      data using 1:6 with lines dashtype 1 lt rgb "violet" axes x1y1 \
           title "Parallel Downloads"           ,\
      data using 1:(dy= $6-y0p < 0 ? 0 : $6-y0p, y0p=$6,scaling*dy) \
-          with lines dashtype 4 lt rgb "violet" axes x1y1 \
+          with lines dashtype 0 lt rgb "violet" axes x1y1 \
           title sprintf("Derivative of Parallel Downloads (Scaling: %i)", scaling),\
-     data using 1:5 with lines dashtype 4 lt rgb "cyan"   axes x1y2 \
+     data using 1:5 with lines dashtype 0 lt rgb "cyan"   axes x1y2 \
           title "Sequential Downloads (Target)",\
      data using 1:7 with lines dashtype 1 lt rgb "cyan"   axes x1y2 \
           title "Sequential Downloads",\
      data using 1:(dy=$7-y0s < 0 ? 0 : $7-y0s, y0s=$7,scaling*dy) \
-          with lines dashtype 4 lt rgb "cyan" axes x1y2 \
+          with lines dashtype 0 lt rgb "cyan" axes x1y2 \
           title sprintf("Derivative of Sequential Downloads (Scaling: %i)", scaling)
