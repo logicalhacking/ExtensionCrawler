@@ -70,3 +70,7 @@ plot data using 1:4 with lines dashtype 2 lt rgb "#d07b95" axes x1y1 \
      data using (dx=timecolumn(1)-x0s,x0s=timecolumn(1),timecolumn(1)-dx/2):(dy=$7-y0s,y0s=$7,dy/dx < 0 ? 0 : (8*60*60)*dy/dx) \
           with lines dashtype 2 lt rgb "#468e76" axes x1y2 \
           title "Sequential Downloads per Eight Hours"
+
+set terminal pdfcairo size 30,8 enhanced font 'Verdana,15'
+set output monitordir."/download-report-one-week.pdf"
+replot
