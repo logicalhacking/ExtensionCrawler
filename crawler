@@ -140,11 +140,12 @@ def helpmsg():
     print("    -h                  print this help text")
     print("    -s                  silent (no log messages)")
     print("    -d                  discover new extensions")
+    print("    -f                  download only extensions with forums")
     print("    --max-discover <N>  discover at most N new extensions")
     print("    -a=<DIR>            archive directory")
 
 
-def print_config(basedir, archive_dir, conf_dir, discover, parallel):
+def print_config(basedir, archive_dir, conf_dir, discover, parallel,forums_only):
     """Print current configuration."""
     log_info("Configuration:")
     log_info("  Base dir:                         {}".format(basedir))
@@ -152,6 +153,7 @@ def print_config(basedir, archive_dir, conf_dir, discover, parallel):
     log_info("    Configuration directory:        {}".format(conf_dir))
     log_info("  Discover new extensions:          {}".format(discover))
     log_info("  Max num. of concurrent downloads: {}".format(parallel))
+    log_info("  Only extensions with forums:      {}".format(forums_only))
 
 
 def parse_args(argv):
@@ -160,9 +162,10 @@ def parse_args(argv):
     parallel = const_parallel_downloads()
     verbose = const_verbose()
     discover = const_discover()
+    forums_only = const_forums_only()
     max_discover = None
     try:
-        opts, _ = getopt.getopt(argv, "hsda:p:",
+        opts, _ = getopt.getopt(argv, "hsdfa:p:",
                                 ["archive=", 'parallel=', 'max-discover='])
     except getopt.GetoptError:
         helpmsg()
@@ -179,17 +182,19 @@ def parse_args(argv):
             verbose = False
         elif opt == '-d':
             discover = True
+        elif opt == '-f':
+            forums_only = True
         elif opt == '--max-discover':
             discover = True
             max_discover = int(arg)
-    return basedir, parallel, verbose, discover, max_discover
+    return basedir, parallel, verbose, discover, max_discover, forums_only
 
 
 def main(argv):
     """Main function of the extension crawler."""
 
     today = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    basedir, parallel, verbose, discover, max_discover = parse_args(argv)
+    basedir, parallel, verbose, discover, max_discover, forums_only = parse_args(argv)
 
     if verbose:
         loglevel = logging.INFO
@@ -216,7 +221,7 @@ def main(argv):
 
     start_time = time.time()
 
-    print_config(basedir, archive_dir, conf_dir, discover, parallel)
+    print_config(basedir, archive_dir, conf_dir, discover, parallel, forums_only)
 
     forum_ext_ids = get_forum_ext_ids(conf_dir)
     known_ids = list(set(get_existing_ids(archive_dir)) | set(forum_ext_ids))
@@ -235,6 +240,9 @@ def main(argv):
 
     discovered_ids = None
     known_ids = None
+
+    if forums_only:
+        ext_ids=[]
 
     res = update_extensions(archive_dir, parallel, forum_ext_ids, ext_ids)
 

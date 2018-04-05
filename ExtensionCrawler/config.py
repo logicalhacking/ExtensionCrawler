@@ -151,6 +151,9 @@ def const_discover():
     """Default configuration of discovery mode"""
     return False
 
+def const_forums_only():
+    return False
+
 
 def const_mysql_config_file():
     return os.path.expanduser("~/.my.cnf")
