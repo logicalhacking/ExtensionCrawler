@@ -574,19 +574,19 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
                 except StopIteration:
                     break
                 except TimeoutError as error:
-                    log_info("Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
+                    log_info("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
                     ext_timeouts.append(ext_id)
                     ext_without_forums.append(UpdateResult(ext_id, false, error,
                                                            None, None, None,
                                                            None, None, False))
                 except ProcessExpired as error:
-                    log_info("%s (%s). Exit code: %d" % (error, ext_id, error.exitcode))
+                    log_info("WorkerException: %s (%s). Exit code: %d" % (error, ext_id, error.exitcode))
                     ext_timeouts.append(ext_id)
                     ext_without_forums.append(UpdateResult(ext_id, false, error,
                                                            None, None, None,
                                                            None, None, False))
                 except Exception as error:
-                    log_info("Processing %s raised %s" % (ext_id, error))
+                    log_info("WorkerException: Processing %s raised %s" % (ext_id, error))
                     log_info(error.traceback)  # Python's traceback of remote process
                     ext_timeouts.append(ext_id)
                     ext_without_forums.append(UpdateResult(ext_id, false, error,
@@ -621,19 +621,19 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
                 except StopIteration:
                     break
                 except TimeoutError as error:
-                    log_info("Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
+                    log_info("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
                     ext_timeouts.append(ext_id)
                     ext_with_forums.append(UpdateResult(ext_id, false, error,
                                                         None, None, None,
                                                         None, None, False))
                 except ProcessExpired as error:
-                    log_info("%s (%s). Exit code: %d" % (error, ext_id, error.exitcode))
+                    log_info("WorkerException: %s (%s). Exit code: %d" % (error, ext_id, error.exitcode))
                     ext_timeouts.append(ext_id)
                     ext_with_forums.append(UpdateResult(ext_id, false, error,
                                                         None, None, None,
                                                         None, None, False))
                 except Exception as error:
-                    log_info("Processing %s raised %s" % (ext_id, error))
+                    log_info("WorkerException: Processing %s raised %s" % (ext_id, error))
                     log_info(error.traceback)  # Python's traceback of remote process
                     ext_timeouts.append(ext_id)
                     ext_with_forums.append(UpdateResult(ext_id, false, error,
