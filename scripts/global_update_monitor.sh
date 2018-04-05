@@ -79,16 +79,16 @@ if [[ "$EXTS" == "" ]]; then
     EXTS=";"
 fi
 
-LASTPDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f14`
-LASTSDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f16`
-LASTMAIL=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f20`
+LASTPDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f12`
+LASTSDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f14`
+LASTMAIL=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f18`
 
 if [[ "$NUM" == "0" ]]; then
 MAIL=0
 else
    if [[ "$LASTPDOWNLOADS$LASTSDOWNLOADS" == "$PDOWNLOADS$SDOWNLOADS" ]]; then 
        if [[ "$LASTMAIL" == "0" ]]; then 
-           echo "" | mail $USER -s echo "Extension Download Stalled!";
+           echo "" | mail $USER -s "Extension Download Stalled!";
        fi;
        MAIL=1;
    else
