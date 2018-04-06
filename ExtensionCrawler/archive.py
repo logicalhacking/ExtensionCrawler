@@ -539,6 +539,51 @@ def update_extension(archivedir, forums, ext_id):
                         res_reviews, res_support, sql_exception, sql_success)
 
 
+
+def execute_parallel(archivedir, max_retry, timeout, max_workers, ext_ids):
+    results=[]
+    for n in range(max_retry):
+        if n > 0:
+            log_info("Attempt ({} out of {}): {} extensions excluding forums (parallel)".format(
+                n,max_retry,len(ext_timeouts)), 1)
+            ext_ids=ext_timeouts
+ 
+            ext_timeouts=[]   
+        with ProcessPool(max_workers=1, max_tasks=100) as pool:
+            future = pool.map(partial(update_extension, archivedir, False)
+                              ,ext_ids
+                              ,timeout=timeout)
+            iterator = future.result()
+
+            ext_timeouts=[]
+            for ext_id in ext_ids:
+                try:
+                    results.append(next(iterator))
+                except StopIteration:
+                    break
+                except TimeoutError as error:
+                    log_info("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
+                    ext_timeouts.append(ext_id)
+                    results.append(UpdateResult(ext_id, False, error,
+                                                        None, None, None,
+                                                        None, None, False))
+                except ProcessExpired as error:
+                    log_info("WorkerException: %s (%s). Exit code: %d" % (error, ext_id, error.exitcode))
+                    ext_timeouts.append(ext_id)
+                    results.append(UpdateResult(ext_id, False, error,
+                                                        None, None, None,
+                                                        None, None, False))
+                except Exception as error:
+                    log_info("WorkerException: Processing %s raised %s" % (ext_id, error))
+                    log_info(error.traceback)  # Python's traceback of remote process
+                    ext_timeouts.append(ext_id)
+                    results.append(UpdateResult(ext_id, False, error,
+                                                        None, None, None,
+                                                        None, None, False))
+
+    return results
+
+
 def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout=300):
     ext_with_forums = []
     ext_without_forums = []
@@ -551,94 +596,14 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout=300
     parallel_ids = ext_ids
     log_info("Updating {} extensions excluding forums (parallel)".format(
         len(parallel_ids)), 1)
-   
-    max_retry=3
-    for n in range(max_retry):
-        if n > 0:
-            log_info("Attempt ({} out of {}): {} extensions excluding forums (parallel)".format(
-                n,max_retry,len(ext_timeouts)), 1)
-            parallel_ids=ext_timeouts
- 
-            ext_timeouts=[]   
-        with ProcessPool(max_workers=parallel, max_tasks=100) as pool:
-            future = pool.map(partial(update_extension, archivedir, False)
-                              ,parallel_ids
-                              ,timeout=timeout)
-            iterator = future.result()
+    ext_without_forums = execute_parallel(archivedir,3, timeout, parallel, parallel_ids)
 
-            ext_timeouts=[]
-            for ext_id in parallel_ids:
-                try:
-                    ext_without_forums.append(next(iterator))
-                except StopIteration:
-                    break
-                except TimeoutError as error:
-                    log_info("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
-                    ext_timeouts.append(ext_id)
-                    ext_without_forums.append(UpdateResult(ext_id, False, error,
-                                                           None, None, None,
-                                                           None, None, False))
-                except ProcessExpired as error:
-                    log_info("WorkerException: %s (%s). Exit code: %d" % (error, ext_id, error.exitcode))
-                    ext_timeouts.append(ext_id)
-                    ext_without_forums.append(UpdateResult(ext_id, False, error,
-                                                           None, None, None,
-                                                           None, None, False))
-                except Exception as error:
-                    log_info("WorkerException: Processing %s raised %s" % (ext_id, error))
-                    log_info(error.traceback)  # Python's traceback of remote process
-                    ext_timeouts.append(ext_id)
-                    ext_without_forums.append(UpdateResult(ext_id, False, error,
-                                                           None, None, None,
-                                                           None, None, False))
-
-
-
-                    
     # Second, update extensions with forums sequentially (and with delays) to
     # avoid running into Googles DDOS detection.
     log_info("Updating {} extensions including forums (sequentially)".format(
         len(forums_ext_ids)), 1)
-    max_retry=3
-    for n in range(max_retry):
-        if n > 0:
-            log_info("Attempt ({} out of {}): {} extensions excluding forums (parallel)".format(
-                n,max_retry,len(ext_timeouts)), 1)
-            forums_ext_ids=ext_timeouts
- 
-            ext_timeouts=[]   
-        with ProcessPool(max_workers=1, max_tasks=100) as pool:
-            future = pool.map(partial(update_extension, archivedir, False)
-                              ,forums_ext_ids
-                              ,timeout=timeout)
-            iterator = future.result()
-
-            ext_timeouts=[]
-            for ext_id in forums_ext_ids:
-                try:
-                    ext_with_forums.append(next(iterator))
-                except StopIteration:
-                    break
-                except TimeoutError as error:
-                    log_info("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
-                    ext_timeouts.append(ext_id)
-                    ext_with_forums.append(UpdateResult(ext_id, False, error,
-                                                        None, None, None,
-                                                        None, None, False))
-                except ProcessExpired as error:
-                    log_info("WorkerException: %s (%s). Exit code: %d" % (error, ext_id, error.exitcode))
-                    ext_timeouts.append(ext_id)
-                    ext_with_forums.append(UpdateResult(ext_id, False, error,
-                                                        None, None, None,
-                                                        None, None, False))
-                except Exception as error:
-                    log_info("WorkerException: Processing %s raised %s" % (ext_id, error))
-                    log_info(error.traceback)  # Python's traceback of remote process
-                    ext_timeouts.append(ext_id)
-                    ext_with_forums.append(UpdateResult(ext_id, False, error,
-                                                        None, None, None,
-                                                        None, None, False))
- 
+    ext_with_forums = execute_parallel(archivedir, 3, timeout, 1, forums_ext_ids)
+                     
     return ext_with_forums + ext_without_forums
 
 
