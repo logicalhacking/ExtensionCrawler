@@ -560,7 +560,7 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout=300
             parallel_ids=ext_timeouts
  
             ext_timeouts=[]   
-        with ProcessPool(max_workers=parallel) as pool:
+        with ProcessPool(max_workers=parallel, max_tasks=100) as pool:
             future = pool.map(partial(update_extension, archivedir, False)
                               ,parallel_ids
                               ,timeout=timeout)
@@ -607,7 +607,7 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout=300
             forums_ext_ids=ext_timeouts
  
             ext_timeouts=[]   
-        with ProcessPool(max_workers=1) as pool:
+        with ProcessPool(max_workers=1, max_tasks=100) as pool:
             future = pool.map(partial(update_extension, archivedir, False)
                               ,forums_ext_ids
                               ,timeout=timeout)
