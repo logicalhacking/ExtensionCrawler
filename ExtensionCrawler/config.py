@@ -151,8 +151,11 @@ def const_discover():
     """Default configuration of discovery mode"""
     return False
 
-def const_forums_only():
-    return False
+def const_download_ext_ids_with_forums():
+    return True
+
+def const_download_ext_ids_without_forums():
+    return True
 
 
 def const_mysql_config_file():
