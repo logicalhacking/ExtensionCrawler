@@ -72,11 +72,14 @@ fi
 
 if [ "$CDNJS" = "true" ]; then
     echo "Creating writable $IMAGE ($BASESIZE MiB) using ${BASE}.def"
+    # TODO: --writable for 'build' action is deprecated due to some sparse file
+    # issues; it is recommended to use --sandbox; however, that creates a
+    # folder, which is probable not what we want here...
     sudo singularity build --writable ${IMAGE} ${BASE}.def
     sudo singularity image.expand --size ${BASESIZE} --writable ${IMAGE} ${BASE}.def
 else 
     echo "Creating read-only $IMAGE using ${BASE}.def"
-    sudo singularity build --writable ${IMAGE} ${BASE}.def
+    sudo singularity build ${IMAGE} ${BASE}.def
 fi
 
 if [ "$INSTALL" = "true" ]; then
