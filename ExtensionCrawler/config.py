@@ -152,9 +152,11 @@ def const_discover():
     return False
 
 def const_download_ext_ids_with_forums():
+    """Download extensions with forums (sequential mode)"""
     return True
 
 def const_download_ext_ids_without_forums():
+    """Download extensions without forums (parallel mode)"""
     return True
 
 
