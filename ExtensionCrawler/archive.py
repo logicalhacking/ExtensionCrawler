@@ -539,8 +539,7 @@ def update_extension(archivedir, forums, ext_id):
                         res_reviews, res_support, sql_exception, sql_success)
 
 
-def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids):
-    timeout=300
+def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout=300):
     ext_with_forums = []
     ext_without_forums = []
     forums_ext_ids = (list(set(forums_ext_ids)))

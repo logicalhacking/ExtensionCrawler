@@ -159,6 +159,10 @@ def const_download_ext_ids_without_forums():
     """Download extensions without forums (parallel mode)"""
     return True
 
+def const_ext_timeout():
+    """Timeout for downloading an individual extension."""
+    return 300
+
 
 def const_mysql_config_file():
     return os.path.expanduser("~/.my.cnf")

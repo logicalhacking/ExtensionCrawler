@@ -140,12 +140,14 @@ def helpmsg():
     print("    -h                  print this help text")
     print("    -s                  silent (no log messages)")
     print("    -d                  discover new extensions")
-    print("    -f                  download only extensions with forums")
+    print("    -F                  do not download extensions with forums (skip sequential download)")
+    print("    -N                  do not download extensions without forums (skip parallel download)")
     print("    --max-discover <N>  discover at most N new extensions")
     print("    -a=<DIR>            archive directory")
+    print("    -t=<N>              timeout for an individual extension download")
 
 
-def print_config(basedir, archive_dir, conf_dir, discover, parallel,download_ext_ids_without_forums, download_ext_ids_with_forums):
+def print_config(basedir, archive_dir, conf_dir, discover, parallel,download_ext_ids_without_forums, download_ext_ids_with_forums, ext_timeout):
     """Print current configuration."""
     log_info("Configuration:")
     log_info("  Base dir:                         {}".format(basedir))
@@ -155,6 +157,7 @@ def print_config(basedir, archive_dir, conf_dir, discover, parallel,download_ext
     log_info("  Download ext. without forums:     {}".format(download_ext_ids_without_forums))
     log_info("  Download ext. with forums:        {}".format(download_ext_ids_with_forums))
     log_info("  Max num. of concurrent downloads: {}".format(parallel))
+    log_info("  Download timeout:                 {}".format(ext_timeout))
 
 
 def parse_args(argv):
@@ -165,10 +168,11 @@ def parse_args(argv):
     discover = const_discover()
     download_ext_ids_with_forums = const_download_ext_ids_with_forums()
     download_ext_ids_without_forums = const_download_ext_ids_without_forums()
+    ext_timeout = const_ext_timeout()
     max_discover = None
     try:
-        opts, _ = getopt.getopt(argv, "hsdFNa:p:",
-                                ["archive=", 'parallel=', 'max-discover='])
+        opts, _ = getopt.getopt(argv, "hsdFNa:p:t:",
+                                ["timeout=", "archive=", 'parallel=', 'max-discover='])
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -180,6 +184,8 @@ def parse_args(argv):
             basedir = arg
         elif opt in ("-p", "--parallel"):
             parallel = int(arg)
+        elif opt in ("-t", "--timeout"):
+            ext_timeout = arg
         elif opt == '-s':
             verbose = False
         elif opt == '-d':
@@ -191,13 +197,13 @@ def parse_args(argv):
         elif opt == '--max-discover':
             discover = True
             max_discover = int(arg)
-    return basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums
+    return basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums, ext_timeout
 
 def main(argv):
     """Main function of the extension crawler."""
 
     today = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums = parse_args(argv)
+    basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums, ext_timeout = parse_args(argv)
 
     if verbose:
         loglevel = logging.INFO
@@ -224,7 +230,7 @@ def main(argv):
 
     start_time = time.time()
 
-    print_config(basedir, archive_dir, conf_dir, discover, parallel, download_ext_ids_with_forums, download_ext_ids_without_forums)
+    print_config(basedir, archive_dir, conf_dir, discover, parallel, download_ext_ids_with_forums, download_ext_ids_without_forums, ext_timeout)
 
     forum_ext_ids = get_forum_ext_ids(conf_dir)
     known_ids = list(set(get_existing_ids(archive_dir)) | set(forum_ext_ids))
@@ -256,7 +262,7 @@ def main(argv):
                 forum_ext_ids=[]
 
 
-    res = update_extensions(archive_dir, parallel, forum_ext_ids, ext_ids)
+    res = update_extensions(archive_dir, parallel, forum_ext_ids, ext_ids, ext_timeout)
 
     # We re-try (once) the extensions with unknown exceptions, as
     # they are often temporary
