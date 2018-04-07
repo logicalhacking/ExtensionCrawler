@@ -64,8 +64,8 @@ grep ERROR $LATESTLOG | sort -k 5,5 -u | sort -k 3,3
 echo "# Server utilization"
 top b -n 1 | head -n 15
 
-DATE=`date +%Y-%m-%d`
-TIME=`date +%H:%M:%S`
+DATE=`date --utc +%Y-%m-%d`
+TIME=`date --utc +%H:%M:%S`
 
 EXTS=`grep 'Updating .* extensions' $LATESTLOG  \
  | head -1 \
