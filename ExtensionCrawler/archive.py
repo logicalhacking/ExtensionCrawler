@@ -548,7 +548,7 @@ def execute_parallel(archivedir, max_retry, timeout, max_workers, ext_ids):
             ext_ids=ext_timeouts
 
         ext_timeouts=[]   
-        with ProcessPool(max_workers=max_workers, max_tasks=100) as pool:
+        with ThreadPool(max_workers=max_workers, max_tasks=1000) as pool:
             future = pool.map(partial(update_extension, archivedir, False)
                               ,ext_ids
                               ,timeout=timeout)
