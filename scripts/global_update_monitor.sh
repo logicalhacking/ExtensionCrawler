@@ -88,7 +88,7 @@ MAIL=0
 else
    if [[ "$LASTPDOWNLOADS$LASTSDOWNLOADS" == "$PDOWNLOADS$SDOWNLOADS" ]]; then 
        if [[ "$LASTMAIL" == "0" ]]; then 
-           echo "" | mail $USER -s "Extension Download Stalled!";
+           echo "" | mail ${USER:-root} -s "Extension Download Stalled!";
        fi;
        MAIL=1;
    else
