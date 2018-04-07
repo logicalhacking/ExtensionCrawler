@@ -96,6 +96,8 @@ else
    fi
 fi
 
-echo "\"$DATE $TIME\";\"$NUM\";\"$PIDS\";$EXTS;\"$PDOWNLOADS\";\"$SDOWNLOADS\";\"$ERRORS\";\"$MAIL\"" >> $ARCHIVE/monitor/updates.csv
+MEM=`free | tail -2 | awk '{print $2 " " $3 " " $4}' | xargs | sed -e 's/ /\";\"/g'`
+
+echo "\"$DATE $TIME\";\"$NUM\";\"$PIDS\";$EXTS;\"$PDOWNLOADS\";\"$SDOWNLOADS\";\"$ERRORS\";\"$MAIL\";\"$MEM\"" >> $ARCHIVE/monitor/updates.csv
 gnuplot -e "monitordir='$ARCHIVE/monitor'" $BASEDIR/download-report-one-week.gp
 
