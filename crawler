@@ -303,7 +303,7 @@ def main(argv):
         ext_ids_except = sorted(
             list(set(has_exception_ids) - set(forum_ext_ids_except)))
         res_update = update_extensions(archive_dir, parallel,
-                                       forum_ext_ids_except, ext_ids_except)
+                                       forum_ext_ids_except, ext_ids_except, ext_timeout, use_process_pool)
         res = list(set(res) - set(has_exception)) + res_update
 
     end_time = time.time()

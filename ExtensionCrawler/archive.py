@@ -41,7 +41,7 @@ from ExtensionCrawler.config import (
     const_review_payload, const_review_search_url, const_download_url,
     get_local_archive_dir, const_overview_url, const_support_url,
     const_support_payload, const_review_search_payload, const_review_url)
-from ExtensionCrawler.util import google_dos_protection, value_of, log_info, log_exception
+from ExtensionCrawler.util import google_dos_protection, value_of, log_info, log_warning, log_exception
 from ExtensionCrawler.db import update_db_incremental
 
 
@@ -105,22 +105,22 @@ class UpdateResult:
                 and ((self.res_support is None) or self.res_support.is_ok()))
 
     def not_authorized(self):
-        return (self.res_overview.not_authorized()
-                or self.res_crx.not_authorized()
+        return ((self.res_overview is not None and self.res_overview.not_authorized())
+                or (self.res_crx is not None and self.res_crx.not_authorized())
                 or (self.res_reviews is not None
                     and self.res_reviews.not_authorized())
                 or (self.res_support is not None
                     and self.res_support.not_authorized()))
 
     def not_in_store(self):
-        return (self.res_overview.not_found() or self.res_crx.not_found() or
-                (self.res_reviews is not None and self.res_reviews.not_found())
-                or (self.res_support is not None
-                    and self.res_support.not_found()))
+        return ((self.res_overview is not None and self.res_overview.not_found())
+                or (self.res_crx is not None and self.res_crx.not_found())
+                or (self.res_reviews is not None and self.res_reviews.not_found())
+                or (self.res_support is not None and self.res_support.not_found()))
 
     def has_exception(self):
-        return (self.res_overview.has_exception()
-                or self.res_crx.has_exception()
+        return ((self.res_overview is not None and self.res_overview.has_exception())
+                or (self.res_crx is not None and self.res_crx.has_exception())
                 or (self.res_reviews is not None
                     and self.res_reviews.has_exception())
                 or (self.res_support is not None
@@ -133,7 +133,7 @@ class UpdateResult:
                     and self.res_support.not_available()))
 
     def not_modified(self):
-        return self.res_crx.not_modified()
+        return self.res_crx is None or self.res_crx.not_modified()
 
     def corrupt_tar(self):
         return self.exception is not None
@@ -548,7 +548,7 @@ def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ex
                 n,max_retry,len(ext_timeouts)), 1)
             ext_ids=ext_timeouts
 
-        ext_timeouts=[]   
+        ext_timeouts=[]
         with ProcessPool(max_workers=max_workers, max_tasks=1000) as pool:
             future = pool.map(partial(update_extension, archivedir, False)
                               ,ext_ids
@@ -562,32 +562,23 @@ def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ex
             except StopIteration:
                 break
             except TimeoutError as error:
-                log_info("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
+                log_warning("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
                 ext_timeouts.append(ext_id)
-                results.append(UpdateResult(ext_id, False, error,
-                                            None, None, None,
-                                            None, None, False))
             except ProcessExpired as error:
-                log_info("WorkerException: %s (%s)self. Exit code: %d" % (error, ext_id, error.exitcode))
+                log_warning("WorkerException: %s (%s)self. Exit code: %d" % (error, ext_id, error.exitcode))
                 ext_timeouts.append(ext_id)
-                results.append(UpdateResult(ext_id, False, error,
-                                            None, None, None,
-                                            None, None, False))
             except Exception as error:
-                log_info("WorkerException: Processing %s raised %s" % (ext_id, error))
-                log_info(error.traceback)  # Python's traceback of remote process
+                log_warning("WorkerException: Processing %s raised %s" % (ext_id, error))
+                log_warning(error.traceback)  # Python's traceback of remote process
                 ext_timeouts.append(ext_id)
-                results.append(UpdateResult(ext_id, False, error,
-                                            None, None, None,
-                                            None, None, False))
-                    
+
     return results
 
 def execute_parallel_Pool(archivedir, max_retry, timeout, max_workers, ext_ids):
     log_info("Using multiprocessing.Pool: timeout and max_try are *not* supported")
     with Pool(processes=max_workers, maxtasksperchild=1000) as pool:
         results = pool.map(partial(update_extension, archivedir, False)
-                          ,ext_ids)                
+                          ,ext_ids)
     return list(results)
 
 
@@ -615,7 +606,7 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, us
     log_info("Updating {} extensions including forums (sequentially)".format(
         len(forums_ext_ids)), 1)
     ext_with_forums = execute_parallel(archivedir, 3, timeout, 1, forums_ext_ids)
-                     
+
     return ext_with_forums + ext_without_forums
 
 
