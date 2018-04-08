@@ -146,16 +146,18 @@ def helpmsg():
     print("    -h                  print this help text")
     print("    -s                  silent (no log messages)")
     print("    -d                  discover new extensions")
+    print("    -p <N>              number of concurrent downloads")
+    print("    -P                  use ProcessPool (default: Pool) for concurrency")
     print(
         "    -F                  do not download extensions with forums (skip sequential download)"
     )
     print(
-        "    -N                  do not download extensions without forums (skip parallel download)"
+        "    -N                  do not download extensions without forums (skip concurrent download)"
     )
-    print("    --max-discover <N>  discover at most N new extensions")
-    print("    -a=<DIR>            archive directory")
+    print("    -a <DIR>            archive directory")
     print(
-        "    -t=<N>              timeout for an individual extension download")
+        "    -t <N>              timeout for an individual extension download")
+    print("    --max-discover <N>  discover at most N new extensions")
 
 
 def print_config(basedir, archive_dir, conf_dir, discover, parallel,
