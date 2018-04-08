@@ -142,6 +142,9 @@ def const_verbose():
     """Default verbosity."""
     return True
 
+def const_use_process_pool():
+    """Use ProcessPool (from module 'pebble') for concurrency."""
+    return False
 
 def const_log_format():
     return '%(process)6s %(asctime)s %(levelname)8s %(message)s'

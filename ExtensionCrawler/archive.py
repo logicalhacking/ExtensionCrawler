@@ -23,6 +23,7 @@ import os
 import glob
 import re
 import json
+from multiprocessing import Pool
 from concurrent.futures import TimeoutError
 from pebble import ProcessPool, ProcessExpired
 from functools import partial
@@ -539,7 +540,7 @@ def update_extension(archivedir, forums, ext_id):
                         res_reviews, res_support, sql_exception, sql_success)
 
 
-def execute_parallel(archivedir, max_retry, timeout, max_workers, ext_ids):
+def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ext_ids):
     results=[]
     for n in range(max_retry):
         if n > 0:
@@ -582,11 +583,23 @@ def execute_parallel(archivedir, max_retry, timeout, max_workers, ext_ids):
                     
     return results
 
+def execute_parallel_Pool(archivedir, max_retry, timeout, max_workers, ext_ids):
+    log_info("Using multiprocessing.Pool: timeout and max_try are *not* supported")
+    with Pool(processes=max_workers, maxtasksperchild=1000) as pool:
+        results = pool.map(partial(update_extension, archivedir, False)
+                          ,ext_ids)                
+    return list(results)
 
-def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout=300):
+
+def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, use_process_pool=False):
     ext_with_forums = []
     ext_without_forums = []
     forums_ext_ids = (list(set(forums_ext_ids)))
+    if use_process_pool:
+        execute_parallel=execute_parallel_ProcessPool
+    else:
+        execute_parallel=execute_parallel_Pool
+
     log_info("Updating {} extensions ({} including forums)".format(
         len(ext_ids), len(forums_ext_ids)))
 
