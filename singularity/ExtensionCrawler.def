@@ -85,6 +85,7 @@ git clone https://git.logicalhacking.com/BrowserSecurity/ExtensionCrawler.git
 cd ExtensionCrawler
 git checkout production 
 cd ..
+pip3 install wheel # simhash needs wheel to build properly, still works without it though
 pip3 install --system -e ExtensionCrawler
 cd /
 chmod -R go+u-w /opt/ExtensionCrawler
