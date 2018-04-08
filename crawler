@@ -205,7 +205,7 @@ def parse_args(argv):
         elif opt in ("-p", "--parallel"):
             parallel = int(arg)
         elif opt in ("-t", "--timeout"):
-            ext_timeout = arg
+            ext_timeout = int(arg)
         elif opt == '-s':
             verbose = False
         elif opt == '-P':
