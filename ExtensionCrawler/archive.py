@@ -203,7 +203,7 @@ def last_crx(archivedir, extid, date=None):
     tar = os.path.join(archivedir, get_local_archive_dir(extid),
                        extid + ".tar")
     if os.path.exists(tar):
-        with tarfile.open(tar, 'r') as t:
+        with tarfile.open(tar, 'r', ignore_zeros=True) as t:
             old_crxs = sorted([
                 x.name for x in t.getmembers()
                 if x.name.endswith(".crx") and x.size > 0 and (
@@ -230,7 +230,7 @@ def first_crx(archivedir, extid, date=None):
     tar = os.path.join(archivedir, get_local_archive_dir(extid),
                        extid + ".tar")
     if os.path.exists(tar):
-        t = tarfile.open(tar, 'r')
+        t = tarfile.open(tar, 'r', ignore_zeros=True)
         old_crxs = sorted([
             x.name for x in t.getmembers()
             if x.name.endswith(".crx") and x.size > 0 and (
@@ -249,7 +249,7 @@ def all_crx(archivedir, extid, date=None):
                        extid + ".tar")
     all_crxs = []
     if os.path.exists(tar):
-        t = tarfile.open(tar, 'r')
+        t = tarfile.open(tar, 'r', ignore_zeroes=True)
         all_crxs = sorted([
             x.name for x in t.getmembers()
             if x.name.endswith(".crx") and x.size > 0
@@ -516,8 +516,9 @@ def update_extension(archivedir, forums, ext_id):
     if not os.path.exists(tar):
         is_new = True
     try:
-        with tarfile.open(tar, mode='a:') as ar:
-            ar.add(tmptardir, arcname=ext_id)
+        with open(tar, 'ab') as f:
+            with tarfile.open(mode='w|', fileobj=f) as ar:
+                ar.add(tmptardir, arcname=ext_id)
     except Exception as e:
         log_exception("* FATAL: cannot create tar archive", 3, ext_id)
         tar_exception = e
