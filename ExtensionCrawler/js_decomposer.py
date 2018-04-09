@@ -26,8 +26,9 @@ import zlib
 import logging
 from enum import Enum
 from ExtensionCrawler.js_mincer import mince_js
-from ExtensionCrawler.file_identifiers import get_file_identifiers
+from ExtensionCrawler.file_identifiers import get_file_identifiers, is_binary_resource
 from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
+from ExtensionCrawler.util import log_info
 import ExtensionCrawler.config as config
 
 
@@ -86,18 +87,10 @@ def load_lib_identifiers():
 
 def is_ressource(file_info):
     """Chedk if file info indicates that it represents a ressource type."""
-    ressource_identifiers = ["Media", "Audio", "Image", "PDF"]
-
-    if file_info['description'] is not None:
-        for ressource_id in ressource_identifiers:
-            if re.search(ressource_id, file_info['description'],
-                         re.IGNORECASE):
-                return True
-    elif file_info['dec_description'] is not None:
-        for ressource_id in ressource_identifiers:
-            if re.search(ressource_id, file_info['dec_description'],
-                         re.IGNORECASE):
-                return True
+    if file_info['mimetype'] is not None and is_binary_resource(file_info['mimetype']):
+        return True
+    if file_info['dec_mimetype'] is not None and is_binary_resource(file_info['dec_mimetype']):
+        return True
     return False
 
 
@@ -480,17 +473,19 @@ def decompose_js_with_connection(path_or_zipfileobj, con):
                     str_data = dec_data.decode(file_info['dec_encoding'])
                     del dec_data
                 except Exception:
-                    logging.info(
+                    log_info(
                         "Exception during data decoding (decompressed) for entry "
-                        + file_info['filename'])
+                        + file_info['filename'], 3)
                     str_data = ''
-            else:
+            elif file_info["encoding"] is not None:
                 try:
                     str_data = data.decode(file_info['encoding'])
                 except Exception:
-                    logging.info("Exception during data decoding for entry " +
-                                 file_info['filename'])
+                    log_info("Exception during data decoding for entry " +
+                                 file_info['filename'], 3)
                     str_data = ''
+            else:
+                str_data = ''
 
             info_data_blocks = check_data_blocks(file_info, str_data)
 

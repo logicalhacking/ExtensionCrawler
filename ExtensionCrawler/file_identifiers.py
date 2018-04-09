@@ -19,7 +19,6 @@
 
 import gc
 import hashlib
-import mimetypes
 import os
 import re
 import zlib
@@ -31,6 +30,11 @@ import magic
 
 from ExtensionCrawler.js_mincer import mince_js
 
+def is_binary_resource(mimetype):
+    return (mimetype.startswith("image/") or
+            mimetype.startswith("video/") or
+            mimetype.startswith("audio/") or
+            mimetype == "application/pdf")
 
 def normalize_jsdata(str_data):
     """Compute normalized code blocks of a JavaScript file"""
@@ -77,6 +81,31 @@ def compute_difference(hx, hy):
 
 def get_data_identifiers(data):
     """Get basic data identifiers (size, hashes, normalized hashes, etc.)."""
+
+    data_identifier = {}
+
+    data_identifier['encoding'] = None
+    data_identifier['description'] = None
+    data_identifier['size'] = None
+    data_identifier['loc'] = None
+    data_identifier['mimetype'] = None
+    data_identifier['md5'] = None
+    data_identifier['sha1'] = None
+    data_identifier['sha256'] = None
+    data_identifier['simhash'] = None
+    data_identifier['size_stripped'] = None
+    data_identifier['normalized_encoding'] = None
+    data_identifier['normalized_description'] = None
+    data_identifier['normalized_size'] = None
+    data_identifier['normalized_loc'] = None
+    data_identifier['normalized_mimetype'] = None
+    data_identifier['normalized_md5'] = None
+    data_identifier['normalized_sha1'] = None
+    data_identifier['normalized_sha256'] = None
+    data_identifier['normalized_simhash'] = None
+
+    mimetype = magic.from_buffer(data, mime=True)
+
     magic_desc = ""
     try:
         magic_desc = magic.from_buffer(data)
@@ -88,34 +117,31 @@ def get_data_identifiers(data):
         else:
             raise exp
 
+    data_identifier['mimetype'] = mimetype
+    data_identifier['md5'] = hashlib.md5(data).digest()
+    data_identifier['sha1'] = hashlib.sha1(data).digest()
+    data_identifier['sha256'] = hashlib.sha256(data).digest()
+    data_identifier['size'] = len(data)
+    data_identifier['description'] = magic_desc
+
+    # We don't continue here with binary files, as that consumes too many
+    # resources.
+    if is_binary_resource(mimetype):
+        return data_identifier
+
     encoding = chardet.detect(data)['encoding']
-    data_identifier = {
-        'md5': hashlib.md5(data).digest(),
-        'sha1': hashlib.sha1(data).digest(),
-        'sha256': hashlib.sha256(data).digest(),
-        'simhash': get_simhash(encoding, data),
-        'size': len(data),
-        'size_stripped': len(data.strip()),
-        'loc': len(data.splitlines()),
-        'description': magic_desc,
-        'encoding': encoding,
-    }
+
+    data_identifier['simhash'] = get_simhash(encoding, data)
+    data_identifier['size_stripped'] = len(data.strip())
+    data_identifier['loc'] = len(data.splitlines())
+    data_identifier['encoding'] = encoding
     try:
         normalized_data, normalized_loc = normalize_jsdata(
             data.decode(encoding=data_identifier['encoding'],errors="replace"))
     except Exception:
         normalized_data = None
 
-    if normalized_data is None:
-        data_identifier['normalized_encoding'] = None
-        data_identifier['normalized_description'] = None
-        data_identifier['normalized_size'] = None
-        data_identifier['normalized_loc'] = None
-        data_identifier['normalized_md5'] = None
-        data_identifier['normalized_sha1'] = None
-        data_identifier['normalized_sha256'] = None
-        data_identifier['normalized_simhash'] = None
-    else:
+    if normalized_data is not None:
         normalized_magic_desc = ""
         try:
             normalized_magic_desc = magic.from_buffer(normalized_data)
@@ -131,6 +157,7 @@ def get_data_identifiers(data):
         data_identifier['normalized_description'] = normalized_magic_desc
         data_identifier['normalized_size'] = len(normalized_data)
         data_identifier['normalized_loc'] = normalized_loc
+        data_identifier['normalized_mimetype'] = magic.from_buffer(normalized_data, mime=True)
         data_identifier['normalized_md5'] = hashlib.md5(
             normalized_data).digest()
         data_identifier['normalized_sha1'] = hashlib.sha1(
@@ -145,6 +172,7 @@ def get_data_identifiers(data):
 def get_file_identifiers(path, data=None):
     """Get basic file identifiers (path, filename, etc.) and data identifiers."""
     dec_data_identifier = {
+        'mimetype': None,
         'md5': None,
         'sha1': None,
         'sha256': None,
@@ -154,6 +182,7 @@ def get_file_identifiers(path, data=None):
         'loc': None,
         'description': None,
         'encoding': None,
+        'normalized_mimetype': None,
         'normalized_loc': None,
         'normalized_encoding': None,
         'normalized_description': None,
@@ -184,7 +213,7 @@ def get_file_identifiers(path, data=None):
         'path':
         path,
         'mimetype':
-        mimetypes.guess_type(path),
+        data_identifier['mimetype'],
         'md5':
         data_identifier['md5'],
         'sha1':
@@ -211,6 +240,8 @@ def get_file_identifiers(path, data=None):
         data_identifier['normalized_size'],
         'normalized_loc':
         data_identifier['normalized_loc'],
+        'normalized_mimetype':
+        data_identifier['normalized_mimetype'],
         'normalized_md5':
         data_identifier['normalized_md5'],
         'normalized_sha1':
@@ -219,6 +250,8 @@ def get_file_identifiers(path, data=None):
         data_identifier['normalized_sha256'],
         'normalized_simhash':
         data_identifier['normalized_simhash'],
+        'dec_mimetype':
+        dec_data_identifier['mimetype'],
         'dec_md5':
         dec_data_identifier['md5'],
         'dec_sha1':
@@ -245,6 +278,8 @@ def get_file_identifiers(path, data=None):
         dec_data_identifier['normalized_size'],
         'dec_normalized_loc':
         dec_data_identifier['normalized_loc'],
+        'dec_normalized_mimetype':
+        dec_data_identifier['normalized_mimetype'],
         'dec_normalized_md5':
         dec_data_identifier['normalized_md5'],
         'dec_normalized_sha1':

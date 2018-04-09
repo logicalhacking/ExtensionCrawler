@@ -279,10 +279,8 @@ def parse_and_insert_crx(ext_id, date, datepath, con):
                         loc=file_info[prefix + "loc"],
                         description=file_info[prefix + "description"],
                         encoding=file_info[prefix + "encoding"],
-                        mimetype=file_info["mimetype"][0]
-                        if "mimetype" in file_info else None,
-                        mimetype_detail=file_info["mimetype"][1]
-                        if "mimetype" in file_info else None,
+                        mimetype=file_info["mimetype"],
+                        mimetype_detail=None,
                         library=file_info["lib"],
                         version=file_info["version"],
                         typ=typ,
