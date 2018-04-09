@@ -189,6 +189,17 @@ def last_modified_http_date(path):
 def last_crx(archivedir, extid, date=None):
     last_crx = ""
     last_crx_etag = ""
+
+    etag_file = os.path.join(archivedir, get_local_archive_dir(extid),
+                             extid + ".etag")
+    if date is None and os.path.exists(etag_file):
+        with open(etag_file, 'r') as f:
+            d = json.load(f)
+            return d["last_crx"], d["last_crx_etag"]
+
+    # If we do not yet have an .etag file present, open the tarfile and look
+    # there for one. After having done that once, the crawler creates the .etag
+    # file to avoid opening the tar file in the future.
     tar = os.path.join(archivedir, get_local_archive_dir(extid),
                        extid + ".tar")
     if os.path.exists(tar):
@@ -206,6 +217,10 @@ def last_crx(archivedir, extid, date=None):
                         '"', '\\"').replace("'", '"')
                 headers_json = json.loads(headers_content)
                 last_crx_etag = headers_json["ETag"]
+
+                if date is None:
+                    with open(etag_file, 'w') as f:
+                        json.dump({"last_crx": last_crx, "last_crx_etag": last_crx_etag}, f)
 
     return last_crx, last_crx_etag
 
@@ -327,6 +342,10 @@ def update_crx(archivedir, tmptardir, ext_id, date):
                         f.write(chunk)
             write_text(tmptardir, date, extfilename + ".etag",
                        res.headers.get("ETag"))
+            etag_file = os.path.join(archivedir, get_local_archive_dir(ext_id),
+                                    ext_id + ".etag")
+            with open(etag_file, 'w') as f:
+                json.dump({"last_crx": os.path.join(ext_id, date, extfilename), "last_crx_etag": res.headers.get("ETag")}, f)
     except Exception as e:
         log_exception("Exception when updating crx", 3, ext_id)
         write_text(tmptardir, date, extfilename + ".exception",
