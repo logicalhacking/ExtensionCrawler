@@ -43,7 +43,7 @@ from ExtensionCrawler.config import (
     const_review_payload, const_review_search_url, const_download_url,
     get_local_archive_dir, const_overview_url, const_support_url,
     const_support_payload, const_review_search_payload, const_review_url)
-from ExtensionCrawler.util import google_dos_protection, value_of, log_info, log_warning, log_exception
+from ExtensionCrawler.util import google_dos_protection, value_of, log_info, log_warning, log_exception, setup_logger
 from ExtensionCrawler.db import update_db_incremental
 
 class Error(Exception):
@@ -569,19 +569,25 @@ def update_extension(archivedir, forums, ext_id):
                         res_reviews, res_support, sql_exception, sql_success)
 
 
-def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ext_ids, forums):
+def init_process(verbose):
+    # When not using fork, we need to setup logging again in the worker threads
+    setup_logger(verbose)
+
+
+def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ext_ids, forums, verbose):
     results=[]
     for n in range(max_retry):
+        if len(ext_ids) == 0:
+            break
         if n > 0:
             log_info("Attempt ({} out of {}): {} extensions".format(
-                n + 1, max_retry,len(ext_timeouts)), 1)
-            ext_ids=ext_timeouts
+                n + 1, max_retry, len(ext_ids)), 1)
 
         ext_timeouts=[]
-        with ProcessPool(max_workers=max_workers, max_tasks=100) as pool:
+        with ProcessPool(max_workers=max_workers, max_tasks=100, initializer=init_process, initargs=(verbose,)) as pool:
             future = pool.map(partial(update_extension, archivedir, forums),
                               ext_ids,
-                              chunksize=100,
+                              chunksize=1,
                               timeout=timeout)
             iterator = future.result()
             ext_timeouts=[]
@@ -600,22 +606,24 @@ def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ex
                     log_warning("WorkerException: Processing %s raised %s" % (ext_id, error))
                     log_warning(error.traceback)  # Python's traceback of remote process
                     ext_timeouts.append(ext_id)
+            ext_ids=ext_timeouts
 
     return results
 
-def execute_parallel_Pool(archivedir, max_retry, timeout, max_workers, ext_ids, forums):
+
+def execute_parallel_Pool(archivedir, max_retry, timeout, max_workers, ext_ids, forums, verbose):
     log_info("Using multiprocessing.Pool: timeout and max_try are *not* supported")
-    with Pool(processes=max_workers, maxtasksperchild=100) as pool:
+    with Pool(processes=max_workers, maxtasksperchild=100, initializer=init_process, initargs=(verbose,)) as pool:
         # The default chunksize is None, which means that each process will only
         # ever get one task with chunksize len(ext_ids)/max_workers. This would
         # render maxtasksperchild useless.
         results = pool.map(partial(update_extension, archivedir, forums),
                            ext_ids,
-                           chunksize=100)
+                           chunksize=1)
     return list(results)
 
 
-def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, use_process_pool=False):
+def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, use_process_pool, verbose):
     # Use a separate process which forks new worker processes. This should make sure
     # that processes which got created after running for some time also require only
     # little memory. Details:
@@ -638,13 +646,13 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, us
     parallel_ids = ext_ids
     log_info("Updating {} extensions excluding forums (parallel)".format(
         len(parallel_ids)), 1)
-    ext_without_forums = execute_parallel(archivedir,3, timeout, parallel, parallel_ids, False)
+    ext_without_forums = execute_parallel(archivedir, 3, timeout, parallel, parallel_ids, False, verbose)
 
     # Second, update extensions with forums sequentially (and with delays) to
     # avoid running into Googles DDOS detection.
     log_info("Updating {} extensions including forums (sequentially)".format(
         len(forums_ext_ids)), 1)
-    ext_with_forums = execute_parallel(archivedir, 3, timeout, 1, forums_ext_ids, True)
+    ext_with_forums = execute_parallel(archivedir, 3, timeout, 1, forums_ext_ids, True, verbose)
 
     return ext_with_forums + ext_without_forums
 

@@ -164,7 +164,7 @@ def const_download_ext_ids_without_forums():
 
 def const_ext_timeout():
     """Timeout for downloading an individual extension (2 hours)."""
-    return 2*60*60  
+    return 2*60*60
 
 
 def const_mysql_config_file():

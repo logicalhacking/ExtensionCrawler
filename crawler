@@ -30,7 +30,7 @@ from functools import reduce
 from ExtensionCrawler.discover import get_new_ids
 from ExtensionCrawler.archive import get_forum_ext_ids, get_existing_ids, update_extensions
 from ExtensionCrawler.config import *
-from ExtensionCrawler.util import log_info, log_exception
+from ExtensionCrawler.util import log_info, log_exception, setup_logger
 
 
 def write_log(dirname, fname, text):
@@ -229,16 +229,7 @@ def main(argv):
     basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums, ext_timeout, use_process_pool = parse_args(
         argv)
 
-    if verbose:
-        loglevel = logging.INFO
-    else:
-        loglevel = logging.WARNING
-
-    logger = logging.getLogger()
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setFormatter(logging.Formatter(const_log_format()))
-    logger.addHandler(ch)
-    logger.setLevel(loglevel)
+    setup_logger(verbose)
 
     # Surpressing these "Starting HTTPS connection ..." log messages
     # Older versions of requests use loglevel INFO for that, newer ones DEBUG
@@ -288,7 +279,7 @@ def main(argv):
             forum_ext_ids = []
 
     res = update_extensions(archive_dir, parallel, forum_ext_ids, ext_ids,
-                            ext_timeout, use_process_pool)
+                            ext_timeout, use_process_pool, verbose)
 
     # We re-try (once) the extensions with unknown exceptions, as
     # they are often temporary
@@ -303,7 +294,7 @@ def main(argv):
         ext_ids_except = sorted(
             list(set(has_exception_ids) - set(forum_ext_ids_except)))
         res_update = update_extensions(archive_dir, parallel,
-                                       forum_ext_ids_except, ext_ids_except, ext_timeout, use_process_pool)
+                                       forum_ext_ids_except, ext_ids_except, ext_timeout, use_process_pool, verbose)
         res = list(set(res) - set(has_exception)) + res_update
 
     end_time = time.time()

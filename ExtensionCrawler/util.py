@@ -21,6 +21,9 @@ from time import sleep
 from random import random
 import traceback
 import logging
+import sys
+
+from ExtensionCrawler.config import const_log_format
 
 
 def google_dos_protection(maxrange=0.15):
@@ -57,3 +60,16 @@ def log_exception(msg, indent_level=0, extid="-" * 32):
     logging.error(str(extid) + " " + 4 * indent_level * " " + str(msg))
     for line in traceback.format_exc().splitlines():
         logging.error(str(extid) + " " + 4 * indent_level * " " + line)
+
+
+def setup_logger(verbose):
+    if verbose:
+        loglevel = logging.INFO
+    else:
+        loglevel = logging.WARNING
+
+    logger = logging.getLogger()
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(logging.Formatter(const_log_format()))
+    logger.addHandler(ch)
+    logger.setLevel(loglevel)
