@@ -201,9 +201,17 @@ def last_crx(archivedir, extid, date=None):
     etag_file = os.path.join(archivedir, get_local_archive_dir(extid),
                              extid + ".etag")
     if date is None and os.path.exists(etag_file):
-        with open(etag_file, 'r') as f:
-            d = json.load(f)
-            return d["last_crx"], d["last_crx_etag"]
+        try:
+            with open(etag_file, 'r') as f:
+                d = json.load(f)
+                return d["last_crx"], d["last_crx_etag"]
+        except Exception as e:
+            log_exception("Something was wrong with the etag file {}, deleting it ...".format(etag_file))
+            try:
+                os.remove(etag_file)
+            except Exception as e:
+                log_exception("Could not remove etag file {}!".format(etag_file))
+
 
     # If we do not yet have an .etag file present, open the tarfile and look
     # there for one. After having done that once, the crawler creates the .etag
