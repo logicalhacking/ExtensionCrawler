@@ -577,10 +577,11 @@ def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ex
             ext_ids=ext_timeouts
 
         ext_timeouts=[]
-        with ProcessPool(max_workers=max_workers, max_tasks=1000) as pool:
-            future = pool.map(partial(update_extension, archivedir, forums)
-                              ,ext_ids
-                              ,timeout=timeout)
+        with ProcessPool(max_workers=max_workers, max_tasks=100) as pool:
+            future = pool.map(partial(update_extension, archivedir, forums),
+                              ext_ids,
+                              chunksize=100,
+                              timeout=timeout)
             iterator = future.result()
             ext_timeouts=[]
             for ext_id in ext_ids:
@@ -603,9 +604,13 @@ def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ex
 
 def execute_parallel_Pool(archivedir, max_retry, timeout, max_workers, ext_ids, forums):
     log_info("Using multiprocessing.Pool: timeout and max_try are *not* supported")
-    with Pool(processes=max_workers, maxtasksperchild=1000) as pool:
-        results = pool.map(partial(update_extension, archivedir, forums)
-                          ,ext_ids)
+    with Pool(processes=max_workers, maxtasksperchild=100) as pool:
+        # The default chunksize is None, which means that each process will only
+        # ever get one task with chunksize len(ext_ids)/max_workers. This would
+        # render maxtasksperchild useless.
+        results = pool.map(partial(update_extension, archivedir, forums),
+                           ext_ids,
+                           chunksize=100)
     return list(results)
 
 
