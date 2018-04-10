@@ -299,7 +299,7 @@ def update_crx(archivedir, tmptardir, ext_id, date):
     if last_crx_file is not "":
         headers = {'If-Modified-Since': last_crx_http_date}
     try:
-        log_info("* Checking If-Modified-Since")
+        log_info("* Checking If-Modified-Since", 2, ext_id)
         res = requests.get(
             const_download_url().format(ext_id),
             stream=True,
