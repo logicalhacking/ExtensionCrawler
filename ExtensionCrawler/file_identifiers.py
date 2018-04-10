@@ -17,7 +17,6 @@
 #
 """ Module for obtaining (normalized) hashes for files."""
 
-import gc
 import hashlib
 import os
 import re

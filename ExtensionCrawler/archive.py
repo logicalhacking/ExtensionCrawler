@@ -23,6 +23,7 @@ import os
 import glob
 import re
 import json
+import gc
 from multiprocessing import Pool
 from concurrent.futures import TimeoutError
 from pebble import ProcessPool, ProcessExpired
@@ -550,6 +551,7 @@ def update_extension(archivedir, forums, ext_id):
         except Exception:
             pass
 
+    log_info("* Collecting garbage: {} references cleaned".format(gc.collect()), 2, ext_id)
     log_info(
         "* Duration: {}".format(
             datetime.timedelta(seconds=int(time.time() - start))),
