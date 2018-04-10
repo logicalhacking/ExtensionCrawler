@@ -46,13 +46,6 @@ from ExtensionCrawler.config import (
 from ExtensionCrawler.util import google_dos_protection, value_of, log_info, log_warning, log_exception
 from ExtensionCrawler.db import update_db_incremental
 
-# Use a separate process which forks new worker processes. This should make sure
-# that processes which got created after running for some time also require only
-# little memory. Details:
-# https://docs.python.org/3.6/library/multiprocessing.html#contexts-and-start-methods
-multiprocessing.set_start_method("forkserver")
-
-
 class Error(Exception):
     pass
 
@@ -623,6 +616,12 @@ def execute_parallel_Pool(archivedir, max_retry, timeout, max_workers, ext_ids, 
 
 
 def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, use_process_pool=False):
+    # Use a separate process which forks new worker processes. This should make sure
+    # that processes which got created after running for some time also require only
+    # little memory. Details:
+    # https://docs.python.org/3.6/library/multiprocessing.html#contexts-and-start-methods
+    multiprocessing.set_start_method("forkserver")
+
     ext_with_forums = []
     ext_without_forums = []
     forums_ext_ids = (list(set(forums_ext_ids)))
