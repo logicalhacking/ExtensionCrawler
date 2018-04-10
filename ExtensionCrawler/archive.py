@@ -581,24 +581,23 @@ def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ex
             future = pool.map(partial(update_extension, archivedir, forums)
                               ,ext_ids
                               ,timeout=timeout)
-        # wait for pool is finished before processing results.
-        iterator = future.result()
-        ext_timeouts=[]
-        for ext_id in ext_ids:
-            try:
-                results.append(next(iterator))
-            except StopIteration:
-                break
-            except TimeoutError as error:
-                log_warning("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
-                ext_timeouts.append(ext_id)
-            except ProcessExpired as error:
-                log_warning("WorkerException: %s (%s)self. Exit code: %d" % (error, ext_id, error.exitcode))
-                ext_timeouts.append(ext_id)
-            except Exception as error:
-                log_warning("WorkerException: Processing %s raised %s" % (ext_id, error))
-                log_warning(error.traceback)  # Python's traceback of remote process
-                ext_timeouts.append(ext_id)
+            iterator = future.result()
+            ext_timeouts=[]
+            for ext_id in ext_ids:
+                try:
+                    results.append(next(iterator))
+                except StopIteration:
+                    break
+                except TimeoutError as error:
+                    log_warning("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
+                    ext_timeouts.append(ext_id)
+                except ProcessExpired as error:
+                    log_warning("WorkerException: %s (%s)self. Exit code: %d" % (error, ext_id, error.exitcode))
+                    ext_timeouts.append(ext_id)
+                except Exception as error:
+                    log_warning("WorkerException: Processing %s raised %s" % (ext_id, error))
+                    log_warning(error.traceback)  # Python's traceback of remote process
+                    ext_timeouts.append(ext_id)
 
     return results
 
