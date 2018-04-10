@@ -24,6 +24,7 @@ import glob
 import re
 import json
 import gc
+import multiprocessing
 from multiprocessing import Pool
 from concurrent.futures import TimeoutError
 from pebble import ProcessPool, ProcessExpired
@@ -44,6 +45,12 @@ from ExtensionCrawler.config import (
     const_support_payload, const_review_search_payload, const_review_url)
 from ExtensionCrawler.util import google_dos_protection, value_of, log_info, log_warning, log_exception
 from ExtensionCrawler.db import update_db_incremental
+
+# Use a separate process which forks new worker processes. This should make sure
+# that processes which got created after running for some time also require only
+# little memory. Details:
+# https://docs.python.org/3.6/library/multiprocessing.html#contexts-and-start-methods
+multiprocessing.set_start_method("forkserver")
 
 
 class Error(Exception):
