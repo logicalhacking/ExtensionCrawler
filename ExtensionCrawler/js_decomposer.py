@@ -87,9 +87,9 @@ def load_lib_identifiers():
 
 def is_ressource(file_info):
     """Chedk if file info indicates that it represents a ressource type."""
-    if file_info['mimetype'] is not None and is_binary_resource(file_info['mimetype']):
+    if file_info['mimetype_magic'] is not None and is_binary_resource(file_info['mimetype_magic']):
         return True
-    if file_info['dec_mimetype'] is not None and is_binary_resource(file_info['dec_mimetype']):
+    if file_info['dec_mimetype_magic'] is not None and is_binary_resource(file_info['dec_mimetype_magic']):
         return True
     return False
 

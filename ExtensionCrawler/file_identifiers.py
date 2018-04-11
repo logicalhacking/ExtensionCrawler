@@ -21,6 +21,7 @@ import hashlib
 import os
 import re
 import zlib
+import mimetypes
 from io import StringIO
 from simhash import Simhash
 
@@ -29,11 +30,11 @@ import magic
 
 from ExtensionCrawler.js_mincer import mince_js
 
-def is_binary_resource(mimetype):
-    return (mimetype.startswith("image/") or
-            mimetype.startswith("video/") or
-            mimetype.startswith("audio/") or
-            mimetype == "application/pdf")
+def is_binary_resource(mimetype_magic):
+    return (mimetype_magic.startswith("image/") or
+            mimetype_magic.startswith("video/") or
+            mimetype_magic.startswith("audio/") or
+            mimetype_magic == "application/pdf")
 
 def normalize_jsdata(str_data):
     """Compute normalized code blocks of a JavaScript file"""
@@ -87,7 +88,7 @@ def get_data_identifiers(data):
     data_identifier['description'] = None
     data_identifier['size'] = None
     data_identifier['loc'] = None
-    data_identifier['mimetype'] = None
+    data_identifier['mimetype_magic'] = None
     data_identifier['md5'] = None
     data_identifier['sha1'] = None
     data_identifier['sha256'] = None
@@ -97,13 +98,13 @@ def get_data_identifiers(data):
     data_identifier['normalized_description'] = None
     data_identifier['normalized_size'] = None
     data_identifier['normalized_loc'] = None
-    data_identifier['normalized_mimetype'] = None
+    data_identifier['normalized_mimetype_magic'] = None
     data_identifier['normalized_md5'] = None
     data_identifier['normalized_sha1'] = None
     data_identifier['normalized_sha256'] = None
     data_identifier['normalized_simhash'] = None
 
-    mimetype = magic.from_buffer(data, mime=True)
+    mimetype_magic = magic.from_buffer(data, mime=True)
 
     magic_desc = ""
     try:
@@ -116,7 +117,7 @@ def get_data_identifiers(data):
         else:
             raise exp
 
-    data_identifier['mimetype'] = mimetype
+    data_identifier['mimetype_magic'] = mimetype_magic
     data_identifier['md5'] = hashlib.md5(data).digest()
     data_identifier['sha1'] = hashlib.sha1(data).digest()
     data_identifier['sha256'] = hashlib.sha256(data).digest()
@@ -125,7 +126,7 @@ def get_data_identifiers(data):
 
     # We don't continue here with binary files, as that consumes too many
     # resources.
-    if is_binary_resource(mimetype):
+    if is_binary_resource(mimetype_magic):
         return data_identifier
 
     encoding = chardet.detect(data)['encoding']
@@ -156,7 +157,7 @@ def get_data_identifiers(data):
         data_identifier['normalized_description'] = normalized_magic_desc
         data_identifier['normalized_size'] = len(normalized_data)
         data_identifier['normalized_loc'] = normalized_loc
-        data_identifier['normalized_mimetype'] = magic.from_buffer(normalized_data, mime=True)
+        data_identifier['normalized_mimetype_magic'] = magic.from_buffer(normalized_data, mime=True)
         data_identifier['normalized_md5'] = hashlib.md5(
             normalized_data).digest()
         data_identifier['normalized_sha1'] = hashlib.sha1(
@@ -171,7 +172,7 @@ def get_data_identifiers(data):
 def get_file_identifiers(path, data=None):
     """Get basic file identifiers (path, filename, etc.) and data identifiers."""
     dec_data_identifier = {
-        'mimetype': None,
+        'mimetype_magic': None,
         'md5': None,
         'sha1': None,
         'sha256': None,
@@ -181,7 +182,7 @@ def get_file_identifiers(path, data=None):
         'loc': None,
         'description': None,
         'encoding': None,
-        'normalized_mimetype': None,
+        'normalized_mimetype_magic': None,
         'normalized_loc': None,
         'normalized_encoding': None,
         'normalized_description': None,
@@ -212,7 +213,9 @@ def get_file_identifiers(path, data=None):
         'path':
         path,
         'mimetype':
-        data_identifier['mimetype'],
+        mimetypes.guess_type(path),
+        'mimetype_magic':
+        data_identifier['mimetype_magic'],
         'md5':
         data_identifier['md5'],
         'sha1':
@@ -239,8 +242,8 @@ def get_file_identifiers(path, data=None):
         data_identifier['normalized_size'],
         'normalized_loc':
         data_identifier['normalized_loc'],
-        'normalized_mimetype':
-        data_identifier['normalized_mimetype'],
+        'normalized_mimetype_magic':
+        data_identifier['normalized_mimetype_magic'],
         'normalized_md5':
         data_identifier['normalized_md5'],
         'normalized_sha1':
@@ -249,8 +252,8 @@ def get_file_identifiers(path, data=None):
         data_identifier['normalized_sha256'],
         'normalized_simhash':
         data_identifier['normalized_simhash'],
-        'dec_mimetype':
-        dec_data_identifier['mimetype'],
+        'dec_mimetype_magic':
+        dec_data_identifier['mimetype_magic'],
         'dec_md5':
         dec_data_identifier['md5'],
         'dec_sha1':
@@ -277,8 +280,8 @@ def get_file_identifiers(path, data=None):
         dec_data_identifier['normalized_size'],
         'dec_normalized_loc':
         dec_data_identifier['normalized_loc'],
-        'dec_normalized_mimetype':
-        dec_data_identifier['normalized_mimetype'],
+        'dec_normalized_mimetype_magic':
+        dec_data_identifier['normalized_mimetype_magic'],
         'dec_normalized_md5':
         dec_data_identifier['normalized_md5'],
         'dec_normalized_sha1':
