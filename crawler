@@ -158,11 +158,12 @@ def helpmsg():
     print(
         "    -t <N>              timeout for an individual extension download")
     print("    --max-discover <N>  discover at most N new extensions")
+    print("    --pystuck           start pystuck server for all processes")
 
 
 def print_config(basedir, archive_dir, conf_dir, discover, parallel,
                  download_ext_ids_without_forums, download_ext_ids_with_forums,
-                 ext_timeout, use_process_pool):
+                 ext_timeout, use_process_pool, start_pystuck):
     """Print current configuration."""
     log_info("Configuration:")
     log_info("  Base dir:                         {}".format(basedir))
@@ -176,6 +177,7 @@ def print_config(basedir, archive_dir, conf_dir, discover, parallel,
     log_info("  Max num. of concurrent downloads: {}".format(parallel))
     log_info("  Use ProcessPool:                  {}".format(use_process_pool))
     log_info("  Download timeout:                 {}".format(ext_timeout))
+    log_info("  Start PyStuck:                    {}".format(start_pystuck))
 
 
 def parse_args(argv):
@@ -189,10 +191,11 @@ def parse_args(argv):
     download_ext_ids_without_forums = const_download_ext_ids_without_forums()
     ext_timeout = const_ext_timeout()
     max_discover = None
+    start_pystuck = False
     try:
         opts, _ = getopt.getopt(
             argv, "hsdFNPa:p:t:",
-            ["timeout=", "archive=", 'parallel=', 'max-discover='])
+            ["timeout=", "archive=", 'parallel=', 'max-discover=', 'pystuck'])
     except getopt.GetoptError:
         helpmsg()
         sys.exit(2)
@@ -219,17 +222,23 @@ def parse_args(argv):
         elif opt == '--max-discover':
             discover = True
             max_discover = int(arg)
-    return basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums, ext_timeout, use_process_pool
+        elif opt == '--pystuck':
+            start_pystuck = True
+    return basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums, ext_timeout, use_process_pool, start_pystuck
 
 
 def main(argv):
     """Main function of the extension crawler."""
 
     today = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums, ext_timeout, use_process_pool = parse_args(
+    basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums, ext_timeout, use_process_pool, start_pystuck = parse_args(
         argv)
 
     setup_logger(verbose)
+
+    if start_pystuck:
+        import pystuck
+        pystuck.run_server(port=10000)
 
     # Surpressing these "Starting HTTPS connection ..." log messages
     # Older versions of requests use loglevel INFO for that, newer ones DEBUG
@@ -247,7 +256,7 @@ def main(argv):
 
     print_config(basedir, archive_dir, conf_dir, discover, parallel,
                  download_ext_ids_with_forums, download_ext_ids_without_forums,
-                 ext_timeout, use_process_pool)
+                 ext_timeout, use_process_pool, start_pystuck)
 
     forum_ext_ids = get_forum_ext_ids(conf_dir)
     known_ids = list(set(get_existing_ids(archive_dir)) | set(forum_ext_ids))
@@ -279,7 +288,7 @@ def main(argv):
             forum_ext_ids = []
 
     res = update_extensions(archive_dir, parallel, forum_ext_ids, ext_ids,
-                            ext_timeout, use_process_pool, verbose)
+                            ext_timeout, use_process_pool, verbose, start_pystuck)
 
     # We re-try (once) the extensions with unknown exceptions, as
     # they are often temporary
