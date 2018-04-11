@@ -85,22 +85,24 @@ class RequestResult:
 
 class UpdateResult:
     def __init__(self, id, is_new, exception, res_overview, res_crx,
-                 res_reviews, res_support, res_sql, sql_update):
+                 res_reviews, res_support, res_sql, sql_update, worker_exception=None):
         self.id = id
         self.new = is_new
-        self.exception = exception
+        self.exception = exception # TODO: should be tar_exception
         self.res_overview = res_overview
         self.res_crx = res_crx
         self.res_reviews = res_reviews
         self.res_support = res_support
         self.res_sql = res_sql
         self.sql_update = sql_update
+        self.worker_exception = worker_exception
 
     def is_new(self):
         return self.new
 
     def is_ok(self):
-        return (self.res_overview.is_ok()
+        return ((self.worker_exception is None)
+                and self.res_overview.is_ok()
                 and (self.res_crx.is_ok() or self.res_crx.not_modified())
                 and ((self.res_reviews is None) or self.res_reviews.is_ok())
                 and ((self.res_support is None) or self.res_support.is_ok()))
@@ -580,37 +582,27 @@ def init_process(verbose, start_pystuck=False):
 
 def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ext_ids, forums, verbose, start_pystuck):
     results=[]
-    for n in range(max_retry):
-        if len(ext_ids) == 0:
-            break
-        if n > 0:
-            log_info("Attempt ({} out of {}): {} extensions".format(
-                n + 1, max_retry, len(ext_ids)), 1)
-
-        ext_timeouts=[]
-        with ProcessPool(max_workers=max_workers, max_tasks=100, initializer=init_process, initargs=(verbose, start_pystuck)) as pool:
-            future = pool.map(partial(update_extension, archivedir, forums),
-                              ext_ids,
-                              chunksize=1,
-                              timeout=timeout)
-            iterator = future.result()
-            ext_timeouts=[]
-            for ext_id in ext_ids:
-                try:
-                    results.append(next(iterator))
-                except StopIteration:
-                    break
-                except TimeoutError as error:
-                    log_warning("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
-                    ext_timeouts.append(ext_id)
-                except ProcessExpired as error:
-                    log_warning("WorkerException: %s (%s)self. Exit code: %d" % (error, ext_id, error.exitcode))
-                    ext_timeouts.append(ext_id)
-                except Exception as error:
-                    log_warning("WorkerException: Processing %s raised %s" % (ext_id, error))
-                    log_warning(error.traceback)  # Python's traceback of remote process
-                    ext_timeouts.append(ext_id)
-            ext_ids=ext_timeouts
+    with ProcessPool(max_workers=max_workers, max_tasks=100, initializer=init_process, initargs=(verbose, start_pystuck)) as pool:
+        future = pool.map(partial(update_extension, archivedir, forums),
+                            ext_ids,
+                            chunksize=1,
+                            timeout=timeout)
+        iterator = future.result()
+        for ext_id in ext_ids:
+            try:
+                results.append(next(iterator))
+            except StopIteration:
+                break
+            except TimeoutError as error:
+                log_warning("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
+                results.append(UpdateResult(ext_id, False, None, None, None, None, None, None, None, error))
+            except ProcessExpired as error:
+                log_warning("WorkerException: %s (%s), exit code: %d" % (error, ext_id, error.exitcode))
+                results.append(UpdateResult(ext_id, False, None, None, None, None, None, None, None, error))
+            except Exception as error:
+                log_warning("WorkerException: Processing %s raised %s" % (ext_id, error))
+                log_warning(error.traceback)  # Python's traceback of remote process
+                results.append(UpdateResult(ext_id, False, None, None, None, None, None, None, None, error))
 
     return results
 

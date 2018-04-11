@@ -92,6 +92,13 @@ def log_failures_to_file(dirname, today, res):
                            "")
     write_log(dirname, today + "-sql-exception.log", sql_exception)
 
+    worker_exception = reduce(lambda x, y: x + "\n" + y,
+                           sorted(
+                               map(lambda x: x.id,
+                                   filter(lambda x: x.worker_exception is not None, res))),
+                           "")
+    write_log(dirname, today + "-worker-exception.log", worker_exception)
+
     sql_success = reduce(lambda x, y: x + "\n" + y,
                          sorted(
                              map(lambda x: x.id,
@@ -128,6 +135,8 @@ def log_summary(res, runtime=0):
         len(corrupt_tar_archives)))
     log_info("    SQL exception:           {:8d}".format(
         len(list(filter(lambda x: x.sql_exception(), res)))))
+    log_info("    Worker exception:        {:8d}".format(
+        len(list(filter(lambda x: x.worker_exception is not None, res)))))
     log_info("    Total runtime:            {}".format(
         str(datetime.timedelta(seconds=int(runtime)))))
 
