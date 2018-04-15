@@ -26,6 +26,7 @@ import time
 import getopt
 import logging
 import itertools
+import multiprocessing
 from functools import reduce
 from ExtensionCrawler.discover import get_new_ids
 from ExtensionCrawler.archive import get_forum_ext_ids, get_existing_ids, update_extensions
@@ -238,6 +239,12 @@ def parse_args(argv):
 
 def main(argv):
     """Main function of the extension crawler."""
+
+    # Use a separate process which forks new worker processes. This should make sure
+    # that processes which got created after running for some time also require only
+    # little memory. Details:
+    # https://docs.python.org/3.6/library/multiprocessing.html#contexts-and-start-methods
+    multiprocessing.set_start_method("forkserver")
 
     today = datetime.datetime.now(datetime.timezone.utc).isoformat()
     basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums, ext_timeout, use_process_pool, start_pystuck = parse_args(

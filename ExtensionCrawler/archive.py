@@ -24,7 +24,6 @@ import glob
 import re
 import json
 import gc
-import multiprocessing
 from multiprocessing import Pool
 from concurrent.futures import TimeoutError
 from pebble import ProcessPool, ProcessExpired
@@ -620,12 +619,6 @@ def execute_parallel_Pool(archivedir, max_retry, timeout, max_workers, ext_ids, 
 
 
 def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, use_process_pool, verbose, start_pystuck):
-    # Use a separate process which forks new worker processes. This should make sure
-    # that processes which got created after running for some time also require only
-    # little memory. Details:
-    # https://docs.python.org/3.6/library/multiprocessing.html#contexts-and-start-methods
-    multiprocessing.set_start_method("forkserver")
-
     ext_with_forums = []
     ext_without_forums = []
     forums_ext_ids = (list(set(forums_ext_ids)))
