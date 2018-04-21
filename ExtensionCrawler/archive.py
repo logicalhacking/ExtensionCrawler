@@ -386,7 +386,8 @@ def update_reviews(tar, date, ext_id):
         log_info("* review page   0-100: {}".format(str(res.status_code)), 2,
                  ext_id)
         store_request_text(tar, date, 'reviews000-099.text', res)
-        pages += [res.text]
+        if res.status_code == 200:
+            pages += [res.text]
 
         google_dos_protection()
         res = requests.post(
@@ -396,7 +397,8 @@ def update_reviews(tar, date, ext_id):
         log_info("* review page   100-200: {}".format(str(res.status_code)), 2,
                  ext_id)
         store_request_text(tar, date, 'reviews100-199.text', res)
-        pages += [res.text]
+        if res.status_code == 200:
+            pages += [res.text]
 
         google_dos_protection()
         # Always start with reply number 0 and request 10 replies
@@ -430,7 +432,8 @@ def update_support(tar, date, ext_id):
         log_info("* support page   0-100: {}".format(str(res.status_code)), 2,
                  ext_id)
         store_request_text(tar, date, 'support000-099.text', res)
-        pages += [res.text]
+        if res.status_code == 200:
+            pages += [res.text]
 
         google_dos_protection()
         res = requests.post(
@@ -440,7 +443,8 @@ def update_support(tar, date, ext_id):
         log_info("* support page 100-200: {}".format(str(res.status_code)), 2,
                  ext_id)
         store_request_text(tar, date, 'support100-199.text', res)
-        pages += [res.text]
+        if res.status_code == 200:
+            pages += [res.text]
 
         google_dos_protection()
         # Always start with reply number 0 and request 10 replies
