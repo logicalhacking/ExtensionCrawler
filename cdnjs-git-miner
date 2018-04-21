@@ -107,7 +107,7 @@ def main(argv):
         logging.info("Starting update of new db libs")
         pull_and_update_db(cdnjs_git_path, csv)
         logging.info("Finished update of new db libs")
-    if not listfile is None:
+    if listfile is not None:
         logging.info("Starting update from list file")
         update_db_from_listfile(cdnjs_git_path, listfile, csv)
         logging.info("Finished update from list file")

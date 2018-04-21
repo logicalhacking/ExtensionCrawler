@@ -15,13 +15,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from ExtensionCrawler.config import *
-from ExtensionCrawler.util import *
-from ExtensionCrawler.crx import *
-from ExtensionCrawler.archive import *
-from ExtensionCrawler.js_decomposer import decompose_js_with_connection, DetectionType, FileClassification
+from ExtensionCrawler.config import const_mysql_config_file
+from ExtensionCrawler.crx import read_crx
+from ExtensionCrawler.js_decomposer import decompose_js_with_connection
+from ExtensionCrawler.util import log_warning, log_debug, log_exception, log_info
 
-from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
+from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend, convert_date
 
 import re
 from bs4 import BeautifulSoup
@@ -63,7 +62,7 @@ def get_etag(ext_id, datepath, con):
             link = f.read()
             linked_date = link[3:].split("/")[0]
 
-            result = con.get_etag(ext_id, con.convert_date(linked_date))
+            result = con.get_etag(ext_id, convert_date(linked_date))
             if result is not None:
                 return result
 
@@ -166,7 +165,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
             con.insert(
                 "extension",
                 extid=ext_id,
-                date=con.convert_date(date),
+                date=convert_date(date),
                 name=name,
                 version=version,
                 description=description,
@@ -184,12 +183,12 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
                     con.insert(
                         "category",
                         extid=ext_id,
-                        date=con.convert_date(date),
+                        date=convert_date(date),
                         category_md5=hashlib.md5(category.encode()).digest(),
                         category=category)
 
 
-def parse_and_insert_crx(ext_id, date, datepath, con):
+def parse_and_insert_crx(ext_id, datepath, con):
     crx_path = next(iter(glob.glob(os.path.join(datepath, "*.crx"))), None)
     if not crx_path:
         return
@@ -314,7 +313,7 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
                     con.insert(
                         "review",
                         extid=ext_id,
-                        date=con.convert_date(date),
+                        date=convert_date(date),
                         commentdate=datetime.datetime.utcfromtimestamp(
                             get(review, "timestamp")).isoformat()
                         if "timestamp" in review else None,
@@ -345,7 +344,7 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
                     con.insert(
                         "support",
                         extid=ext_id,
-                        date=con.convert_date(date),
+                        date=convert_date(date),
                         commentdate=datetime.datetime.utcfromtimestamp(
                             get(review, "timestamp")).isoformat()
                         if "timestamp" in review else None,
@@ -365,7 +364,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con):
     log_debug("- parsing reply file", 3, ext_id)
     with open(repliespath) as f:
         d = json.load(f)
-        if not "searchResults" in d:
+        if "searchResults" not in d:
             log_warning("* WARNING: there are no search results in {}".format(
                 repliespath), 3, ext_id)
             return
@@ -379,7 +378,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con):
                     con.insert(
                         "reply",
                         extid=ext_id,
-                        date=con.convert_date(date),
+                        date=convert_date(date),
                         commentdate=datetime.datetime.utcfromtimestamp(
                             get(annotation, "timestamp")).isoformat()
                         if "timestamp" in annotation else None,
@@ -413,7 +412,7 @@ def parse_and_insert_status(ext_id, date, datepath, con):
     con.insert(
         "status",
         extid=ext_id,
-        date=con.convert_date(date),
+        date=convert_date(date),
         crx_status=crx_status,
         overview_status=overview_status,
         overview_exception=overview_exception)
@@ -439,8 +438,8 @@ def update_db_incremental_with_connection(tmptardir, ext_id, date, con):
 
     if etag:
         try:
-            parse_and_insert_crx(ext_id, date, datepath, con)
-        except Exception as e:
+            parse_and_insert_crx(ext_id, datepath, con)
+        except Exception:
             log_exception("Exception when parsing crx", 3, ext_id)
     else:
         crx_status = get_crx_status(datepath)
@@ -449,40 +448,40 @@ def update_db_incremental_with_connection(tmptardir, ext_id, date, con):
 
     try:
         parse_and_insert_overview(ext_id, date, datepath, con)
-    except Exception as e:
+    except Exception:
         log_exception("Exception when parsing overview", 3, ext_id)
 
     try:
         parse_and_insert_status(ext_id, date, datepath, con)
-    except Exception as e:
+    except Exception:
         log_exception("Exception when parsing status", 3, ext_id)
 
     reviewpaths = glob.glob(os.path.join(datepath, "reviews*-*.text"))
     for reviewpath in reviewpaths:
         try:
             parse_and_insert_review(ext_id, date, reviewpath, con)
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError:
             log_warning("- WARNING: Review is not a proper json file!", 3,
                         ext_id)
-        except Exception as e:
+        except Exception:
             log_exception("Exception when parsing review", 3, ext_id)
 
     supportpaths = glob.glob(os.path.join(datepath, "support*-*.text"))
     for supportpath in supportpaths:
         try:
             parse_and_insert_support(ext_id, date, supportpath, con)
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError:
             log_warning("- WARNING: Support is not a proper json file!", 3,
                         ext_id)
-        except Exception as e:
+        except Exception:
             log_exception("Exception when parsing support", 3, ext_id)
 
     repliespaths = glob.glob(os.path.join(datepath, "*replies.text"))
     for repliespath in repliespaths:
         try:
             parse_and_insert_replies(ext_id, date, repliespath, con)
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError:
             log_warning("- WARNING: Reply is not a proper json file!", 3,
                         ext_id)
-        except Exception as e:
+        except Exception:
             log_exception("Exception when parsing reply", 3, ext_id)

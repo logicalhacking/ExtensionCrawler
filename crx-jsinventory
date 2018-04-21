@@ -44,7 +44,6 @@ def main(argv):
     """Main function of the extension crawler."""
     verbose = False
     silent = False
-    filename = None
     csvfile = None
     database = True
     try:

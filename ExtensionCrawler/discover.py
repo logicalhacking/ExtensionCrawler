@@ -17,12 +17,10 @@
 """Python mnodule providing methods for discovering extensions in the
    Chrome extension store."""
 
-import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import fromstring
 import re
-from functools import reduce
 import requests
 from ExtensionCrawler import config
-from ExtensionCrawler.util import log_info, log_exception
 
 
 def crawl_nearly_all_of_ext_ids():
@@ -30,7 +28,7 @@ def crawl_nearly_all_of_ext_ids():
 
     def get_inner_elems(doc):
         """Get inner element."""
-        return ET.fromstring(doc).iterfind(r".//{{{}}}loc".format(
+        return fromstring(doc).iterfind(r".//{{{}}}loc".format(
             config.const_sitemap_scheme()))
 
     def is_generic_url(url):

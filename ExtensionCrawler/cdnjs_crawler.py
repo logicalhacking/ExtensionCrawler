@@ -169,10 +169,10 @@ def update_lib(force, archive, lib):
         outphased = []
         for lib_ver in local_lib_json['assets']:
             version = lib_ver['version']
-            if not version in cdnjs_versions:
+            if version not in cdnjs_versions:
                 logging.warning("Found outphased versions for " + name + " " +
                                 str(version) + " , preserving from archive.")
-                if not 'outphased' in lib_ver:
+                if 'outphased' not in lib_ver:
                     lib_ver[
                         'outphased'] = datetime.datetime.utcnow().isoformat()
                 outphased.append(lib_ver)
@@ -260,7 +260,7 @@ def delete_orphaned(archive, local_libs, cdnjs_current_libs):
     """Delete all orphaned local libaries."""
     dirname = os.path.join(archive, "filedb", "cdnjs", "lib")
     for lib in local_libs:
-        if not lib in cdnjs_current_libs:
+        if lib not in cdnjs_current_libs:
             os.remove(os.path.join(dirname, lib + ".json"))
 
 

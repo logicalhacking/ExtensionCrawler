@@ -18,12 +18,10 @@
    general and Chrome extensions in particular."""
 
 import os
-import io
 from io import StringIO
 import re
 import json
 import zlib
-import logging
 from enum import Enum
 from ExtensionCrawler.js_mincer import mince_js
 from ExtensionCrawler.file_identifiers import get_file_identifiers, is_binary_resource
@@ -107,15 +105,15 @@ def unknown_lib_identifiers():
         re.compile(
             r'[\/|\/\/|\s]\*?\s?([a-zA-Z0-9\.]+)\sv?([0-9][\.|\-|\_][0-9.a-z_\\\\-]+)',
             re.IGNORECASE
-        ),  #MatchType: name version, e.g. mylib v1.2.9b or mylib.anything 1.2.8
+        ),  # MatchType: name version, e.g. mylib v1.2.9b or mylib.anything 1.2.8
         re.compile(
             r'[\/|\/\/|\s]\*?\s?([a-zA-Z0-9\.]+)\s(?: version)\:?\s?v?([0-9][0-9.a-z_\\\\-]+)',
             re.IGNORECASE
-        ),  #MatchType: name version: ver, e.g. mylib version: v1.2.9, or mylib.js version 1.2.8
+        ),  # MatchType: name version: ver, e.g. mylib version: v1.2.9, or mylib.js version 1.2.8
         re.compile(
             r'\@*(version)\s?[\:|-]?\s?v?([0-9][\.|\-|\_][0-9.a-z_\\\\-]+)',
             re.IGNORECASE
-        ),  #MatchType: version x.x.x, e.g. @version: 1.2.5 or version - 1.2.5 etc.
+        ),  # MatchType: version x.x.x, e.g. @version: 1.2.5 or version - 1.2.5 etc.
         re.compile(
             r'(version)[\:|\=]\s?.?([0-9]{1,2}[\.|\-|\_][0-9.a-z_\\\\-]+).?',
             re.IGNORECASE),
@@ -188,13 +186,9 @@ def check_md5_decompressed(con, file_info):
     """Check for known md5 hash (decompressed file content)."""
     if con is None:
         return file_info
-    if file_info['dec_md5'] is None:
-        return file_info
-    else:
+    if file_info['dec_md5'] is not None:
         libver = con.get_cdnjs_info(file_info['dec_md5'])
-        if libver is None:
-            return file_info
-        else:
+        if libver is not None:
             file_info['lib'] = libver[0]
             file_info['version'] = libver[1]
             file_info['lib_filename'] = libver[2]
@@ -203,7 +197,6 @@ def check_md5_decompressed(con, file_info):
             else:
                 file_info['type'] = FileClassification.LIBRARY
             file_info['detectionMethod'] = DetectionType.MD5_DECOMPRESSED
-            return file_info
     return file_info
 
 
@@ -361,7 +354,7 @@ def analyse_comment_known_libs(zipfile, js_file, js_info, comment):
     else:
         filename = js_file
     for lib, regex in load_lib_identifiers().items():
-        if ('filecontent' in regex):
+        if 'filecontent' in regex:
             for unkregex in regex['filecontent']:
                 unkown_lib_matched = unkregex.finditer(comment.content)
                 for match in unkown_lib_matched:
@@ -481,13 +474,14 @@ def decompose_js_with_connection(path_or_zipfileobj, con):
                 try:
                     str_data = data.decode(file_info['encoding'])
                 except Exception:
-                    log_info("Exception during data decoding for entry " +
-                                 file_info['filename'], 3)
+                    log_info("Exception during data decoding for entry " + file_info['filename'], 3)
                     str_data = ''
             else:
                 str_data = ''
 
             info_data_blocks = check_data_blocks(file_info, str_data)
+        else:
+            info_data_blocks = None
 
         if info_data_blocks:
             inventory = inventory + merge_filename_and_data_info(
