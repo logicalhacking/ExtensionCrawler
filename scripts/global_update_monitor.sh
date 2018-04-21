@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -o errexit
+set -o nounset
+
 KILL="NO"
 ARCHIVE="/srv/Shared/BrowserExtensions/archive"
 
@@ -72,7 +75,7 @@ EXTS=`grep 'Updating .* extensions' $LATESTLOG  \
  | sed -e 's/^.*---//' \
        -e 's/Updating/\\"/' \
        -e 's/extensions (/\\";\\"/' \
-       -e 's/including forums)/\\"/' \
+       -e 's/including forums.*)/\\"/' \
        -e 's/ //g'`
 
 if [[ "$EXTS" == "" ]]; then
