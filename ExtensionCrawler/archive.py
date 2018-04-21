@@ -581,7 +581,7 @@ def init_process(verbose, start_pystuck=False):
         pystuck.run_server(port=((os.getpid() % 10000) + 10001))
 
 
-def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ext_ids, forums, verbose, start_pystuck):
+def execute_parallel(archivedir, max_retry, timeout, max_workers, ext_ids, forums, verbose, start_pystuck):
     results=[]
     with ProcessPool(max_workers=max_workers, max_tasks=100, initializer=init_process, initargs=(verbose, start_pystuck)) as pool:
         future = pool.map(partial(update_extension, archivedir, forums),
@@ -608,26 +608,10 @@ def execute_parallel_ProcessPool(archivedir, max_retry, timeout, max_workers, ex
     return results
 
 
-def execute_parallel_Pool(archivedir, max_retry, timeout, max_workers, ext_ids, forums, verbose, start_pystuck):
-    log_info("Using multiprocessing.Pool: timeout and max_try are *not* supported")
-    with Pool(processes=max_workers, maxtasksperchild=100, initializer=init_process, initargs=(verbose, start_pystuck)) as pool:
-        # The default chunksize is None, which means that each process will only
-        # ever get one task with chunksize len(ext_ids)/max_workers. This would
-        # render maxtasksperchild useless.
-        results = pool.map(partial(update_extension, archivedir, forums),
-                           ext_ids,
-                           chunksize=1)
-    return list(results)
-
-
-def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, use_process_pool, verbose, start_pystuck):
+def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, verbose, start_pystuck):
     ext_with_forums = []
     ext_without_forums = []
     forums_ext_ids = (list(set(forums_ext_ids)))
-    if use_process_pool:
-        execute_parallel=execute_parallel_ProcessPool
-    else:
-        execute_parallel=execute_parallel_Pool
 
     log_info("Updating {} extensions ({} including forums)".format(
         len(ext_ids), len(forums_ext_ids)))
