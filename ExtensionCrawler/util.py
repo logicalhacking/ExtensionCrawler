@@ -32,26 +32,32 @@ def value_of(value, default):
         return default
 
 
-def log_debug(msg, indent_level=0, extid="-" * 32):
-    logging.debug(str(extid) + " " + 4 * indent_level * " " + str(msg))
+def log_debug(msg, indent_level=0):
+    logging.debug(4 * indent_level * " " + str(msg))
 
 
-def log_info(msg, indent_level=0, extid="-" * 32):
-    logging.info(str(extid) + " " + 4 * indent_level * " " + str(msg))
+def log_info(msg, indent_level=0):
+    logging.info(4 * indent_level * " " + str(msg))
 
 
-def log_warning(msg, indent_level=0, extid="-" * 32):
-    logging.warning(str(extid) + " " + 4 * indent_level * " " + str(msg))
+def log_warning(msg, indent_level=0):
+    logging.warning(4 * indent_level * " " + str(msg))
 
 
-def log_error(msg, indent_level=0, extid="-" * 32):
-    logging.error(str(extid) + " " + 4 * indent_level * " " + str(msg))
+def log_error(msg, indent_level=0):
+    logging.error(4 * indent_level * " " + str(msg))
 
 
-def log_exception(msg, indent_level=0, extid="-" * 32):
-    logging.error(str(extid) + " " + 4 * indent_level * " " + str(msg))
+def log_exception(msg, indent_level=0):
+    logging.error(4 * indent_level * " " + str(msg))
     for line in traceback.format_exc().splitlines():
-        logging.error(str(extid) + " " + 4 * indent_level * " " + line)
+        logging.error(4 * indent_level * " " + line)
+
+
+def set_logger_tag(ext_id):
+    logger = logging.getLogger()
+    for handler in logger.handlers:
+        handler.setFormatter(logging.Formatter(const_log_format(ext_id)))
 
 
 def setup_logger(verbose):
@@ -61,7 +67,8 @@ def setup_logger(verbose):
         loglevel = logging.WARNING
 
     logger = logging.getLogger()
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setFormatter(logging.Formatter(const_log_format()))
-    logger.addHandler(ch)
     logger.setLevel(loglevel)
+    ch = logging.StreamHandler(sys.stdout)
+    logger.addHandler(ch)
+
+    set_logger_tag("-" * 32)

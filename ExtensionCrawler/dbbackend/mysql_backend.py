@@ -46,10 +46,7 @@ class MysqlBackend:
         self.retry(self._commit_cache)
         self.db.commit()
         log_info(
-            "* Database batch insert finished after {}".format(
-                datetime.timedelta(seconds=int(time.time() - start))),
-            2,
-            self.ext_id)
+            "* Database batch insert finished after {}".format(datetime.timedelta(seconds=int(time.time() - start))), 2)
         self._close_conn()
 
     def _commit_cache(self):
@@ -86,13 +83,10 @@ class MysqlBackend:
                 try:
                     self._close_conn()
                 except Exception as e2:
-                    log_error("Surpressed exception: {}".format(str(e2)), 3,
-                              self.ext_id)
+                    log_error("Surpressed exception: {}".format(str(e2)), 3)
 
                 if t + 1 == self.maxtries:
-                    log_error(
-                        "MySQL connection eventually failed, closing connection!",
-                        3, self.ext_id)
+                    log_error("MySQL connection eventually failed, closing connection!", 3)
                     raise last_exception
                 else:
                     factor = 0.2
@@ -101,7 +95,7 @@ class MysqlBackend:
                               ).format(t + 1,
                                        self.maxtries,
                                        self.try_wait, factor * 100)
-                    log_warning(logmsg, 3, self.ext_id)
+                    log_warning(logmsg, 3)
                     time.sleep(self.try_wait * uniform(
                         1 - factor, 1 + factor))
 

@@ -113,32 +113,22 @@ def log_summary(res, runtime=0):
     corrupt_tar_archives = list(filter(lambda x: x.corrupt_tar(), res))
 
     log_info("Summary:")
-    log_info("    Updated {} out of {} extensions successfully".format(
-        str(len(list(filter(lambda x: x.is_ok(), res)))), str(len(res))))
+    log_info("    Updated {} out of {} extensions successfully".format(str(len(list(filter(lambda x: x.is_ok(), res)))),
+        str(len(res))))
     log_info("    Updated extensions:      {:8d}".format(
         len(list(filter(lambda x: x.is_ok() and not x.not_modified(), res)))))
-    log_info("    Updated SQL databases:   {:8d}".format(
-        len(list(filter(lambda x: x.sql_success(), res)))))
-    log_info("    New extensions:          {:8d}".format(
-        len(list(filter(lambda x: x.is_new(), res)))))
-    log_info("    Not authorized:          {:8d}".format(
-        len(list(filter(lambda x: x.not_authorized(), res)))))
-    log_info("    Raised Google DDOS:      {:8d}".format(
-        len(list(filter(lambda x: x.raised_google_ddos(), res)))))
-    log_info("    Not modified archives:   {:8d}".format(
-        len(list(filter(lambda x: x.not_modified(), res)))))
-    log_info("    Extensions not in store: {:8d}".format(
-        len(list(filter(lambda x: x.not_in_store(), res)))))
-    log_info("    Unknown exception:       {:8d}".format(
-        len(list(filter(lambda x: x.has_exception(), res)))))
-    log_info("    Corrupt tar archives:    {:8d}".format(
-        len(corrupt_tar_archives)))
-    log_info("    SQL exception:           {:8d}".format(
-        len(list(filter(lambda x: x.sql_exception(), res)))))
-    log_info("    Worker exception:        {:8d}".format(
-        len(list(filter(lambda x: x.worker_exception is not None, res)))))
-    log_info("    Total runtime:            {}".format(
-        str(datetime.timedelta(seconds=int(runtime)))))
+    log_info("    Updated SQL databases:   {:8d}".format(len(list(filter(lambda x: x.sql_success(), res)))))
+    log_info("    New extensions:          {:8d}".format(len(list(filter(lambda x: x.is_new(), res)))))
+    log_info("    Not authorized:          {:8d}".format(len(list(filter(lambda x: x.not_authorized(), res)))))
+    log_info("    Raised Google DDOS:      {:8d}".format(len(list(filter(lambda x: x.raised_google_ddos(), res)))))
+    log_info("    Not modified archives:   {:8d}".format(len(list(filter(lambda x: x.not_modified(), res)))))
+    log_info("    Extensions not in store: {:8d}".format(len(list(filter(lambda x: x.not_in_store(), res)))))
+    log_info("    Unknown exception:       {:8d}".format(len(list(filter(lambda x: x.has_exception(), res)))))
+    log_info("    Corrupt tar archives:    {:8d}".format(len(corrupt_tar_archives)))
+    log_info("    SQL exception:           {:8d}".format(len(list(filter(lambda x: x.sql_exception(), res)))))
+    log_info(
+        "    Worker exception:        {:8d}".format(len(list(filter(lambda x: x.worker_exception is not None, res)))))
+    log_info("    Total runtime:            {}".format(str(datetime.timedelta(seconds=int(runtime)))))
 
     if corrupt_tar_archives:
         log_info("")
@@ -253,8 +243,8 @@ def main(argv):
     known_ids = list(set(get_existing_ids(archive_dir)) | set(forum_ext_ids))
     discovered_ids = []
     if discover:
-        log_info("Discovering new ids {}...".format("(at most {}) ".format(
-            max_discover) if max_discover is not None else ""))
+        log_info("Discovering new ids {}...".format(
+            "(at most {}) ".format(max_discover) if max_discover is not None else ""))
         try:
             discovered_ids = list(
                 itertools.islice(get_new_ids(known_ids), max_discover))
@@ -273,9 +263,7 @@ def main(argv):
     # they are often temporary
     has_exception = list(filter(lambda x: x.has_exception(), res))
     if has_exception:
-        log_info(
-            "  {} extensions with unknown exceptions, start another try ...".
-            format(str(len(has_exception))))
+        log_info("  {} extensions with unknown exceptions, start another try ...".format(str(len(has_exception))))
         has_exception_ids = list(map(lambda x: x.id, has_exception))
         forum_ext_ids_except = list(
             set(forum_ext_ids).intersection(set(has_exception_ids)))

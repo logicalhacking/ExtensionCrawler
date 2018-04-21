@@ -51,8 +51,7 @@ def get_etag(ext_id, datepath, con):
                 if "ETag" in headers:
                     return headers["ETag"]
             except Exception:
-                log_warning("* WARNING: could not parse crx header file", 3,
-                            ext_id)
+                log_warning("* WARNING: could not parse crx header file", 3)
 
     # Trying to look up previous etag in database
     linkpath = next(
@@ -97,7 +96,7 @@ def get_crx_status(datepath):
 
 
 def parse_and_insert_overview(ext_id, date, datepath, con):
-    log_debug("- parsing overview file", 3, ext_id)
+    log_debug("- parsing overview file", 3)
     overview_path = os.path.join(datepath, "overview.html")
     if os.path.exists(overview_path):
         with open(overview_path) as overview_file:
@@ -194,10 +193,10 @@ def parse_and_insert_crx(ext_id, datepath, con):
         return
 
     if os.path.getsize(crx_path) == 0:
-        log_warning("- WARNING: crx file has size 0!", 3, ext_id)
+        log_warning("- WARNING: crx file has size 0!", 3)
         return
 
-    log_debug("- parsing crx file", 3, ext_id)
+    log_debug("- parsing crx file", 3)
     filename = os.path.basename(crx_path)
 
     with ZipFile(crx_path) as f:
@@ -299,7 +298,7 @@ def get(d, k):
 
 
 def parse_and_insert_review(ext_id, date, reviewpath, con):
-    log_debug("- parsing review file", 3, ext_id)
+    log_debug("- parsing review file", 3)
     with open(reviewpath) as f:
         content = f.read()
         stripped = content[content.find('{"'):]
@@ -330,7 +329,7 @@ def parse_and_insert_review(ext_id, date, reviewpath, con):
 
 
 def parse_and_insert_support(ext_id, date, supportpath, con):
-    log_debug("- parsing support file", 3, ext_id)
+    log_debug("- parsing support file", 3)
     with open(supportpath) as f:
         content = f.read()
         stripped = content[content.find('{"'):]
@@ -361,12 +360,11 @@ def parse_and_insert_support(ext_id, date, supportpath, con):
 
 
 def parse_and_insert_replies(ext_id, date, repliespath, con):
-    log_debug("- parsing reply file", 3, ext_id)
+    log_debug("- parsing reply file", 3)
     with open(repliespath) as f:
         d = json.load(f)
         if "searchResults" not in d:
-            log_warning("* WARNING: there are no search results in {}".format(
-                repliespath), 3, ext_id)
+            log_warning("* WARNING: there are no search results in {}".format(repliespath), 3)
             return
         for result in d["searchResults"]:
             if "annotations" not in result:
@@ -399,7 +397,7 @@ def parse_and_insert_replies(ext_id, date, repliespath, con):
 
 
 def parse_and_insert_status(ext_id, date, datepath, con):
-    log_debug("- parsing status file", 3, ext_id)
+    log_debug("- parsing status file", 3)
     overview_status = get_overview_status(datepath)
     crx_status = get_crx_status(datepath)
 
@@ -431,7 +429,7 @@ def update_db_incremental(tmptardir, ext_id, date, con=None):
 
 
 def update_db_incremental_with_connection(tmptardir, ext_id, date, con):
-    log_info("* Updating db with data from from {}".format(date), 2, ext_id)
+    log_info("* Updating db with data from from {}".format(date), 2)
     datepath = os.path.join(tmptardir, date)
 
     etag = get_etag(ext_id, datepath, con)
@@ -440,48 +438,45 @@ def update_db_incremental_with_connection(tmptardir, ext_id, date, con):
         try:
             parse_and_insert_crx(ext_id, datepath, con)
         except Exception:
-            log_exception("Exception when parsing crx", 3, ext_id)
+            log_exception("Exception when parsing crx", 3)
     else:
         crx_status = get_crx_status(datepath)
         if crx_status != 401 and crx_status != 204 and crx_status != 404:
-            log_warning("* WARNING: could not find etag", 3, ext_id)
+            log_warning("* WARNING: could not find etag", 3)
 
     try:
         parse_and_insert_overview(ext_id, date, datepath, con)
     except Exception:
-        log_exception("Exception when parsing overview", 3, ext_id)
+        log_exception("Exception when parsing overview", 3)
 
     try:
         parse_and_insert_status(ext_id, date, datepath, con)
     except Exception:
-        log_exception("Exception when parsing status", 3, ext_id)
+        log_exception("Exception when parsing status", 3)
 
     reviewpaths = glob.glob(os.path.join(datepath, "reviews*-*.text"))
     for reviewpath in reviewpaths:
         try:
             parse_and_insert_review(ext_id, date, reviewpath, con)
         except json.decoder.JSONDecodeError:
-            log_warning("- WARNING: Review is not a proper json file!", 3,
-                        ext_id)
+            log_warning("- WARNING: Review is not a proper json file!", 3)
         except Exception:
-            log_exception("Exception when parsing review", 3, ext_id)
+            log_exception("Exception when parsing review", 3)
 
     supportpaths = glob.glob(os.path.join(datepath, "support*-*.text"))
     for supportpath in supportpaths:
         try:
             parse_and_insert_support(ext_id, date, supportpath, con)
         except json.decoder.JSONDecodeError:
-            log_warning("- WARNING: Support is not a proper json file!", 3,
-                        ext_id)
+            log_warning("- WARNING: Support is not a proper json file!", 3)
         except Exception:
-            log_exception("Exception when parsing support", 3, ext_id)
+            log_exception("Exception when parsing support", 3)
 
     repliespaths = glob.glob(os.path.join(datepath, "*replies.text"))
     for repliespath in repliespaths:
         try:
             parse_and_insert_replies(ext_id, date, repliespath, con)
         except json.decoder.JSONDecodeError:
-            log_warning("- WARNING: Reply is not a proper json file!", 3,
-                        ext_id)
+            log_warning("- WARNING: Reply is not a proper json file!", 3)
         except Exception:
-            log_exception("Exception when parsing reply", 3, ext_id)
+            log_exception("Exception when parsing reply", 3)

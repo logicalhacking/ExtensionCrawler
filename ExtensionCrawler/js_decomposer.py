@@ -466,9 +466,7 @@ def decompose_js_with_connection(path_or_zipfileobj, con):
                     str_data = dec_data.decode(file_info['dec_encoding'])
                     del dec_data
                 except Exception:
-                    log_info(
-                        "Exception during data decoding (decompressed) for entry "
-                        + file_info['filename'], 3)
+                    log_info("Exception during data decoding (decompressed) for entry " + file_info['filename'], 3)
                     str_data = ''
             elif file_info["encoding"] is not None:
                 try:

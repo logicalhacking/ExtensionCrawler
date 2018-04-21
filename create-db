@@ -56,7 +56,7 @@ def process_id(from_date, until_date, path):
             t.extractall(tmpdir)
 
             extid = os.listdir(tmpdir)[0]
-            log_info("Start processing extension", 0, extid)
+            log_info("Start processing extension", 0)
             iddir = os.path.join(tmpdir, extid)
 
             try:
@@ -70,21 +70,15 @@ def process_id(from_date, until_date, path):
                     for date in sorted(os.listdir(iddir)):
                         if (from_date is not None and date < from_date) or \
                                 (until_date is not None and date > until_date):
-                            log_info("* Skipping {}".format(date), 2, extid)
+                            log_info("* Skipping {}".format(date), 2)
                             continue
                         try:
                             update_db_incremental(iddir, extid, date, con)
                         except Exception:
-                            log_exception(
-                                "Exception when handling data from {}".format(
-                                    date), 0, extid)
+                            log_exception("Exception when handling data from {}".format(date), 0)
             except Exception:
-                log_exception("Exception when handling extension", 0, extid)
-    log_info(
-        "Finished extension in {}".format(
-            str(datetime.timedelta(seconds=int(time.time() - start)))),
-        0,
-        extid)
+                log_exception("Exception when handling extension", 0)
+    log_info("Finished extension in {}".format(str(datetime.timedelta(seconds=int(time.time() - start)))), 0)
 
 
 def find(archive, pattern):
