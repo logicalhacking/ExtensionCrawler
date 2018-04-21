@@ -54,7 +54,6 @@ class MysqlBackend:
             self.cursor.executemany(query, args)
 
     def _create_conn(self):
-        log_info("* Creating DB Connection", 2)
         if self.db is None:
             log_info("* self.db is None,  open new connection ...", 3)
             self.db = MySQLdb.connect(**self.dbargs)
