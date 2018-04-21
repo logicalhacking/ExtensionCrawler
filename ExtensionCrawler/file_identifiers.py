@@ -30,11 +30,13 @@ import magic
 
 from ExtensionCrawler.js_mincer import mince_js
 
+
 def is_binary_resource(mimetype_magic):
     return (mimetype_magic.startswith("image/") or
             mimetype_magic.startswith("video/") or
             mimetype_magic.startswith("audio/") or
             mimetype_magic == "application/pdf")
+
 
 def normalize_jsdata(str_data):
     """Compute normalized code blocks of a JavaScript file"""
@@ -59,9 +61,8 @@ def get_features(s):
 
 def get_simhash(encoding, data):
     """Compute simhash of text."""
-    str_data = ""
-    if not encoding is None:
-        str_data = data.decode(encoding=encoding,errors="replace")
+    if encoding is not None:
+        str_data = data.decode(encoding=encoding, errors="replace")
     else:
         str_data = str(data)
     simhash = Simhash(get_features(str_data)).value
@@ -82,31 +83,30 @@ def compute_difference(hx, hy):
 def get_data_identifiers(data):
     """Get basic data identifiers (size, hashes, normalized hashes, etc.)."""
 
-    data_identifier = {}
-
-    data_identifier['encoding'] = None
-    data_identifier['description'] = None
-    data_identifier['size'] = None
-    data_identifier['loc'] = None
-    data_identifier['mimetype_magic'] = None
-    data_identifier['md5'] = None
-    data_identifier['sha1'] = None
-    data_identifier['sha256'] = None
-    data_identifier['simhash'] = None
-    data_identifier['size_stripped'] = None
-    data_identifier['normalized_encoding'] = None
-    data_identifier['normalized_description'] = None
-    data_identifier['normalized_size'] = None
-    data_identifier['normalized_loc'] = None
-    data_identifier['normalized_mimetype_magic'] = None
-    data_identifier['normalized_md5'] = None
-    data_identifier['normalized_sha1'] = None
-    data_identifier['normalized_sha256'] = None
-    data_identifier['normalized_simhash'] = None
+    data_identifier = {
+        'encoding': None,
+        'description': None,
+        'size': None,
+        'loc': None,
+        'mimetype_magic': None,
+        'md5': None,
+        'sha1': None,
+        'sha256': None,
+        'simhash': None,
+        'size_stripped': None,
+        'normalized_encoding': None,
+        'normalized_description': None,
+        'normalized_size': None,
+        'normalized_loc': None,
+        'normalized_mimetype_magic': None,
+        'normalized_md5': None,
+        'normalized_sha1': None,
+        'normalized_sha256': None,
+        'normalized_simhash': None
+    }
 
     mimetype_magic = magic.from_buffer(data, mime=True)
 
-    magic_desc = ""
     try:
         magic_desc = magic.from_buffer(data)
     except magic.MagicException as exp:
@@ -137,9 +137,10 @@ def get_data_identifiers(data):
     data_identifier['encoding'] = encoding
     try:
         normalized_data, normalized_loc = normalize_jsdata(
-            data.decode(encoding=data_identifier['encoding'],errors="replace"))
+            data.decode(encoding=data_identifier['encoding'], errors="replace"))
     except Exception:
         normalized_data = None
+        normalized_loc = 0
 
     if normalized_data is not None:
         normalized_magic_desc = ""
@@ -149,7 +150,7 @@ def get_data_identifiers(data):
             rgx = re.compile(r' name use count.*$')
             msg = str(exp.message)
             if re.search(rgx, msg):
-                magic_desc = re.sub(rgx, '', msg)
+                normalized_magic_desc = re.sub(rgx, '', msg)
             else:
                 raise exp
         normalized_encoding = chardet.detect(normalized_data)['encoding']

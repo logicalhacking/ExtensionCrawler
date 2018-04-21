@@ -17,7 +17,6 @@
 #
 
 import getopt
-import os
 import sys
 import tarfile
 import time
@@ -30,12 +29,12 @@ import datetime
 
 from ExtensionCrawler.archive import update_db_incremental
 from ExtensionCrawler.config import *
-from ExtensionCrawler.util import log_info, log_warning, log_error, log_exception
+from ExtensionCrawler.util import log_info, log_exception
 
 from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
 
 
-def help():
+def print_help():
     print("""create-db [OPTION]""")
     print("""  -h                  print this help text""")
     print("""  -a <DIR>            archive directory""")
@@ -122,11 +121,11 @@ def parse_args(argv):
             "maxtaskid=", "from-date=", "until-date=", "help"
         ])
     except getopt.GetoptError:
-        help()
+        print_help()
         sys.exit(2)
     for opt, arg in opts:
         if opt in ("-h", "--help"):
-            help()
+            print_help()
             sys.exit()
         elif opt in ("-a", "--archive"):
             archive = arg
@@ -140,12 +139,12 @@ def parse_args(argv):
             taskid = int(arg)
         elif opt in ("-N", "--maxtaskid"):
             maxtaskid = int(arg)
-        elif opt in ("--from-date"):
+        elif opt == "--from-date":
             from_date = arg
-        elif opt in ("--until-date"):
+        elif opt == "--until-date":
             until_date = arg
 
-    if paths == []:
+    if not paths:
         paths = list(find(archive, "*"))
 
     chunksize = int(len(paths) / maxtaskid)

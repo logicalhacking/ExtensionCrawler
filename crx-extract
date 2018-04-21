@@ -58,7 +58,6 @@ def main(argv):
     basedir = const_basedir()
     verbose = True
     date = None
-    extid = ""
     useetag = False
     output = ""
     winfs = False

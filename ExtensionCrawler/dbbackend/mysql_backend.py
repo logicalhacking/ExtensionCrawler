@@ -18,18 +18,17 @@
 import time
 import datetime
 from random import uniform
-from itertools import starmap
-import logging
 
 import MySQLdb
 import _mysql_exceptions
 
 import ExtensionCrawler.config as config
-from ExtensionCrawler.util import log_info, log_error, log_exception, log_warning
+from ExtensionCrawler.util import log_info, log_error, log_warning
 
 
 class MysqlBackend:
-    def __init__(self, ext_id, try_wait=config.const_mysql_try_wait(), maxtries=config.const_mysql_maxtries(), **kwargs):
+    def __init__(self, ext_id, try_wait=config.const_mysql_try_wait(), maxtries=config.const_mysql_maxtries(),
+                 **kwargs):
         self.ext_id = ext_id
         self.dbargs = kwargs
         self.try_wait = try_wait
@@ -147,5 +146,6 @@ class MysqlBackend:
         result = self.retry(lambda: self.cursor.fetchone())
         return result
 
-    def convert_date(self, date):
-        return date[:-6]
+
+def convert_date(date):
+    return date[:-6]

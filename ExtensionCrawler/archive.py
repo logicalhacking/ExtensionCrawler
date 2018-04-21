@@ -23,7 +23,6 @@ import os
 import glob
 import re
 import json
-import gc
 import random
 from concurrent.futures import TimeoutError
 from pebble import ProcessPool, ProcessExpired
@@ -45,6 +44,7 @@ from ExtensionCrawler.config import (
 from ExtensionCrawler.util import value_of, log_info, log_warning, log_exception, setup_logger
 from ExtensionCrawler.db import update_db_incremental
 from ExtensionCrawler.request_manager import RequestManager
+
 
 class Error(Exception):
     pass
@@ -84,11 +84,11 @@ class RequestResult:
 
 
 class UpdateResult:
-    def __init__(self, id, is_new, exception, res_overview, res_crx,
+    def __init__(self, ext_id, is_new, exception, res_overview, res_crx,
                  res_reviews, res_support, res_sql, sql_update, worker_exception=None):
-        self.id = id
+        self.ext_id = ext_id
         self.new = is_new
-        self.exception = exception # TODO: should be tar_exception
+        self.exception = exception  # TODO: should be tar_exception
         self.res_overview = res_overview
         self.res_crx = res_crx
         self.res_reviews = res_reviews
@@ -190,7 +190,7 @@ def last_modified_http_date(path):
 
 
 def last_crx(archivedir, extid, date=None):
-    last_crx = ""
+    last_crx_path = ""
     last_crx_etag = ""
 
     etag_file = os.path.join(archivedir, get_local_archive_dir(extid),
@@ -200,13 +200,12 @@ def last_crx(archivedir, extid, date=None):
             with open(etag_file, 'r') as f:
                 d = json.load(f)
                 return d["last_crx"], d["last_crx_etag"]
-        except Exception as e:
+        except Exception:
             log_exception("Something was wrong with the etag file {}, deleting it ...".format(etag_file))
             try:
                 os.remove(etag_file)
-            except Exception as e:
+            except Exception:
                 log_exception("Could not remove etag file {}!".format(etag_file))
-
 
     # If we do not yet have an .etag file present, open the tarfile and look
     # there for one. After having done that once, the crawler creates the .etag
@@ -221,23 +220,23 @@ def last_crx(archivedir, extid, date=None):
                     date is None or (dateutil.parser.parse(
                         os.path.split(os.path.split(x.name)[0])[1]) <= date))
             ])
-            if old_crxs != []:
-                last_crx = old_crxs[-1]
+            if old_crxs:
+                last_crx_path = old_crxs[-1]
                 headers_content = t.extractfile(
-                    last_crx + ".headers").read().decode().replace(
+                    last_crx_path + ".headers").read().decode().replace(
                         '"', '\\"').replace("'", '"')
                 headers_json = json.loads(headers_content)
                 last_crx_etag = headers_json["ETag"]
 
                 if date is None:
                     with open(etag_file, 'w') as f:
-                        json.dump({"last_crx": last_crx, "last_crx_etag": last_crx_etag}, f)
+                        json.dump({"last_crx": last_crx_path, "last_crx_etag": last_crx_etag}, f)
 
-    return last_crx, last_crx_etag
+    return last_crx_path, last_crx_etag
 
 
 def first_crx(archivedir, extid, date=None):
-    first_crx = ""
+    first_crx_path = ""
     tar = os.path.join(archivedir, get_local_archive_dir(extid),
                        extid + ".tar")
     if os.path.exists(tar):
@@ -249,10 +248,10 @@ def first_crx(archivedir, extid, date=None):
                     os.path.split(os.path.split(x.name)[0])[1])))
         ])
         t.close()
-        if old_crxs != []:
-            first_crx = old_crxs[0]
+        if old_crxs:
+            first_crx_path = old_crxs[0]
 
-    return first_crx
+    return first_crx_path
 
 
 def all_crx(archivedir, extid, date=None):
@@ -286,7 +285,7 @@ def update_overview(tar, date, ext_id):
 
 def validate_crx_response(res, extid, extfilename):
     regex_extfilename = re.compile(r'^extension[_0-9]+\.crx$')
-    if not 'Content-Type' in res.headers:
+    if 'Content-Type' not in res.headers:
         raise CrawlError(extid, 'Did not find Content-Type header.', '\n'.join(
             res.iter_lines()))
     if not res.headers['Content-Type'] == 'application/x-chrome-extension':
@@ -357,10 +356,12 @@ def update_crx(archivedir, tmptardir, ext_id, date):
                         f.write(chunk)
             write_text(tmptardir, date, extfilename + ".etag",
                        res.headers.get("ETag"))
-            etag_file = os.path.join(archivedir, get_local_archive_dir(ext_id),
-                                    ext_id + ".etag")
+            etag_file = os.path.join(archivedir, get_local_archive_dir(ext_id), ext_id + ".etag")
             with open(etag_file, 'w') as f:
-                json.dump({"last_crx": os.path.join(ext_id, date, extfilename), "last_crx_etag": res.headers.get("ETag")}, f)
+                json.dump({
+                              "last_crx": os.path.join(ext_id, date, extfilename),
+                              "last_crx_etag": res.headers.get("ETag")
+                          }, f)
     except Exception as e:
         log_exception("Exception when updating crx", 3, ext_id)
         write_text(tmptardir, date, extfilename + ".exception",
@@ -373,9 +374,10 @@ def iterate_authors(pages):
     for page in pages:
         json_page = json.loads(page[page.index("{\""):page.rindex("}}},") + 1])
         for annotation in json_page["annotations"]:
-            if "attributes" in annotation and "replyExists" in annotation["attributes"] and annotation["attributes"]["replyExists"]:
-                yield (annotation["entity"]["author"],
-                       annotation["entity"]["groups"])
+            if "attributes" in annotation:
+                if "replyExists" in annotation["attributes"]:
+                    if annotation["attributes"]["replyExists"]:
+                        yield (annotation["entity"]["author"], annotation["entity"]["groups"])
 
 
 def update_reviews(tar, date, ext_id):
@@ -391,7 +393,8 @@ def update_reviews(tar, date, ext_id):
         log_info("* review page   0-100: {}".format(str(res.status_code)), 2,
                  ext_id)
         store_request_text(tar, date, 'reviews000-099.text', res)
-        pages += [res.text]
+        if res.status_code == 200:
+            pages += [res.text]
 
         with request_manager.restricted_request():
             res = requests.post(
@@ -401,7 +404,8 @@ def update_reviews(tar, date, ext_id):
         log_info("* review page   100-200: {}".format(str(res.status_code)), 2,
                  ext_id)
         store_request_text(tar, date, 'reviews100-199.text', res)
-        pages += [res.text]
+        if res.status_code == 200:
+            pages += [res.text]
 
         # Always start with reply number 0 and request 10 replies
         ext_id_author_tups = [(ext_id, author, 0, 10, groups)
@@ -435,7 +439,8 @@ def update_support(tar, date, ext_id):
         log_info("* support page   0-100: {}".format(str(res.status_code)), 2,
                  ext_id)
         store_request_text(tar, date, 'support000-099.text', res)
-        pages += [res.text]
+        if res.status_code == 200:
+            pages += [res.text]
 
         with request_manager.restricted_request():
             res = requests.post(
@@ -445,7 +450,8 @@ def update_support(tar, date, ext_id):
         log_info("* support page 100-200: {}".format(str(res.status_code)), 2,
                  ext_id)
         store_request_text(tar, date, 'support100-199.text', res)
-        pages += [res.text]
+        if res.status_code == 200:
+            pages += [res.text]
 
         # Always start with reply number 0 and request 10 replies
         ext_id_author_tups = [(ext_id, author, 0, 10, groups)
@@ -553,7 +559,7 @@ def update_extension(archivedir, tup):
         try:
             write_text(tardir, date, ext_id + ".sql.exception",
                        traceback.format_exc())
-        except Exception as e:
+        except Exception:
             pass
     try:
         shutil.rmtree(path=tmpdir)
@@ -566,7 +572,6 @@ def update_extension(archivedir, tup):
         except Exception:
             pass
 
-    log_info("* Collecting garbage: {} references cleaned".format(gc.collect()), 2, ext_id)
     log_info(
         "* Duration: {}".format(
             datetime.timedelta(seconds=int(time.time() - start))),
@@ -588,22 +593,20 @@ def init_process(verbose, start_pystuck, rm):
     request_manager = rm
 
 
-def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, use_process_pool, verbose, start_pystuck):
+def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, verbose, start_pystuck):
     ext_with_forums = list(set(forums_ext_ids))
     ext_without_forums = list(set(ext_ids) - set(forums_ext_ids))
 
-    tups = [(extid, True) for extid in ext_with_forums] + [(extid, False) for extid in ext_without_forums]
+    tups = [(ext_id, True) for ext_id in ext_with_forums] + [(ext_id, False) for ext_id in ext_without_forums]
     random.shuffle(tups)
 
     log_info("Updating {} extensions ({} including forums, {} excluding forums)".format(
         len(tups), len(ext_with_forums), len(ext_without_forums)))
 
-    results=[]
-    with ProcessPool(max_workers=parallel, max_tasks=100, initializer=init_process, initargs=(verbose, start_pystuck, RequestManager(parallel))) as pool:
-        future = pool.map(partial(update_extension, archivedir),
-                          tups,
-                          chunksize=1,
-                          timeout=timeout)
+    results = []
+    with ProcessPool(max_workers=parallel, max_tasks=100, initializer=init_process,
+                     initargs=(verbose, start_pystuck, RequestManager(parallel))) as pool:
+        future = pool.map(partial(update_extension, archivedir), tups, chunksize=1, timeout=timeout)
         iterator = future.result()
         for ext_id in ext_ids:
             try:
@@ -611,7 +614,7 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, us
             except StopIteration:
                 break
             except TimeoutError as error:
-                log_warning("WorkerException: Processing of %s took longer than %d seconds" % (ext_id,error.args[1]))
+                log_warning("WorkerException: Processing of %s took longer than %d seconds" % (ext_id, error.args[1]))
                 results.append(UpdateResult(ext_id, False, None, None, None, None, None, None, None, error))
             except ProcessExpired as error:
                 log_warning("WorkerException: %s (%s), exit code: %d" % (error, ext_id, error.exitcode))

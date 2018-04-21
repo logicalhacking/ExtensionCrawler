@@ -12,7 +12,7 @@ LOG=$LOGPREFIX-global.log
 date --utc +'* Start Updating Extensions Archive (%c)' | tee $LOG
 
 # Update extensions
-singularity exec --bind /srv/:/srv/ $IMAGE crawler -p 42 -d -P --pystuck -a $ARCHIVE > $LOGPREFIX.log
+singularity exec --bind /srv/:/srv/ $IMAGE crawler -p 42 -d --pystuck -a $ARCHIVE > $LOGPREFIX.log
 
 date --utc +'* Update Finished (%c)' | tee -a $LOG
 

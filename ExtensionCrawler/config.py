@@ -142,9 +142,11 @@ def const_verbose():
     """Default verbosity."""
     return True
 
+
 def const_use_process_pool():
     """Use ProcessPool (from module 'pebble') for concurrency."""
     return False
+
 
 def const_log_format():
     return '%(process)6s %(asctime)s %(levelname)8s %(message)s'
@@ -154,13 +156,6 @@ def const_discover():
     """Default configuration of discovery mode"""
     return False
 
-def const_download_ext_ids_with_forums():
-    """Download extensions with forums (sequential mode)"""
-    return True
-
-def const_download_ext_ids_without_forums():
-    """Download extensions without forums (parallel mode)"""
-    return True
 
 def const_ext_timeout():
     """Timeout for downloading an individual extension (2 hours)."""

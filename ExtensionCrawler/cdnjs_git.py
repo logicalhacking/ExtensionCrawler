@@ -25,8 +25,7 @@ import logging
 import os
 import re
 import sys
-from functools import partial, reduce
-from multiprocessing import Pool
+from functools import reduce
 
 import dateutil.parser
 import git
@@ -70,8 +69,8 @@ def pull_list_changed_files(git_path):
         for diff in single_fetch_info.commit.diff(
                 single_fetch_info.old_commit):
             logging.debug("Found diff: " + str(diff))
-            if not diff.a_blob is None:
-                if not diff.a_blob.path in files:
+            if diff.a_blob is not None:
+                if diff.a_blob.path not in files:
                     files.append(diff.a_blob.path)
     return files
 
@@ -98,7 +97,7 @@ def hackish_pull_list_changed_files(git_path):
 
     for line in pull_lines:
         match = re.search(r'^ (.+) \| .*$', line)
-        if not match is None:
+        if match is not None:
             changed_files = match.group(1).split('=>')
             for changed_file in changed_files:
                 files.add(changed_file.strip())
@@ -139,6 +138,7 @@ def get_file_libinfo(release_dic, git_path, libfile):
     file_info['library'] = lib
     file_info['version'] = version
     file_info['add_date'] = release_dic[(lib, version)]
+    # TODO: why is package not used?
     package = os.path.join(
         reduce(os.path.join, plist[:idx + 1]), "package.json")
     return file_info
@@ -167,7 +167,7 @@ def get_all_lib_files(cdnjs_git_path, localpath=None):
     libvers = set()
     files = []
     versionidx = len(path_to_list(cdnjs_git_path)) + 4
-    if not localpath is None:
+    if localpath is not None:
         paths = os.path.join(cdnjs_git_path, localpath)
     else:
         paths = os.path.join(cdnjs_git_path, 'ajax/libs/**/*')
@@ -196,7 +196,7 @@ def update_database_for_file(create_csv, release_dic, cdnjs_git_path, filename,
     if os.path.isfile(filename):
         logging.info("Updating database for file " + filename)
         file_info = get_file_libinfo(release_dic, cdnjs_git_path, filename)
-        if not file_info is None:
+        if file_info is not None:
             if create_csv:
                 print(file_info['path'])
                 print(cdnjs_git_path)
@@ -268,7 +268,7 @@ def update_database_for_file_chunked(create_csv, release_dic, cdnjs_git_path,
     retries = 0
     success = False
     max_retries = 4
-    while (not success and (retries < max_retries)):
+    while not success and (retries < max_retries):
         try:
             update_database_for_file_chunked_timeout(create_csv, release_dic,
                                                      cdnjs_git_path, filenames)
@@ -305,7 +305,7 @@ def get_release_triple(git_path, libver):
     lib = plist[-2]
     date = get_add_date(git_path, libver)
     logging.info("Release information:" + lib + " " + ver + ": " + str(date))
-    return (lib, ver, date)
+    return lib, ver, date
 
 
 def build_release_date_dic(git_path, libvers):
@@ -332,7 +332,6 @@ def pull_and_update_db(cdnjs_git_path, create_csv):
 
 def update_db_from_listfile(cdnjs_git_path, listfile, create_csv):
     """Update database (without pull) for files in listfile)"""
-    paths = []
     with open(listfile) as listfileobj:
         paths = listfileobj.read().splitlines()
     files = []

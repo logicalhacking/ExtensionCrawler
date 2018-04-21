@@ -198,8 +198,8 @@ def mince_js_fileobj(fileobj):
                         except StopIteration:
                             pass
 
-        if ((is_comment(state) and is_code_or_string_literal(suc_state)) or
-            (is_code_or_string_literal(state) and is_comment(suc_state))):
+        if ((is_comment(state) and is_code_or_string_literal(suc_state)) or (
+                is_code_or_string_literal(state) and is_comment(suc_state))):
             if content.strip():
                 yield (JsBlock(state, (block_start_line, block_start_cpos),
                                (line, cpos), content, string_literals))

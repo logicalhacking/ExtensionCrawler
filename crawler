@@ -19,7 +19,6 @@
 A crawler for extensions from the Chrome Web Store.
 """
 
-import os
 import sys
 import datetime
 import time
@@ -141,7 +140,7 @@ def log_summary(res, runtime=0):
     log_info("    Total runtime:            {}".format(
         str(datetime.timedelta(seconds=int(runtime)))))
 
-    if corrupt_tar_archives != []:
+    if corrupt_tar_archives:
         log_info("")
         log_info("List of extensions with corrupted files/archives:")
         list(
@@ -157,13 +156,6 @@ def helpmsg():
     print("    -s                  silent (no log messages)")
     print("    -d                  discover new extensions")
     print("    -p <N>              number of concurrent downloads")
-    print("    -P                  use ProcessPool (default: Pool) for concurrency")
-    print(
-        "    -F                  do not download extensions with forums (skip sequential download)"
-    )
-    print(
-        "    -N                  do not download extensions without forums (skip concurrent download)"
-    )
     print("    -a <DIR>            archive directory")
     print(
         "    -t <N>              timeout for an individual extension download")
@@ -172,20 +164,14 @@ def helpmsg():
 
 
 def print_config(basedir, archive_dir, conf_dir, discover, parallel,
-                 download_ext_ids_without_forums, download_ext_ids_with_forums,
-                 ext_timeout, use_process_pool, start_pystuck):
+                 ext_timeout, start_pystuck):
     """Print current configuration."""
     log_info("Configuration:")
     log_info("  Base dir:                         {}".format(basedir))
     log_info("    Archive directory:              {}".format(archive_dir))
     log_info("    Configuration directory:        {}".format(conf_dir))
     log_info("  Discover new extensions:          {}".format(discover))
-    log_info("  Download ext. without forums:     {}".format(
-        download_ext_ids_without_forums))
-    log_info("  Download ext. with forums:        {}".format(
-        download_ext_ids_with_forums))
     log_info("  Max num. of concurrent downloads: {}".format(parallel))
-    log_info("  Use ProcessPool:                  {}".format(use_process_pool))
     log_info("  Download timeout:                 {}".format(ext_timeout))
     log_info("  Start PyStuck:                    {}".format(start_pystuck))
 
@@ -196,15 +182,12 @@ def parse_args(argv):
     parallel = const_parallel_downloads()
     verbose = const_verbose()
     discover = const_discover()
-    use_process_pool = const_use_process_pool()
-    download_ext_ids_with_forums = const_download_ext_ids_with_forums()
-    download_ext_ids_without_forums = const_download_ext_ids_without_forums()
     ext_timeout = const_ext_timeout()
     max_discover = None
     start_pystuck = False
     try:
         opts, _ = getopt.getopt(
-            argv, "hsdFNPa:p:t:",
+            argv, "hsdPa:p:t:",
             ["timeout=", "archive=", 'parallel=', 'max-discover=', 'pystuck'])
     except getopt.GetoptError:
         helpmsg()
@@ -221,20 +204,14 @@ def parse_args(argv):
             ext_timeout = int(arg)
         elif opt == '-s':
             verbose = False
-        elif opt == '-P':
-            use_process_pool = True
         elif opt == '-d':
             discover = True
-        elif opt == '-F':
-            download_ext_ids_with_forums = False
-        elif opt == '-N':
-            download_ext_ids_without_forums = False
         elif opt == '--max-discover':
             discover = True
             max_discover = int(arg)
         elif opt == '--pystuck':
             start_pystuck = True
-    return basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums, ext_timeout, use_process_pool, start_pystuck
+    return basedir, parallel, verbose, discover, max_discover, ext_timeout, start_pystuck
 
 
 def main(argv):
@@ -247,8 +224,7 @@ def main(argv):
     multiprocessing.set_start_method("forkserver")
 
     today = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    basedir, parallel, verbose, discover, max_discover, download_ext_ids_with_forums, download_ext_ids_without_forums, ext_timeout, use_process_pool, start_pystuck = parse_args(
-        argv)
+    basedir, parallel, verbose, discover, max_discover, ext_timeout, start_pystuck = parse_args(argv)
 
     setup_logger(verbose)
 
@@ -271,8 +247,7 @@ def main(argv):
     start_time = time.time()
 
     print_config(basedir, archive_dir, conf_dir, discover, parallel,
-                 download_ext_ids_with_forums, download_ext_ids_without_forums,
-                 ext_timeout, use_process_pool, start_pystuck)
+                 ext_timeout, start_pystuck)
 
     forum_ext_ids = get_forum_ext_ids(conf_dir)
     known_ids = list(set(get_existing_ids(archive_dir)) | set(forum_ext_ids))
@@ -292,24 +267,12 @@ def main(argv):
     discovered_ids = None
     known_ids = None
 
-    if download_ext_ids_with_forums:
-        if not download_ext_ids_without_forums:
-            ext_ids = []
-    else:
-        if download_ext_ids_without_forums:
-            forum_ext_ids = []
-        else:
-            # download neither type of extensions
-            ext_ids = []
-            forum_ext_ids = []
-
-    res = update_extensions(archive_dir, parallel, forum_ext_ids, ext_ids,
-                            ext_timeout, use_process_pool, verbose, start_pystuck)
+    res = update_extensions(archive_dir, parallel, forum_ext_ids, ext_ids, ext_timeout, verbose, start_pystuck)
 
     # We re-try (once) the extensions with unknown exceptions, as
     # they are often temporary
     has_exception = list(filter(lambda x: x.has_exception(), res))
-    if has_exception != []:
+    if has_exception:
         log_info(
             "  {} extensions with unknown exceptions, start another try ...".
             format(str(len(has_exception))))
@@ -319,11 +282,11 @@ def main(argv):
         ext_ids_except = sorted(
             list(set(has_exception_ids) - set(forum_ext_ids_except)))
         res_update = update_extensions(archive_dir, parallel,
-                                       forum_ext_ids_except, ext_ids_except, ext_timeout, use_process_pool, verbose, start_pystuck)
+                                       forum_ext_ids_except, ext_ids_except, ext_timeout, verbose, start_pystuck)
         res = list(set(res) - set(has_exception)) + res_update
 
     end_time = time.time()
-    log_summary(res, end_time - start_time)
+    log_summary(res, int(end_time - start_time))
     log_failures_to_file(log_dir, today, res)
 
 

@@ -21,10 +21,12 @@ import glob
 import os
 import sys
 import logging
+import re
 
 from ExtensionCrawler import config
 
-def help():
+
+def print_help():
     print("""extfind [OPTION]""")
     print("""  -h                  print this help text""")
     print("""  -a <DIR>            archive directory""")
@@ -51,7 +53,7 @@ def iter_extension_paths_from_file(archive, n, N, extidlistfile):
             if re.fullmatch("[a-p]{32}", line) and os.path.exists(path):
                 paths += [path]
             else:
-                logging.warn("WARNING: {} is not a valid extension path!".format(path))
+                logging.warning("WARNING: {} is not a valid extension path!".format(path))
     return split(paths, n, N)
 
 
@@ -67,19 +69,17 @@ def main(argv):
     taskid = 1
     maxtaskid = 1
 
-    paths = []
-
     try:
         opts, args = getopt.getopt(argv, "ha:g:e:n:N:", [
             "archive=", "glob=", "extidlistfile=", "taskid=",
             "maxtaskid=", "help"
         ])
     except getopt.GetoptError:
-        help()
+        print_help()
         sys.exit(2)
     for opt, arg in opts:
         if opt in ("-h", "--help"):
-            help()
+            print_help()
             sys.exit()
         elif opt in ("-a", "--archive"):
             archive = arg
@@ -99,11 +99,12 @@ def main(argv):
     elif extidglob is not None and extidlistfile is None:
         paths = iter_extension_paths(archive, taskid, maxtaskid, extidglob)
     else:
-        help()
+        print_help()
         sys.exit(2)
 
     for path in paths:
         print(path)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

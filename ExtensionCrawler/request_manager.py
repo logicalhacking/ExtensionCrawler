@@ -3,9 +3,6 @@ import random
 from contextlib import contextmanager
 from multiprocessing import Lock, BoundedSemaphore, Value
 
-from ExtensionCrawler.util import google_dos_protection
-from ExtensionCrawler.util import log_info
-
 
 class RequestManager:
     def __init__(self, max_workers):

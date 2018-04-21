@@ -39,7 +39,7 @@ import jsbeautifier
 
 from ExtensionCrawler.config import (const_log_format, const_basedir)
 from ExtensionCrawler.archive import last_crx, first_crx, all_crx
-from ExtensionCrawler.config import (archive_file, get_local_archive_dir)
+from ExtensionCrawler.config import get_local_archive_dir
 from ExtensionCrawler.js_decomposer import init_file_info
 from ExtensionCrawler.js_mincer import mince_js
 
@@ -54,7 +54,7 @@ def is_file_with_c_style_comments(filename):
 
 def jsstrings_data(conf, path, data):
     """Analyze data in memory."""
-    if not conf.file_pattern is None:
+    if conf.file_pattern is not None:
         if path is None:
             return False
         elif not fnmatch.fnmatch(path, conf.file_pattern):
@@ -98,7 +98,7 @@ def jsstrings_data(conf, path, data):
             if analyze_block(conf, path, block, first):
                 match = True
                 first = False
-    if match and conf.output_decoration > 0 and conf.output_decoration < 2:
+    if match and 0 < conf.output_decoration < 2:
         print(path)
     return match
 
@@ -112,6 +112,7 @@ def print_block(conf,
     if conf.output_decoration > 1:
         line_no = block.start[0]
         prefix = " " * (block.start[1] - 1)
+        # TODO: use classifier
         classifier = "X"
         sep = "=" * (len(path) + 17)
         if not first:
@@ -129,10 +130,10 @@ def print_block(conf,
                     path, loc, block.string_literals[0].rstrip())
                 print(line)
             else:
-                for (pos, str) in block.string_literals:
+                for (pos, string) in block.string_literals:
                     loc = '({0[0]:d}/{0[1]:d})'.format(pos)
                     loc = (' ' * (11 - len(loc))) + loc
-                    line = '{0} {1} [L]: {2}'.format(path, loc, str.rstrip())
+                    line = '{0} {1} [L]: {2}'.format(path, loc, string.rstrip())
                     print(line)
             if code_match:
                 print("-" * (len(path) + 17))
@@ -151,7 +152,7 @@ def analyze_block(conf, path, block, first=False):
     """Print code/comment blocks."""
     match = False
     regexps = []
-    if not conf.reg_exp is None:
+    if conf.reg_exp is not None:
         for regexp in conf.reg_exp:
             if conf.case_insensitive:
                 regexps.append(re.compile(r'(' + regexp + ')', re.IGNORECASE))
@@ -159,7 +160,7 @@ def analyze_block(conf, path, block, first=False):
                 regexps.append(re.compile(r'(' + regexp + ')'))
     if block.is_comment():
         content = block.content
-        if not conf.reg_exp_comments is None:
+        if conf.reg_exp_comments is not None:
             for regexp in conf.reg_exp_comments:
                 if conf.case_insensitive:
                     regexps.append(
@@ -179,14 +180,14 @@ def analyze_block(conf, path, block, first=False):
         content = block.content
         regexps_string = regexps.copy()
         regexps_code = regexps.copy()
-        if not conf.reg_exp_string_literals is None:
+        if conf.reg_exp_string_literals is not None:
             for regexp in conf.reg_exp_string_literals:
                 if conf.case_insensitive:
                     regexps.append(
                         re.compile(r'(' + regexp + ')', re.IGNORECASE))
                 else:
                     regexps.append(re.compile(r'(' + regexp + ')'))
-        if not conf.reg_exp_source is None:
+        if conf.reg_exp_source is not None:
             for regexp in conf.reg_exp_source:
                 if conf.case_insensitive:
                     regexps.append(
@@ -222,9 +223,9 @@ def analyze_block(conf, path, block, first=False):
                             match_idxs.add(idx)
                         string_match = True
             block.string_literals = []
-            for idx, str in enumerate(string_literals):
+            for idx, string in enumerate(string_literals):
                 if idx in match_idxs:
-                    block.string_literals.append(str)
+                    block.string_literals.append(string)
 
         code_match = False
         for regexp in regexps_code:
@@ -259,9 +260,6 @@ def analyze_crx(conf, crx, path=""):
 
 def analyze_tar(conf, tarfilename):
     last_crx_file = ''
-    #   from_date
-    #    latest_date
-    match = False
     extid = os.path.splitext(os.path.basename(tarfilename))[0]
     from_dateobj = None
     latest_dateobj = None
@@ -303,7 +301,7 @@ def analyze_tar(conf, tarfilename):
             # both dates are given
             all_crx_files = all_crx(
                 os.path.join(conf.archive_dir, "data"), extid)
-            if all_crx_files == []:
+            if not all_crx_files:
                 logging.warning("No crx in  " + extid)
             else:
                 with tarfile.open(tarfilename, 'r') as archive:
@@ -354,14 +352,13 @@ def analyze_task(conf, task):
     """Analyze one file/tar/crx/extid."""
     logging.debug("Analyzing " + task)
     extid_re = re.compile('^[a-p]+$')
-    retval = False
     if task.endswith('.crx'):
         retval = analyze_crx(conf, task)
     elif task.endswith('.tar'):
         retval = analyze_tar(conf, task)
     elif extid_re.match(task):
-        tarfile = "data/" + get_local_archive_dir(task) + "/" + task + '.tar'
-        retval = analyze_tar(conf, conf.archive_dir + "/" + tarfile)
+        tarfilename = "data/" + get_local_archive_dir(task) + "/" + task + '.tar'
+        retval = analyze_tar(conf, conf.archive_dir + "/" + tarfilename)
     else:
         retval = analyze_file(conf, task)
     return retval
