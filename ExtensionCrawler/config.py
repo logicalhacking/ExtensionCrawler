@@ -148,7 +148,7 @@ def const_use_process_pool():
     return False
 
 
-def const_log_format(ext_id):
+def const_log_format(ext_id="-"*32):
     return "%(process)6s %(asctime)s %(levelname)8s {} %(message)s".format(ext_id)
 
 
