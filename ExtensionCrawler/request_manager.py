@@ -17,9 +17,13 @@ class RequestManager:
         with self.lock:
             self.sem.acquire()
         time.sleep(max(0.0, self.last_restricted_request.value + 0.6 + (random.random() * 0.15) - time.time()))
-        yield None
-        self.last_request.value = time.time()
-        self.sem.release()
+        try:
+            yield
+        except Exception as e:
+            raise e
+        finally:
+            self.last_request.value = time.time()
+            self.sem.release()
 
     @contextmanager
     def restricted_request(self):
@@ -27,8 +31,12 @@ class RequestManager:
             for i in range(self.max_workers):
                 self.sem.acquire()
         time.sleep(max(0.0, self.last_request.value + 0.6 + (random.random() * 0.15) - time.time()))
-        yield None
-        self.last_request.value = time.time()
-        self.last_restricted_request.value = time.time()
-        for i in range(self.max_workers):
-            self.sem.release()
+        try:
+            yield
+        except Exception as e:
+            raise e
+        finally:
+            self.last_request.value = time.time()
+            self.last_restricted_request.value = time.time()
+            for i in range(self.max_workers):
+                self.sem.release()
