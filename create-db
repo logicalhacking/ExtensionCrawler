@@ -23,13 +23,14 @@ import time
 import tempfile
 from functools import partial
 import fnmatch
-from multiprocessing import Pool
+import multiprocessing
+from pebble import ProcessPool, ProcessExpired
 import logging
 import datetime
 
 from ExtensionCrawler.archive import update_db_incremental
 from ExtensionCrawler.config import *
-from ExtensionCrawler.util import log_info, log_exception
+from ExtensionCrawler.util import log_info, log_exception, setup_logger, set_logger_tag
 
 from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
 
@@ -48,6 +49,9 @@ def print_help():
     print("""  -n <TASKID>         process chunk n where n in [1,N]""")
     print("""  -N <MAXTASKID>      """)
 
+def init_process(verbose):
+    # When not using fork, we need to setup logging again in the worker threads
+    setup_logger(verbose)
 
 def process_id(from_date, until_date, path):
     start = time.time()
@@ -56,6 +60,7 @@ def process_id(from_date, until_date, path):
             t.extractall(tmpdir)
 
             extid = os.listdir(tmpdir)[0]
+            set_logger_tag(extid)
             log_info("Start processing extension", 0)
             iddir = os.path.join(tmpdir, extid)
 
@@ -151,11 +156,13 @@ def parse_args(argv):
 
 
 def main(argv):
-    logging.basicConfig(level=logging.INFO, format=const_log_format())
+    multiprocessing.set_start_method("forkserver")
+    verbose = True
+    setup_logger(verbose)
 
     paths, parallel, from_date, until_date = parse_args(argv)
 
-    with Pool(processes=parallel) as p:
+    with ProcessPool(max_workers=parallel, max_tasks=100, initializer=init_process, initargs=(verbose,)) as p:
         p.map(partial(process_id, from_date, until_date), paths)
 
 
