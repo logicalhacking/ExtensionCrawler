@@ -24,12 +24,12 @@ import tempfile
 from functools import partial
 import fnmatch
 import multiprocessing
-from pebble import ProcessPool, ProcessExpired
-import logging
+from pebble import ProcessPool
+import os
 import datetime
 
 from ExtensionCrawler.archive import update_db_incremental
-from ExtensionCrawler.config import *
+from ExtensionCrawler.config import archive_file, const_basedir, const_mysql_config_file
 from ExtensionCrawler.util import log_info, log_exception, setup_logger, set_logger_tag
 
 from ExtensionCrawler.dbbackend.mysql_backend import MysqlBackend
@@ -95,13 +95,8 @@ def find(archive, pattern):
 
 def find_from_file(archive, extidlistfile):
     with open(extidlistfile, 'r') as f:
-        extids = [l.strip() for l in f.readlines()]
-
-    for root, _, files in os.walk(os.path.join(archive, "data")):
-        for file in files:
-            for extid in extids:
-                if fnmatch.fnmatch(file, extid + ".tar"):
-                    yield os.path.join(root, file)
+        for line in f.readlines():
+            yield archive_file(archive, line.strip())
 
 
 def parse_args(argv):
