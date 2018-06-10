@@ -266,6 +266,7 @@ def parse_and_insert_crx(ext_id, datepath, con):
                         filename=file_info['filename'],
                         mimetype=file_info["mimetype"][0],
                         mimetype_detail=file_info["mimetype"][1],
+                        simhash=file_info["simhash"],
                         md5=file_info[prefix + "md5"],
                         sha1=file_info[prefix + "sha1"],
                         sha256=file_info[prefix + "sha256"],
