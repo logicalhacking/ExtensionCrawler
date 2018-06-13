@@ -17,6 +17,7 @@
 
 import time
 import datetime
+from collections import OrderedDict
 from random import uniform
 
 import MySQLdb
@@ -43,20 +44,33 @@ class MysqlBackend:
 
     def __exit__(self, *args):
         start = time.time()
-        self.retry(self._commit_cache)
-        self.db.commit()
+        self._commit_cache()
         log_info(
             "* Database batch insert finished after {}".format(datetime.timedelta(seconds=int(time.time() - start))), 2)
         self._close_conn()
 
     def _commit_cache(self):
-        for query, args in self.cache.items():
-            self.cursor.executemany(query, args)
+        for table, arglist in self.cache.items():
+            sorted_arglist = self.sort_by_primary_key(table, arglist)
+            args = [tuple(arg.values()) for arg in sorted_arglist]
+
+            # Looks like this, for example:
+            # INSERT INTO category VALUES(extid,date,category) (%s,%s,%s)
+            #   ON DUPLICATE KEY UPDATE extid=VALUES(extid),date=VALUES(date)
+            #   ,category=VALUES(category)
+            query = "INSERT INTO {}({}) VALUES ({}) ON DUPLICATE KEY UPDATE {}".format(
+                table,
+                ",".join(sorted_arglist[0].keys()),
+                ",".join(len(args[0]) * ["%s"]),
+                ",".join(
+                    ["{c}=VALUES({c})".format(c=c) for c in sorted_arglist[0].keys()]))
+            self.retry(lambda: self.cursor.executemany(query, args))
 
     def _create_conn(self):
         if self.db is None:
             log_info("* self.db is None,  open new connection ...", 3)
             self.db = MySQLdb.connect(**self.dbargs)
+            self.db.autocommit(True)
             log_info("* success", 4)
         if self.cursor is None:
             log_info("* self.cursor is None,  assigning new cursor ...", 3)
@@ -82,7 +96,7 @@ class MysqlBackend:
                 try:
                     self._close_conn()
                 except Exception as e2:
-                    log_error("Surpressed exception: {}".format(str(e2)), 3)
+                    log_error("Suppressed exception: {}".format(str(e2)), 3)
 
                 if t + 1 == self.maxtries:
                     log_error("MySQL connection eventually failed, closing connection!", 3)
@@ -107,22 +121,25 @@ class MysqlBackend:
         else:
             return None
 
-    def insertmany(self, table, arglist):
-        args = [tuple(arg.values()) for arg in arglist]
+    def sort_by_primary_key(self, table, arglist):
+        self.retry(lambda: self.cursor.execute(f"SHOW KEYS FROM {table} WHERE Key_name = 'PRIMARY'"))
+        primary_keys = [row[4] for row in self.cursor.fetchall()]
 
-        # Looks like this, for example:
-        # INSERT INTO category VALUES(extid,date,category) (%s,%s,%s)
-        #   ON DUPLICATE KEY UPDATE extid=VALUES(extid),date=VALUES(date)
-        #   ,category=VALUES(category)
-        query = "INSERT INTO {}({}) VALUES ({}) ON DUPLICATE KEY UPDATE {}".format(
-            table,
-            ",".join(arglist[0].keys()),
-            ",".join(len(args[0]) * ["%s"]),
-            ",".join(
-                ["{c}=VALUES({c})".format(c=c) for c in arglist[0].keys()]))
-        if query not in self.cache:
-            self.cache[query] = []
-        self.cache[query] += args
+        sorted_arglist = sorted(arglist, key=lambda x: [x[pk] for pk in primary_keys])
+
+        def arglist_shuffler(x):
+            try:
+                return primary_keys.index(x)
+            except ValueError:
+                return len(primary_keys)
+        shuffled_arglist = [OrderedDict(sorted(arg.items(), key=lambda x: arglist_shuffler(x[0]))) for arg in sorted_arglist]
+        return shuffled_arglist
+
+
+    def insertmany(self, table, arglist):
+        if table not in self.cache:
+            self.cache[table] = []
+        self.cache[table] += arglist
 
     def insert(self, table, **kwargs):
         self.insertmany(table, [kwargs])
