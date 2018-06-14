@@ -81,9 +81,9 @@ if [[ "$EXTS" == "" ]]; then
     EXTS=";"
 fi
 
-LASTPDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f12`
-LASTSDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f14`
-LASTMAIL=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f18`
+LASTPDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f8`
+LASTSDOWNLOADS=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f10`
+LASTMAIL=`tail -1 $ARCHIVE/monitor/updates.csv | cut -d'"' -f14`
 
 if [[ "$NUM" == "0" ]]; then
 MAIL=0
