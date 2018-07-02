@@ -23,7 +23,6 @@ import MySQLdb.cursors
 from itertools import groupby
 import time
 from multiprocessing import Pool, cpu_count
-from functools import partial
 
 
 class SimhashBucket:
@@ -91,59 +90,52 @@ class SimhashBucket:
                 yield (fp, diff)
 
 
-def get_first(x):
-    return x[0]
+def groupby_first(xs, n):
+    return ((x, [y[n:] for y in y]) for x, y in groupby(xs, key=lambda x: x[:n]))
 
 
 def get_cdnjs_simhashes(db, limit=None):
-    db.execute("select simhash, library from cdnjs where "
+    db.execute("select simhash, library, path, size, typ from cdnjs where "
                 "simhash IS NOT NULL AND path like '%.js' and "
                 "HEX(md5) <> 'd41d8cd98f00b204e9800998ecf8427e'" +
                 (f" LIMIT {int(limit)}" if limit is not None else ""))
 
     for row in db:
         row["simhash"] = int(row["simhash"])
-        yield (row["simhash"], row["library"])
+        yield row
 
 
-def get_crxfile_simhashes(db, limit=None):
-    db.execute("select crx_etag, path, simhash from crxfile where "
+def get_crxfile_simhashes(db, extension_limit=None, crxfile_limit=None):
+    db.execute(("select extid, date, crx_etag, path, size, typ, simhash from "
+               "((extension e1 join (select extid, max(date) as date from extension group by extid {}) as e2 using (extid,date)) inner join crxfile using (crx_etag)) inner join libdet using (md5,typ) where "
                "simhash IS NOT NULL AND path like '%.js' and "
+               "size >= 1024 and "
                "HEX(md5) <> 'd41d8cd98f00b204e9800998ecf8427e' "
-               "order by crx_etag, path" +
-               (f" LIMIT {int(limit)}" if limit is not None else ""))
+               "order by extid, path {}").format(
+        "LIMIT " + str(int(extension_limit)) if extension_limit is not None else "",
+        "LIMIT " + str(int(crxfile_limit)) if crxfile_limit is not None else "",
+    ))
 
     for row in db:
         row["simhash"] = int(row["simhash"])
-        yield (row["crx_etag"], row["path"], row["simhash"])
+        yield row
 
 def process(tup):
-    crx_etag, trips = tup
-    at_least_one_match = 0
-    no_matches = 0
+    (extid, date, crx_etag), rest = tup
 
-    for path, tups in groupby([(x[1], x[2]) for x in trips], key=lambda x: x[0]):
-        results = set()
-        for _, simhash in tups:
-            for ((_, fp_info), _) in gbl_bucket.query(int(simhash)):
-                results.add(fp_info)
-        if len(results) > 0:
-            # print("{crx_etag}: {path} - {results}".format(
-            #     crx_etag=crx_etag,
-            #     path=path,
-            #     results=list(results)
-            # ))
-            at_least_one_match += 1
-        else:
-            no_matches += 1
-    # print(f"{crx_etag}: {at_least_one_match} out of {at_least_one_match + no_matches} files matched")
-    return (at_least_one_match, no_matches)
+    result = []
+    for path, rest2 in groupby_first(rest, 1):
+        for size, typ, simhash in rest2:
+            for ((_, (lib_path, lib_size, lib_typ)), diff) in gbl_bucket.query(simhash):
+                result += [(extid, date, crx_etag, path, size, typ, lib_path, lib_size, lib_typ, diff)]
+    return result
 
 
 def print_help():
     print("""simhashbucket [OPTION]""")
     print("""  -h, --help                  print this help text""")
     print("""  --limit-cdnjs <N>           only retrieve N rows""")
+    print("""  --limit-extension <N>       only retrieve N rows""")
     print("""  --limit-crxfile <N>         only retrieve N rows""")
     print("""  -t <THREADS>                number of parallel threads""")
     print("""  --read-default-file <PATH>  mysql config file""")
@@ -151,6 +143,7 @@ def print_help():
 
 def parse_args(argv):
     limit_cdnjs = None
+    limit_extension = None
     limit_crxfile = None
     read_default_file = os.path.expanduser("~/.myslave.cnf")
     parallel = cpu_count()
@@ -158,13 +151,15 @@ def parse_args(argv):
 
     try:
         opts, args = getopt.getopt(argv, "ht:", [
-            "limit-cdnjs=", "limit-crxfile=", "read-default-file=", "help", "parallel=", "tables="])
+            "limit-cdnjs=", "limit-extension=", "limit-crxfile=", "read-default-file=", "help", "parallel=", "tables="])
     except getopt.GetoptError:
         print_help()
         sys.exit(2)
     for opt, arg in opts:
         if opt == "--limit-cdnjs":
             limit_cdnjs = int(arg)
+        elif opt == "--limit-extension":
+            limit_extension = int(arg)
         elif opt == "--limit-crxfile":
             limit_crxfile = int(arg)
         elif opt == "--read-default-file":
@@ -174,7 +169,7 @@ def parse_args(argv):
         elif opt == "--tables":
             tables = int(arg)
 
-    return limit_cdnjs, limit_crxfile, read_default_file, parallel, tables
+    return limit_cdnjs, limit_extension, limit_crxfile, read_default_file, parallel, tables
 
 
 def init(bucket):
@@ -183,7 +178,7 @@ def init(bucket):
 
 
 def main(args):
-    limit_cdnjs, limit_crxfile, read_default_file, parallel, tables = parse_args(args)
+    limit_cdnjs, limit_extension, limit_crxfile, read_default_file, parallel, tables = parse_args(args)
     bucket = SimhashBucket(tables)
 
     with MySQLdb.connect(
@@ -191,28 +186,18 @@ def main(args):
             compress=True,
             cursorclass=MySQLdb.cursors.SSDictCursor) as db:
         start_build = time.time()
-        bucket.addMany(get_cdnjs_simhashes(db, limit_cdnjs))
+        bucket.addMany(((row["simhash"], (row["path"], row["size"], row["typ"])) for row in get_cdnjs_simhashes(db, limit_cdnjs)))
         print(f"Building the bucket took {format(time.time() - start_build, '.2f')} seconds")
 
         start_query = time.time()
-        total_at_least_one_match = 0
-        total_no_matches = 0
 
-        counter = 0
+        data = ((row["extid"], row["date"], row["crx_etag"], row["path"], row["size"], row["typ"], row["simhash"]) for row in get_crxfile_simhashes(db, limit_extension, limit_crxfile))
         with Pool(parallel, initializer=init, initargs=(bucket,)) as p:
-            for at_least_one_match, no_matches in p.imap_unordered(process,
-                                                            ((x, list(y)) for x, y in groupby(get_crxfile_simhashes(db, limit_crxfile), key=get_first)),
-                                                            100):
-                total_at_least_one_match += at_least_one_match
-                total_no_matches += no_matches
-                counter += 1
-                if (counter % 1000 == 0):
-                    print(f"{counter} crxfiles finished...")
+            for tups in p.imap_unordered(process, groupby_first(data, 3), 100):
+                for tup in tups:
+                    sys.stdout.write("|".join(tup) + "\n")
+                    sys.stdout.flush()
     print(f"The query took {format(time.time() - start_query, '.2f')} seconds")
-
-    print(f"{total_at_least_one_match} out of {total_no_matches + total_at_least_one_match} "
-          f"({format(100.0 * total_at_least_one_match / (total_at_least_one_match + total_no_matches), '.2f')}%) "
-          "files matched")
 
 
 if __name__ == "__main__":
