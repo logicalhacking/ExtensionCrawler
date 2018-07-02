@@ -117,7 +117,7 @@ def get_crxfile_simhashes(db, limit=None):
         row["simhash"] = int(row["simhash"])
         yield (row["crx_etag"], row["path"], row["simhash"])
 
-def process(bucket, tup):
+def process(tup):
     crx_etag, trips = tup
     at_least_one_match = 0
     no_matches = 0
@@ -125,7 +125,7 @@ def process(bucket, tup):
     for path, tups in groupby([(x[1], x[2]) for x in trips], key=lambda x: x[0]):
         results = set()
         for _, simhash in tups:
-            for ((_, fp_info), _) in bucket.query(int(simhash)):
+            for ((_, fp_info), _) in gbl_bucket.query(int(simhash)):
                 results.add(fp_info)
         if len(results) > 0:
             # print("{crx_etag}: {path} - {results}".format(
@@ -177,6 +177,11 @@ def parse_args(argv):
     return limit_cdnjs, limit_crxfile, read_default_file, parallel, tables
 
 
+def init(bucket):
+    global gbl_bucket
+    gbl_bucket = bucket
+
+
 def main(args):
     limit_cdnjs, limit_crxfile, read_default_file, parallel, tables = parse_args(args)
     bucket = SimhashBucket(tables)
@@ -194,8 +199,8 @@ def main(args):
         total_no_matches = 0
 
         counter = 0
-        with Pool(parallel) as p:
-            for at_least_one_match, no_matches in p.imap_unordered(partial(process, bucket),
+        with Pool(parallel, initializer=init, initargs=(bucket,)) as p:
+            for at_least_one_match, no_matches in p.imap_unordered(process,
                                                             ((x, list(y)) for x, y in groupby(get_crxfile_simhashes(db, limit_crxfile), key=get_first)),
                                                             100):
                 total_at_least_one_match += at_least_one_match
