@@ -101,9 +101,9 @@ def get_cdnjs_simhashes(db, limit=None):
                 "HEX(md5) <> 'd41d8cd98f00b204e9800998ecf8427e'" +
                 (f" LIMIT {int(limit)}" if limit is not None else ""))
 
-    for row in db.fetchall():
+    for row in db:
         row["simhash"] = int(row["simhash"])
-        yield row
+        yield (row["simhash"], row["library"])
 
 
 def get_crxfile_simhashes(db, limit=None):
@@ -113,14 +113,15 @@ def get_crxfile_simhashes(db, limit=None):
                "order by crx_etag, path" +
                (f" LIMIT {int(limit)}" if limit is not None else ""))
 
-    for row in db.fetchall():
+    for row in db:
         row["simhash"] = int(row["simhash"])
-        yield row
+        yield (row["crx_etag"], row["path"], row["simhash"])
 
 def process(bucket, tup):
     crx_etag, trips = tup
     at_least_one_match = 0
     no_matches = 0
+
     for path, tups in groupby([(x[1], x[2]) for x in trips], key=lambda x: x[0]):
         results = set()
         for _, simhash in tups:
@@ -185,18 +186,17 @@ def main(args):
             compress=True,
             cursorclass=MySQLdb.cursors.SSDictCursor) as db:
         start_build = time.time()
-        bucket.addMany([(row["simhash"], row["library"]) for row in get_cdnjs_simhashes(db, limit_cdnjs)])
+        bucket.addMany(get_cdnjs_simhashes(db, limit_cdnjs))
         print(f"Building the bucket took {format(time.time() - start_build, '.2f')} seconds")
 
         start_query = time.time()
         total_at_least_one_match = 0
         total_no_matches = 0
 
-        queries = [(row["crx_etag"], row["path"], row["simhash"]) for row in get_crxfile_simhashes(db, limit_crxfile)]
         counter = 0
         with Pool(parallel) as p:
             for at_least_one_match, no_matches in p.imap_unordered(partial(process, bucket),
-                                                            [(x, list(y)) for x, y in groupby(queries, key=get_first)],
+                                                            ((x, list(y)) for x, y in groupby(get_crxfile_simhashes(db, limit_crxfile), key=get_first)),
                                                             100):
                 total_at_least_one_match += at_least_one_match
                 total_no_matches += no_matches
