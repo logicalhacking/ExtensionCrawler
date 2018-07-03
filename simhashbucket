@@ -107,11 +107,10 @@ def get_cdnjs_simhashes(db, limit=None):
 
 def get_crxfile_simhashes(db, extension_limit=None, crxfile_limit=None):
     db.execute(("select extid, date, crx_etag, path, size, typ, simhash from "
-               "((extension e1 join (select extid, max(date) as date from extension group by extid {}) as e2 using (extid,date)) inner join crxfile using (crx_etag)) inner join libdet using (md5,typ) where "
-               "simhash IS NOT NULL AND path like '%.js' and "
-               "size >= 1024 and "
-               "HEX(md5) <> 'd41d8cd98f00b204e9800998ecf8427e' "
-               "order by extid, path {}").format(
+               # "((extension e1 join (select extid, max(date) as date from extension group by extid {}) as e2 using (extid,date)) inner join crxfile using (crx_etag)) inner join libdet using (md5,typ) where "
+               "((select * from extension e1 where date=(select max(date) from extension e2 where e1.extid=e2.extid group by extid) order by extid {}) as d1 inner join "
+               "(select * from crxfile where simhash is not null and path like '%.js' order by crx_etag, path) as d2 using (crx_etag)) inner join "
+               "(select * from libdet where size >= 1024) as d3 using (md5,typ) {}").format(
         "LIMIT " + str(int(extension_limit)) if extension_limit is not None else "",
         "LIMIT " + str(int(crxfile_limit)) if crxfile_limit is not None else "",
     ))
@@ -195,7 +194,7 @@ def main(args):
         with Pool(parallel, initializer=init, initargs=(bucket,)) as p:
             for tups in p.imap_unordered(process, groupby_first(data, 3), 100):
                 for tup in tups:
-                    sys.stdout.write("|".join(tup) + "\n")
+                    sys.stdout.write("|".join(str(tup)) + "\n")
                     sys.stdout.flush()
     print(f"The query took {format(time.time() - start_query, '.2f')} seconds")
 
