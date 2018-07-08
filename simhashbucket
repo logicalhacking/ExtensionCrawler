@@ -181,7 +181,7 @@ def main(args):
 
     start_build = time.time()
     bucket.addMany(((int(row["simhash"]), (row["path"], row["size"], row["typ"])) for row in get_cdnjs_simhashes(db_path, limit_cdnjs)))
-    sys.stderr.write(f"Building the bucket took {format(time.time() - start_build, '.2f')} seconds")
+    sys.stderr.write(f"Building the bucket took {format(time.time() - start_build, '.2f')} seconds\n")
 
     start_query = time.time()
 
