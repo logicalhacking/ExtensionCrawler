@@ -191,7 +191,7 @@ def main(args):
     with Pool(parallel, initializer=init, initargs=(bucket,)) as p:
         for tups in p.imap_unordered(process, groupby_first(data, 3), 100):
             for tup in tups:
-                sys.stdout.write("|".join(str(tup)) + "\n")
+                sys.stdout.write("|".join([str(x) for x in tup]) + "\n")
                 sys.stdout.flush()
     print(f"The query took {format(time.time() - start_query, '.2f')} seconds")
 
