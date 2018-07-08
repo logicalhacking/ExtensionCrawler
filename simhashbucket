@@ -108,7 +108,8 @@ def get_crxfile_simhashes(db_path, extension_limit=None, crxfile_limit=None):
     with sqlite3.connect(db_path) as db:
         db.row_factory = sqlite3.Row
         for row in db.execute(("select extid, date, crx_etag, path, size, typ, simhash from "
-                "((select * from extension e1 where date=(select max(date) from extension e2 where e1.extid=e2.extid) order by extid {}) as d1 join "
+                # "((select * from extension e1 where date=(select max(date) from extension e2 where e1.extid=e2.extid) order by extid {}) as d1 join "
+                "((select * from extension join (select extid, max(date) as date from extension group by extid) using (extid, date) order by extid {}) as d1 join "
                 "(select * from crxfile where simhash is not null and path like '%.js' order by crx_etag, path) as d2 using (crx_etag)) join "
                 "(select * from libdet where size >= 1024) as d3 using (md5,typ) {}").format(
             "LIMIT " + str(int(extension_limit)) if extension_limit is not None else "",
