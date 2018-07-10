@@ -1,0 +1,44 @@
+#!/usr/bin/env python3.6
+#
+# Copyright (C) 2018 The University of Sheffield, UK
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+
+with sqlite3.connect(db_path) as db:
+    hit = 0
+    miss = 0
+    s = {}
+    for (md5, library, path, typ) in db.execute("select md5, library, path, typ from cdnjs"):
+        s[md5] = (library, path, typ)
+
+    for (extid, date) in db.execute("select extid, max(date) as date from extension group by extid order by extid"):
+        for (crx_etag,) in db.execute("select crx_etag from extension where extid=? and date=? order by crx_etag", (extid, date)):
+            for (path, md5, typ, simhash) in db.execute("select path, md5, typ, simhash from crxfile where crx_etag=? and simhash is not null and path like '%.js' order by path, md5, typ", (crx_etag,)):
+                for (size,) in db.execute("select size from libdet where md5=? and typ=? and size >= 1024 order by size", (md5, typ)):
+                    if md5 in s:
+                        hit += 1
+                        # library, path, typ = s[md5]
+                        # print("|".join((library, path, typ, extid, date, path, typ)))
+                    else:
+                        miss += 1
+                        print("|".join((extid, date, path, typ)))
+
+    print(f"Hit: {hit}")
+    print(f"Miss: {miss}")
