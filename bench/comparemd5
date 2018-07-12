@@ -1,0 +1,93 @@
+#!/usr/bin/env python3.6
+#
+# Copyright (C) 2018 The University of Sheffield, UK
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+import sqlite3
+import MySQLdb.cursors
+import sys
+import os
+
+def usage():
+    print(f"Usage: {sys.argv[0]} (app_join|db_join) (sqlite|mysql) (sqlite_path|my.cnf)")
+
+if len(sys.argv) < 2 or len(sys.argv) > 5:
+    usage()
+    sys.exit(1)
+
+method, db_kind, db_path = sys.argv[1:]
+if method not in ["app_join", "db_join"] or db_kind not in ["mysql", "sqlite"]:
+    usage()
+    sys.exit(1)
+
+if db_kind == "mysql":
+    def dbobj():
+        return MySQLdb.connect(
+            read_default_file=os.path.expanduser(db_path),
+            cursorclass=MySQLdb.cursors.SSCursor
+        )
+    def query(db, q, args=None):
+        db.execute(q.replace("%", "%%").replace("?", "%s"), args)
+        for row in db:
+            yield row
+else:
+    db = sqlite3.connect(db_path)
+    def dbobj():
+        return db
+    def query(db, q, args=None):
+        if args is None:
+            return db.execute(q)
+        else:
+            return db.execute(q, args)
+
+def app_join():
+    with dbobj() as db1:
+        with dbobj() as db2:
+            with dbobj() as db3:
+                with dbobj() as db4:
+                    for (extid, date) in query(db1, "select extid, max(date) as date from extension where date <= '2018-05-01' group by extid order by extid limit 10000 offset 10000"):
+                        for (crx_etag,) in query(db2, "select crx_etag from extension where extid=? and date=? order by crx_etag", (extid, date)):
+                            for (path, md5, typ, simhash) in query(db3, "select path, md5, typ, simhash from crxfile where crx_etag=? and simhash is not null and path like '%.js' order by path, md5, typ", (crx_etag,)):
+                                for (size,) in query(db4, "select size from libdet where md5=? and typ=? and size >= 1024 order by size", (md5, typ)):
+                                    yield md5
+
+def db_join():
+    with dbobj() as db:
+        for (md5,) in query(db, "select md5 from ((((select extid, max(date) as date from extension where date <= '2018-05-01' group by extid order by extid limit 10000 offset 10000) as e1 "
+                            "join (select extid, date, crx_etag from extension) as e2 using (extid, date)) "
+                            "join (select path, crx_etag, md5, typ from crxfile where simhash is not null and path like '%.js') as d2 using (crx_etag)) "
+                            "join (select md5, typ, size  from libdet where size >= 1024) as d3 using (md5, typ)) order by extid, crx_etag, path, md5, typ, size"):
+            yield md5
+
+with dbobj() as db:
+    s = {}
+    for (md5, library, path, typ) in query(db, "select md5, library, path, typ from cdnjs limit 10000"):
+        s[md5] = (library, path, typ)
+
+    hit = 0
+    miss = 0
+    if method == "app_join":
+        f = app_join
+    else:
+        f = db_join
+    for md5 in f():
+        if md5 in s:
+            hit += 1
+        else:
+            miss += 1
+
+print(f"Hit: {hit}")
+print(f"Miss: {miss}")
