@@ -64,6 +64,7 @@ echo "LANG=en_US.UTF-8" > /etc/default/locale
 # Install the core dependencies (Python 3.6 or later)
 # from the Debian Testing repository
 apt-get	install -y python3-magic python3-crypto python3-minimal python3-pip python3-setuptools python3-mysqldb python3-jsbeautifier python3-tabulate
+apt-get install -y build-essential libgmp3-dev python3-dev # For pycryptodome
 apt-get clean
 apt-get install -y git
 apt-get clean
