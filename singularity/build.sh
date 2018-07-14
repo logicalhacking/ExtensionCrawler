@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ARCHIVE="/srv/Shared/BrowserExtensions/archive"
 BASE=ExtensionCrawler
 BASESIZE=600
-BINDIR=/srv/Shared/BrowserExtensions/bin
 
 print_help()
 {
+    BINDIR=$(dirname "$ARCHIVE")/bin
     echo "Usage: $prog [OPTION] "
     echo ""
     echo "Build a singularity image (fat application) for all ExtensenCrawler utilities."
@@ -26,7 +27,8 @@ print_help()
     echo "  --help, -h              display this help message"
     echo "  --force, -f             overwrite existing singularity image"
     echo "  --cdnjs, -c             include cdnjs repository (ca. 125 GB)"
-    echo "  --install, -i           install image into $BINDIR"
+    echo "  --install, -i           install image (default: $BINDIR)"
+    echo "  --archive DIR, -a DIR   install image into DIR (default: $ARCHIVE)"
 }
 
 
@@ -43,13 +45,15 @@ do
             CDNJS="true";;
         --install|-i)
             INSTALL="true";;
+        --archive|-a)
+            ARCHIVE="$2"
+            shift;;
         --help|-h)
             print_help
             exit 0;;
     esac
     shift
 done
-
 
 
 if [ "$CDNJS" = "true" ]; then
@@ -59,6 +63,9 @@ else
     IMAGE=${BASE}.img
 fi
 
+BINDIR=$(dirname "$ARCHIVE")/bin
+LOGPREFIX=$ARCHIVE/log/`date --utc --iso-8601=ns`
+LOG="$LOGPREFIX-$IMAGE.log"
 
 if [ -f ${IMAGE} ]; then 
     if [ "$FORCE" = "true" ]; then
@@ -75,11 +82,11 @@ if [ "$CDNJS" = "true" ]; then
     # TODO: --writable for 'build' action is deprecated due to some sparse file
     # issues; it is recommended to use --sandbox; however, that creates a
     # folder, which is probable not what we want here...
-    sudo singularity build --writable ${IMAGE} ${BASE}.def
-    sudo singularity image.expand --size ${BASESIZE} --writable ${IMAGE} ${BASE}.def
+    sudo singularity build --writable ${IMAGE} ${BASE}.def > "$LOG" 2>&1
+    sudo singularity image.expand --size ${BASESIZE} --writable ${IMAGE} ${BASE}.def > "$LOG" 2>&1
 else 
     echo "Creating read-only $IMAGE using ${BASE}.def"
-    sudo singularity build ${IMAGE} ${BASE}.def
+    sudo singularity build ${IMAGE} ${BASE}.def > "$LOG" 2>&1
 fi
 
 if [ ! -f $IMAGE ]; then
