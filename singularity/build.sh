@@ -92,11 +92,14 @@ fi
 if [ ! -f $IMAGE ]; then
     echo "Image (${IMAGE}) creation failed!" 
     exit 1 
+else
+    echo "Image (${IMAGE}) creation successful!" 
 fi
 
 if [ "$INSTALL" = "true" ]; then
     if [ -f $BINDIR/$IMAGE ]; then
         mv $BINDIR/$IMAGE $BINDIR/$IMAGE.bak
     fi
+    echo "Installing ${IMAGE} into $BINDIR" 
     mv $IMAGE $BINDIR
 fi
