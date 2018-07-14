@@ -82,6 +82,11 @@ else
     sudo singularity build ${IMAGE} ${BASE}.def
 fi
 
+if [ ! -f $IMAGE ]; then
+    echo "Image (${IMAGE}) creation failed!" 
+    exit 1 
+fi
+
 if [ "$INSTALL" = "true" ]; then
     if [ -f $BINDIR/$IMAGE ]; then
         mv $BINDIR/$IMAGE $BINDIR/$IMAGE.bak
