@@ -70,8 +70,7 @@ def process_id(from_date, until_date, path):
                         try_wait=10,
                         maxtries=30,
                         read_default_file=const_mysql_config_file(),
-                        charset='utf8mb4',
-                        compress=True) as con:
+                        charset='utf8mb4') as con:
                     for date in sorted(os.listdir(iddir)):
                         if (from_date is not None and date < from_date) or \
                                 (until_date is not None and date > until_date):

@@ -19,6 +19,7 @@ import time
 import datetime
 from collections import OrderedDict
 from random import uniform
+import sys
 
 import MySQLdb
 import _mysql_exceptions
@@ -64,13 +65,19 @@ class MysqlBackend:
                 ",".join(len(args[0]) * ["%s"]),
                 ",".join(
                     ["{c}=VALUES({c})".format(c=c) for c in sorted_arglist[0].keys()]))
+            start = time.time()
             self.retry(lambda: self.cursor.executemany(query, args))
+            log_info("* Inserted {} bytes into {}, taking {:.2f}s.".format(sum([sys.getsizeof(arg) for arg in args]),
+                                                                           table, time.time() - start), 3)
+        start = time.time()
+        self.db.commit()
+        log_info("* DB commit took {:.2f}s".format(time.time() - start), 2)
 
     def _create_conn(self):
         if self.db is None:
             log_info("* self.db is None,  open new connection ...", 3)
             self.db = MySQLdb.connect(**self.dbargs)
-            self.db.autocommit(True)
+            self.db.autocommit(False)
             log_info("* success", 4)
         if self.cursor is None:
             log_info("* self.cursor is None,  assigning new cursor ...", 3)

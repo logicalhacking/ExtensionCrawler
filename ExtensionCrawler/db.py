@@ -424,8 +424,7 @@ def update_db_incremental(tmptardir, ext_id, date, con=None):
         with MysqlBackend(
                 ext_id,
                 read_default_file=const_mysql_config_file(),
-                charset='utf8mb4',
-                compress=True) as con:
+                charset='utf8mb4') as con:
             update_db_incremental_with_connection(tmptardir, ext_id, date, con)
 
 
