@@ -529,8 +529,10 @@ def update_extension(archivedir, tup):
     if not os.path.exists(tar):
         is_new = True
     try:
+        start = time.time()
         with tarfile.open(tar, mode='a:') as ar:
             ar.add(tmptardir, arcname=ext_id)
+        log_info("* Appending new data to tar took {:.2f}s".format(time.time() - start), 2)
     except Exception as e:
         log_exception("* FATAL: cannot create tar archive", 3)
         tar_exception = e
