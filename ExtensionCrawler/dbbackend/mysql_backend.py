@@ -36,6 +36,7 @@ class MysqlBackend:
         self.try_wait = try_wait
         self.maxtries = maxtries
         self.cache = {}
+        self.crx_etag_cache = {}
         self.db = None
         self.cursor = None
 
@@ -147,14 +148,20 @@ class MysqlBackend:
         if table not in self.cache:
             self.cache[table] = []
         self.cache[table] += arglist
+        if table == "extension":
+            for arg in arglist:
+                self.crx_etag_cache[(arg["extid"], arg["date"])] = arg["crx_etag"]
 
     def insert(self, table, **kwargs):
         self.insertmany(table, [kwargs])
 
     def get_etag(self, extid, date):
-        return self.get_single_value(
-            """SELECT crx_etag from extension where extid=%s and date=%s""",
-            (extid, date))
+        if (extid, date) in self.crx_etag_cache:
+            return self.crx_etag_cache[(extid, date)]
+        else:
+            return self.get_single_value(
+                """SELECT crx_etag from extension where extid=%s and date=%s""",
+                (extid, date))
 
     def get_cdnjs_info(self, md5):
         query = """SELECT library, version, filename, add_date, typ from cdnjs where md5=%s"""
