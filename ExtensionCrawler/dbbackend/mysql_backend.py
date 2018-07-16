@@ -163,9 +163,7 @@ class MysqlBackend:
         if (extid, date) in self.crx_etag_cache:
             return self.crx_etag_cache[(extid, date)]
         else:
-            return self.get_single_value(
-                """SELECT crx_etag from extension where extid=%s and date=%s""",
-                (extid, date))
+            return None
 
     def get_cdnjs_info(self, md5):
         query = """SELECT library, version, filename, add_date, typ from cdnjs where md5=%s"""
