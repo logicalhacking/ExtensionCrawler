@@ -593,7 +593,7 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, ve
         len(ext_without_forums)))
 
     results = []
-    with ProcessPool(max_workers=parallel, max_tasks=100, initializer=init_process,
+    with ProcessPool(max_workers=parallel, initializer=init_process,
                      initargs=(verbose, start_pystuck, RequestManager(parallel))) as pool:
         future = pool.map(partial(update_extension, archivedir), tups, chunksize=1, timeout=timeout)
         iterator = future.result()
