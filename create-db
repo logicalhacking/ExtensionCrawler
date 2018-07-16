@@ -48,12 +48,13 @@ def print_help():
     print("""  -t <THREADS>        number of parallel threads""")
     print("""  -n <TASKID>         process chunk n where n in [1,N]""")
     print("""  -N <MAXTASKID>      """)
+    print("""  --delayed           uses INSERT DELAYED INTO statements""")
 
 def init_process(verbose):
     # When not using fork, we need to setup logging again in the worker threads
     setup_logger(verbose)
 
-def process_id(from_date, until_date, path):
+def process_id(from_date, until_date, delayed, path):
     start = time.time()
     with tempfile.TemporaryDirectory() as tmpdir:
         with tarfile.open(path) as t:
@@ -69,6 +70,7 @@ def process_id(from_date, until_date, path):
                         extid,
                         try_wait=10,
                         maxtries=30,
+                        delayed=delayed,
                         read_default_file=const_mysql_config_file(),
                         charset='utf8mb4') as con:
                     for date in sorted(os.listdir(iddir)):
@@ -105,13 +107,14 @@ def parse_args(argv):
     maxtaskid = 1
     from_date = None
     until_date = None
+    delayed = False
 
     paths = []
 
     try:
         opts, args = getopt.getopt(argv, "ha:p:e:t:n:N:", [
             "archive=", "prefix=", "extidlistfile=", "threads=", "taskid=",
-            "maxtaskid=", "from-date=", "until-date=", "help"
+            "maxtaskid=", "from-date=", "until-date=", "delayed", "help"
         ])
     except getopt.GetoptError:
         print_help()
@@ -136,6 +139,8 @@ def parse_args(argv):
             from_date = arg
         elif opt == "--until-date":
             until_date = arg
+        elif opt == "--delayed":
+            delayed = True
 
     if not paths:
         paths = list(find(archive, "*"))
@@ -146,7 +151,7 @@ def parse_args(argv):
     else:
         paths = paths[(taskid - 1) * chunksize:taskid * chunksize]
 
-    return paths, parallel, from_date, until_date
+    return paths, parallel, from_date, until_date, delayed
 
 
 def main(argv):
@@ -154,10 +159,10 @@ def main(argv):
     verbose = True
     setup_logger(verbose)
 
-    paths, parallel, from_date, until_date = parse_args(argv)
+    paths, parallel, from_date, until_date, delayed = parse_args(argv)
 
     with ProcessPool(max_workers=parallel, max_tasks=100, initializer=init_process, initargs=(verbose,)) as p:
-        p.map(partial(process_id, from_date, until_date), paths)
+        p.map(partial(process_id, from_date, until_date, delayed), paths)
 
 
 if __name__ == "__main__":
