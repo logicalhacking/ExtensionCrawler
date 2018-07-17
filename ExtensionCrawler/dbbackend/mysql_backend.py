@@ -52,6 +52,11 @@ class MysqlBackend:
             "* Database batch insert finished after {}".format(datetime.timedelta(seconds=int(time.time() - start))), 2)
         self._close_conn()
 
+    def _get_column_names(self, table):
+        self.cursor.execute(f"select column_name from information_schema.columns where table_schema=database() and table_name=%s", (table,))
+        return [row[0] for row in self.cursor.fetchall()]
+
+
     def _commit_cache(self):
         for table, arglist in self.cache.items():
             sorted_arglist = self.sort_by_primary_key(table, arglist)
@@ -63,6 +68,11 @@ class MysqlBackend:
                     ",".join(sorted_arglist[0].keys()),
                     ",".join(len(args[0]) * ["%s"]))
             else:
+                column_names = self.retry(lambda: self._get_column_names(table))
+                if "last_modified" in column_names:
+                    additional_columns = ["last_modified"]
+                else:
+                    additional_columns = []
                 # Looks like this, for example:
                 # INSERT INTO category VALUES(extid,date,category) (%s,%s,%s)
                 #   ON DUPLICATE KEY UPDATE extid=VALUES(extid),date=VALUES(date)
@@ -72,7 +82,7 @@ class MysqlBackend:
                     ",".join(sorted_arglist[0].keys()),
                     ",".join(len(args[0]) * ["%s"]),
                     ",".join(
-                        ["{c}=VALUES({c})".format(c=c) for c in sorted_arglist[0].keys()]))
+                        ["{c}=VALUES({c})".format(c=c) for c in list(sorted_arglist[0].keys()) + additional_columns]))
             start = time.time()
             self.retry(lambda: self.cursor.executemany(query, args))
             log_info("* Inserted {} bytes into {}, taking {:.2f}s.".format(sum([sys.getsizeof(arg) for arg in args]),
