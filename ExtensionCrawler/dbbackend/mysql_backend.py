@@ -29,10 +29,11 @@ from ExtensionCrawler.util import log_info, log_error, log_warning
 
 
 class MysqlBackend:
-    def __init__(self, ext_id, delayed=False, try_wait=config.const_mysql_try_wait(), maxtries=config.const_mysql_maxtries(),
+    def __init__(self, ext_id, delayed=False, cache_etags=False, try_wait=config.const_mysql_try_wait(), maxtries=config.const_mysql_maxtries(),
                  **kwargs):
         self.ext_id = ext_id
         self.delayed = delayed
+        self.cache_etags = cache_etags
         self.dbargs = kwargs
         self.try_wait = try_wait
         self.maxtries = maxtries
@@ -46,10 +47,9 @@ class MysqlBackend:
         return self
 
     def __exit__(self, *args):
-        start = time.time()
-        self._commit_cache()
-        log_info(
-            "* Database batch insert finished after {}".format(datetime.timedelta(seconds=int(time.time() - start))), 2)
+        for table, arglist in self.cache.items():
+            self._do_insert(table, arglist)
+            self.cache[table] = []
         self._close_conn()
 
     def _get_column_names(self, table):
@@ -57,36 +57,37 @@ class MysqlBackend:
         return [row[0] for row in self.cursor.fetchall()]
 
 
-    def _commit_cache(self):
-        for table, arglist in self.cache.items():
-            sorted_arglist = self.sort_by_primary_key(table, arglist)
-            args = [tuple(arg.values()) for arg in sorted_arglist]
+    def _do_insert(self, table, arglist):
+        if len(arglist) == 0:
+            return
+        sorted_arglist = self.sort_by_primary_key(table, arglist)
+        args = [tuple(arg.values()) for arg in sorted_arglist]
 
-            if self.delayed:
-                query = "INSERT DELAYED INTO {}({}) VALUES ({})".format(
-                    table,
-                    ",".join(sorted_arglist[0].keys()),
-                    ",".join(len(args[0]) * ["%s"]))
+        if self.delayed:
+            query = "INSERT DELAYED INTO {}({}) VALUES ({})".format(
+                table,
+                ",".join(sorted_arglist[0].keys()),
+                ",".join(len(args[0]) * ["%s"]))
+        else:
+            column_names = self.retry(lambda: self._get_column_names(table))
+            if "last_modified" in column_names:
+                additional_columns = ["last_modified"]
             else:
-                column_names = self.retry(lambda: self._get_column_names(table))
-                if "last_modified" in column_names:
-                    additional_columns = ["last_modified"]
-                else:
-                    additional_columns = []
-                # Looks like this, for example:
-                # INSERT INTO category VALUES(extid,date,category) (%s,%s,%s)
-                #   ON DUPLICATE KEY UPDATE extid=VALUES(extid),date=VALUES(date)
-                #   ,category=VALUES(category)
-                query = "INSERT INTO {}({}) VALUES ({}) ON DUPLICATE KEY UPDATE {}".format(
-                    table,
-                    ",".join(sorted_arglist[0].keys()),
-                    ",".join(len(args[0]) * ["%s"]),
-                    ",".join(
-                        ["{c}=VALUES({c})".format(c=c) for c in list(sorted_arglist[0].keys()) + additional_columns]))
-            start = time.time()
-            self.retry(lambda: self.cursor.executemany(query, args))
-            log_info("* Inserted {} bytes into {}, taking {:.2f}s.".format(sum([sys.getsizeof(arg) for arg in args]),
-                                                                           table, time.time() - start), 3)
+                additional_columns = []
+            # Looks like this, for example:
+            # INSERT INTO category VALUES(extid,date,category) (%s,%s,%s)
+            #   ON DUPLICATE KEY UPDATE extid=VALUES(extid),date=VALUES(date)
+            #   ,category=VALUES(category)
+            query = "INSERT INTO {}({}) VALUES ({}) ON DUPLICATE KEY UPDATE {}".format(
+                table,
+                ",".join(sorted_arglist[0].keys()),
+                ",".join(len(args[0]) * ["%s"]),
+                ",".join(
+                    ["{c}=VALUES({c})".format(c=c) for c in list(sorted_arglist[0].keys()) + additional_columns]))
+        start = time.time()
+        self.retry(lambda: self.cursor.executemany(query, args))
+        log_info("* Inserted {} bytes into {}, taking {}.".format(sum([sys.getsizeof(arg) for arg in args]),
+                                                                       table, datetime.timedelta(seconds=int(time.time() - start))), 3)
 
     def _create_conn(self):
         if self.db is None:
@@ -162,7 +163,10 @@ class MysqlBackend:
         if table not in self.cache:
             self.cache[table] = []
         self.cache[table] += arglist
-        if table == "extension":
+        if len(self.cache) >= 1000:
+            self._do_insert(table, self.cache[table])
+            self.cache[table] = []
+        if self.cache_etags and table == "extension":
             for arg in arglist:
                 self.crx_etag_cache[(arg["extid"], arg["date"])] = arg["crx_etag"]
 

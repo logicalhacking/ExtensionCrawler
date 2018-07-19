@@ -40,7 +40,8 @@ import requests
 from ExtensionCrawler.config import (
     const_review_payload, const_review_search_url, const_download_url,
     get_local_archive_dir, const_overview_url, const_support_url,
-    const_support_payload, const_review_search_payload, const_review_url)
+    const_support_payload, const_review_search_payload, const_review_url, const_mysql_config_file)
+from ExtensionCrawler.dbbackend.mysql_process import MysqlProcessBackend
 from ExtensionCrawler.util import value_of, log_info, log_warning, log_exception, setup_logger, set_logger_tag
 from ExtensionCrawler.db import update_db_incremental
 from ExtensionCrawler.request_manager import RequestManager
@@ -463,8 +464,8 @@ def update_support(tar, date, ext_id):
     return RequestResult(res)
 
 
-def update_extension(archivedir, tup):
-    ext_id, forums = tup
+def update_extension(tup):
+    archivedir, con, ext_id, forums = tup
     set_logger_tag(ext_id)
     log_info("Updating extension {}".format(" (including forums)" if forums else ""), 1)
     is_new = False
@@ -543,7 +544,7 @@ def update_extension(archivedir, tup):
             pass
 
     try:
-        update_db_incremental(tmptardir, ext_id, date)
+        update_db_incremental(tmptardir, ext_id, date, con)
         sql_success = True
     except Exception as e:
         log_exception("* Exception during update of db", 3)
@@ -592,26 +593,30 @@ def update_extensions(archivedir, parallel, forums_ext_ids, ext_ids, timeout, ve
     log_info("Updating {} extensions ({} including forums, {} excluding forums)".format(len(tups), len(ext_with_forums),
         len(ext_without_forums)))
 
-    results = []
-    with ProcessPool(max_workers=parallel, initializer=init_process,
-                     initargs=(verbose, start_pystuck, RequestManager(parallel))) as pool:
-        future = pool.map(partial(update_extension, archivedir), tups, chunksize=1, timeout=timeout)
-        iterator = future.result()
-        for ext_id in ext_ids:
-            try:
-                results.append(next(iterator))
-            except StopIteration:
-                break
-            except TimeoutError as error:
-                log_warning("WorkerException: Processing of %s took longer than %d seconds" % (ext_id, error.args[1]))
-                results.append(UpdateResult(ext_id, False, None, None, None, None, None, None, None, error))
-            except ProcessExpired as error:
-                log_warning("WorkerException: %s (%s), exit code: %d" % (error, ext_id, error.exitcode))
-                results.append(UpdateResult(ext_id, False, None, None, None, None, None, None, None, error))
-            except Exception as error:
-                log_warning("WorkerException: Processing %s raised %s" % (ext_id, error))
-                log_warning(error.traceback)  # Python's traceback of remote process
-                results.append(UpdateResult(ext_id, False, None, None, None, None, None, None, None, error))
+    with MysqlProcessBackend(
+            None,
+            read_default_file=const_mysql_config_file(),
+            charset='utf8mb4') as con:
+        results = []
+        with ProcessPool(max_workers=parallel, initializer=init_process,
+                         initargs=(verbose, start_pystuck, RequestManager(parallel))) as pool:
+            future = pool.map(update_extension, [(archivedir, con, extid, archive) for extid, archive in tups], chunksize=1, timeout=timeout)
+            iterator = future.result()
+            for ext_id in ext_ids:
+                try:
+                    results.append(next(iterator))
+                except StopIteration:
+                    break
+                except TimeoutError as error:
+                    log_warning("WorkerException: Processing of %s took longer than %d seconds" % (ext_id, error.args[1]))
+                    results.append(UpdateResult(ext_id, False, None, None, None, None, None, None, None, error))
+                except ProcessExpired as error:
+                    log_warning("WorkerException: %s (%s), exit code: %d" % (error, ext_id, error.exitcode))
+                    results.append(UpdateResult(ext_id, False, None, None, None, None, None, None, None, error))
+                except Exception as error:
+                    log_warning("WorkerException: Processing %s raised %s" % (ext_id, error))
+                    log_warning(error.traceback)  # Python's traceback of remote process
+                    results.append(UpdateResult(ext_id, False, None, None, None, None, None, None, None, error))
 
     return results
 
