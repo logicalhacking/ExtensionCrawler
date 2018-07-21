@@ -30,6 +30,7 @@ import os
 import glob
 import datetime
 import hashlib
+from jsmin import jsmin
 
 
 def get_etag(ext_id, datepath, con):
@@ -214,16 +215,6 @@ def parse_and_insert_crx(ext_id, datepath, con):
                 # Trying a different encoding, manifests are weird...
                 content = raw_content.decode("latin1")
 
-            # Attempt to remove JavaScript-style comments from json
-            comment_regex = re.compile(r'\s*//.*')
-            multiline_comment_regex = re.compile(r'\s*/\\*.*\\*/\s*')
-            lines = content.splitlines()
-            for index, line in enumerate(lines):
-                if comment_regex.fullmatch(
-                        line) or multiline_comment_regex.fullmatch(line):
-                    lines[index] = ""
-            content = "\n".join(lines)
-
             con.insert(
                 "crx",
                 crx_etag=etag,
@@ -232,7 +223,7 @@ def parse_and_insert_crx(ext_id, datepath, con):
                 manifest=content,
                 publickey=public_key)
 
-            manifest = json.loads(content, strict=False)
+            manifest = json.loads(jsmin(content), strict=False)
             if "permissions" in manifest:
                 for permission in manifest["permissions"]:
                     con.insert(

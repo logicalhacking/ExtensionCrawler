@@ -62,6 +62,9 @@ def get_features(s):
 def get_simhash(encoding, data):
     """Compute simhash of text."""
     if encoding is not None:
+        # VISCII is not supported by python, UTF-8 parses at least the for us important parts
+        if encoding == "VISCII":
+            encoding = "UTF-8"
         str_data = data.decode(encoding=encoding, errors="replace")
     else:
         str_data = str(data)

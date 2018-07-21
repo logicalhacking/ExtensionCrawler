@@ -13,3 +13,4 @@ GitPython==2.1.5
 python_magic==0.4.13
 jsbeautifier==1.7.3
 pebble==4.3.7
+jsmin==2.2.2
