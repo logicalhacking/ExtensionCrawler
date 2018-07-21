@@ -64,3 +64,9 @@ pip3 install --user -e ExtensionCrawler
 ## License
 
 This project is licensed under the GPL 3.0 (or any later version).
+
+## Master Repository
+
+The master git repository for this project is hosted by the [Software
+Assurance & Security Research Team](https://logicalhacking.com) at
+<https://git.logicalhacking.com/BrowserSecurity/ExtensionCrawler>.
