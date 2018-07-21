@@ -7,6 +7,7 @@ REMOTE_TARGET_DIR_PREFIX=/data/\$USER
 NUM_THREADS=48
 SGE_EXTRA_ARGS='-P rse -m a -l rmem=8G -M "msherzberg1@sheffield.ac.uk" -j yes'
 PY_EXTRA_ARGS=''
+EXTENSION_IDS=
 
 usage() {
   echo "Usage:"
@@ -15,9 +16,10 @@ usage() {
   echo "  -m <num_threads> (degree of parallelism, default: ${NUM_THREADS})"
   echo "  -s \"<args>\" (qsub arguments, default: ${SGE_EXTRA_ARGS})"
   echo "  -p \"<args>\" (python script arguments, default: ${PY_EXTRA_ARGS})"
+  echo "  -e <path> (path to extension id list, default: crawl from archive)"
 }
 
-while getopts ":a:t:s:p:m:" o; do
+while getopts ":a:t:s:p:m:e:" o; do
   case "${o}" in
     a)
       REMOTE_ARCHIVE=${OPTARG}
@@ -33,6 +35,9 @@ while getopts ":a:t:s:p:m:" o; do
       ;;
     p)
       PY_EXTRA_ARGS+=" ${OPTARG}"
+      ;;
+    e)
+      EXTENSION_IDS="${OPTARG}"
       ;;
     *)
       usage
@@ -63,8 +68,12 @@ echo "Pushing image..."
 scp "$BASEDIR/singularity/create-db.img" sharc.shef.ac.uk:"$TARGETDIR/create-db.img"
 
 
-echo "Gathering extension IDs..."
-ssh sharc.shef.ac.uk find "${REMOTE_ARCHIVE}/data" -name "*.tar" | grep -Po "[a-p]{32}" > ${TEMP_FOLDER}/extension.ids
+if [[ -z $EXTENSION_IDS ]]; then
+  echo "Gathering extension IDs..."
+  ssh sharc.shef.ac.uk find "${REMOTE_ARCHIVE}/data" -name "*.tar" | grep -Po "[a-p]{32}" > ${TEMP_FOLDER}/extension.ids
+else
+  cp "$EXTENSION_IDS" ${TEMP_FOLDER}/extension.ids
+fi
 
 NO_IDS=$(cat ${TEMP_FOLDER}/extension.ids | wc -l)
 
