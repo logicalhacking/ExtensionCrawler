@@ -65,6 +65,8 @@ pip3 install --user -e ExtensionCrawler
 
 This project is licensed under the GPL 3.0 (or any later version).
 
+SPDX-License-Identifier: GPL-3.0-or-later
+
 ## Master Repository
 
 The master git repository for this project is hosted by the [Software
