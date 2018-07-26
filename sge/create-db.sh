@@ -5,18 +5,18 @@ set -o errexit
 REMOTE_ARCHIVE=/shared/brucker_research1/Shared/BrowserExtensions/archive
 REMOTE_TARGET_DIR_PREFIX=/data/\$USER
 NUM_THREADS=48
-SGE_EXTRA_ARGS='-P rse -m a -l rmem=8G -M "msherzberg1@sheffield.ac.uk" -j yes'
+SGE_EXTRA_ARGS='-P rse -m a -l rmem=4G,h=\!sharc-node126 -M "msherzberg1@sheffield.ac.uk" -j yes'
 PY_EXTRA_ARGS=''
 EXTENSION_IDS=
 
 usage() {
   echo "Usage:"
-  echo "  -a <path> (archive path, default: ${REMOTE_ARCHIVE})"
-  echo "  -t <path> (target directory, default: ${REMOTE_TARGET_DIR_PREFIX})"
-  echo "  -m <num_threads> (degree of parallelism, default: ${NUM_THREADS})"
-  echo "  -s \"<args>\" (qsub arguments, default: ${SGE_EXTRA_ARGS})"
-  echo "  -p \"<args>\" (python script arguments, default: ${PY_EXTRA_ARGS})"
-  echo "  -e <path> (path to extension id list, default: crawl from archive)"
+  echo "  -a <path> (set archive path, default: ${REMOTE_ARCHIVE})"
+  echo "  -t <path> (set target directory, default: ${REMOTE_TARGET_DIR_PREFIX})"
+  echo "  -m <num_threads> (set degree of parallelism, default: ${NUM_THREADS})"
+  echo "  -s \"<args>\" (add qsub arguments, default: ${SGE_EXTRA_ARGS})"
+  echo "  -p \"<args>\" (add python script arguments, default: ${PY_EXTRA_ARGS})"
+  echo "  -e <path> (set path to extension id list, default: crawl from archive)"
 }
 
 while getopts ":a:t:s:p:m:e:" o; do
