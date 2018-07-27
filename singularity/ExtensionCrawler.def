@@ -52,6 +52,16 @@ apt-get update
 ###################################################################
 
 ###################################################################
+# Add hook for apt that removes various files after installation
+# that are not needed at runtime.
+cat > /etc/apt/apt.conf.d/99-clean << EOF
+DPkg::Post-Invoke { "rm -f /var/cache/apt/archives/*.deb /usr/share/doc /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin || true"; };
+APT::Update::Post-Invoke { "rm -f /var/cache/apt/archives/*.deb /usr/share/doc /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin || true"; };
+Dir::Cache::pkgcache ""; Dir::Cache::srcpkgcache "";
+EOF
+###################################################################
+
+###################################################################
 # Configure locales
 apt-get install -y locales
 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
