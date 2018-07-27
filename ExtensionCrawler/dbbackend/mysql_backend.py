@@ -163,7 +163,7 @@ class MysqlBackend:
         if table not in self.cache:
             self.cache[table] = []
         self.cache[table] += arglist
-        if len(self.cache) >= 1000:
+        if len(self.cache[table]) >= 1000:
             self._do_insert(table, self.cache[table])
             self.cache[table] = []
         if self.cache_etags and table == "extension":
