@@ -55,8 +55,8 @@ apt-get update
 # Add hook for apt that removes various files after installation
 # that are not needed at runtime.
 cat > /etc/apt/apt.conf.d/99-clean << EOF
-DPkg::Post-Invoke { "rm -f /var/cache/apt/archives/*.deb /usr/share/doc /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin || true"; };
-APT::Update::Post-Invoke { "rm -f /var/cache/apt/archives/*.deb /usr/share/doc /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin || true"; };
+DPkg::Post-Invoke { "rm -f /var/cache/apt/archives/*.deb /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin || true"; };
+APT::Update::Post-Invoke { "rm -f /var/cache/apt/archives/*.deb /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin || true"; };
 Dir::Cache::pkgcache ""; Dir::Cache::srcpkgcache "";
 EOF
 ###################################################################
@@ -73,9 +73,7 @@ echo "LANG=en_US.UTF-8" > /etc/default/locale
 ###################################################################
 # Install the core dependencies (Python 3.6 or later)
 # from the Debian Testing repository
-apt-get	install -y python3-magic python3-minimal python3-pip python3-setuptools python3-mysqldb python3-jsbeautifier python3-tabulate g++
-apt-get clean
-apt-get install -y git
+apt-get	install -y --no-install-recommends python3-magic python3-minimal python3-pip python3-setuptools python3-mysqldb g++ git
 apt-get clean
 rm -rf /var/lib/apt/lists/* 
 ###################################################################
@@ -142,9 +140,10 @@ chmod go+u-w /scratch /fastdata /data /shared
 ###################################################################
 
 ###################################################################
-# Create mount/bind points for the various network drives 
+# Manual clean-up and removal of not strictly necessary directories
 yes | apt purge g++
 yes | apt autoremove
+rm -rf /usr/share/doc || true
 ###################################################################
 
 %environment
