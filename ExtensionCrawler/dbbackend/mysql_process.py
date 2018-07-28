@@ -65,7 +65,7 @@ class MysqlProcessBackend:
     def __init__(self, ext_id, **mysql_kwargs):
         self.mysql_kwargs = mysql_kwargs
         self.m = Manager()
-        self.queue = self.m.Queue(1000)
+        self.queue = self.m.Queue()
 
     def __enter__(self):
         self.p = Process(target=run, args=(self.mysql_kwargs, self.queue))
