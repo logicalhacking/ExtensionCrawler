@@ -52,11 +52,11 @@ def process_shard(shard_url):
     return list(iterate_shard(shard_url))
 
 
-def crawl_nearly_all_of_ext_ids(max_ids=None):
+def get_new_ids(known_ids, max_ids=None):
     """Crawl extension ids available in Chrome store."""
 
     shard_urls = [shard_elem.text for shard_elem in get_inner_elems(
-            requests.get(config.const_sitemap_url(), timeout=10).text)]
+        requests.get(config.const_sitemap_url(), timeout=10).text)]
     with ThreadPool(16) as pool:
         future = pool.map(process_shard, shard_urls, chunksize=1)
         iterator = future.result()
@@ -65,16 +65,11 @@ def crawl_nearly_all_of_ext_ids(max_ids=None):
         while True:
             try:
                 for extid in next(iterator):
-                    yield extid
-                    returned_ids += 1
-                    if max_ids is not None and returned_ids >= max_ids:
-                        pool.stop()
-                        return
+                    if extid not in known_ids:
+                        yield extid
+                        returned_ids += 1
+                        if max_ids is not None and returned_ids >= max_ids:
+                            pool.stop()
+                            return
             except StopIteration:
                 return
-
-def get_new_ids(known_ids, max_ids=None):
-    """Discover new extension ids."""
-    for discovered_id in crawl_nearly_all_of_ext_ids(max_ids):
-        if discovered_id not in known_ids:
-            yield discovered_id
