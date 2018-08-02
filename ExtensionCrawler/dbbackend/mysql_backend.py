@@ -43,7 +43,7 @@ class MysqlBackend:
         self.cursor = None
 
     def __enter__(self):
-        self._create_conn()
+        # We open a connection once we actually need it
         return self
 
     def __exit__(self, *args):
