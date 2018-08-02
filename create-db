@@ -68,8 +68,6 @@ def process_id(from_date, until_date, delayed, path):
             try:
                 with MysqlBackend(
                         extid,
-                        try_wait=10,
-                        maxtries=30,
                         delayed=delayed,
                         cache_etags=True,
                         read_default_file=const_mysql_config_file(),
