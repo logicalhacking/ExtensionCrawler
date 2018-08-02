@@ -5,7 +5,7 @@ set -o errexit
 REMOTE_ARCHIVE=/shared/brucker_research1/Shared/BrowserExtensions/archive
 REMOTE_TARGET_DIR_PREFIX=/data/\$USER
 NUM_THREADS=48
-SGE_EXTRA_ARGS='-P rse -m a -l rmem=4G,h=\!sharc-node126 -M "msherzberg1@sheffield.ac.uk" -j yes'
+SGE_EXTRA_ARGS='-P rse -l h_rt=01:00:00,rmem=4G,h=\!sharc-node126 -j yes'
 PY_EXTRA_ARGS=''
 EXTENSION_IDS=
 
