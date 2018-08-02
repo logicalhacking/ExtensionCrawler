@@ -126,9 +126,10 @@ class MysqlBackend:
                     raise last_exception
                 else:
                     factor = 0.2
-                    logmsg = ("Exception on mysql connection attempt "
+                    logmsg = ("Exception ({}) on mysql connection attempt "
                               "{} of {}, wating {}s +/- {}% before retrying..."
-                              ).format(t + 1,
+                              ).format(str(e),
+                                       t + 1,
                                        self.maxtries,
                                        self.try_wait, factor * 100)
                     log_warning(logmsg, 3)
