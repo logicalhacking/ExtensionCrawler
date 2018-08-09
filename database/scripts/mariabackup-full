@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+set -o nounset
+set -o errexit
+
+/usr/bin/mariabackup --backup --stream=xbstream --parallel=4 --compress --compress-threads=2
