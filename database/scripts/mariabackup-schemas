@@ -1,0 +1,13 @@
+#!/usr/bin/bash
+
+set -o errexit
+set -o nounset
+
+T=$(mktemp -d)
+for db in $(mysql -N -e "show databases" | grep -v -e "^mysql$" -e "^information_schema$" -e "^performance_schema$")
+do
+	mkdir -p $T/schemas/$db
+	mysqldump $db --no-data --single-transaction --tab=$T/schemas/$db
+done
+(cd $T; tar cz *)
+rm -r $T

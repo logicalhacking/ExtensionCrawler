@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -o nounset
+set -o errexit
+
+LSN=$1
+if ! [[ "$LSN" =~ ^[0-9]+$ ]]; then
+	>&2 echo "Invalid LSN: $LSN"
+	exit 1
+fi
+
+/usr/bin/mariabackup --backup --stream=xbstream --parallel=4 --compress --compress-threads=2 --incremental-lsn=$LSN
