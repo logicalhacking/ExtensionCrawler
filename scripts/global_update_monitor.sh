@@ -59,8 +59,13 @@ echo ""
 echo "## Latest log:"
 cat $LATESTGLOBALLOG
 
-ERRORS=`grep ERROR $LATESTLOG | sort -k 5,5 -u | wc -l`
 EXTENSIONS=`grep "Updating db" $LATESTLOG | wc -l`
+
+WE=`grep WorkerException $LATESTLOG | sort -k 5,5 -u | wc -l`
+echo "## Worker Exceptions: $WE (out of $EXTENSIONS)"
+grep WorkerException $LATESTLOG | sort -k 5,5 -u | sort -k 3,3
+
+ERRORS=`grep ERROR $LATESTLOG | sort -k 5,5 -u | wc -l`
 echo "## ERROR LOG: $ERRORS (out of $EXTENSIONS)"
 grep ERROR $LATESTLOG | sort -k 5,5 -u | sort -k 3,3
 

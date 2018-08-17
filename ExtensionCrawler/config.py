@@ -167,8 +167,8 @@ def const_mysql_config_file():
 
 
 def const_mysql_maxtries():
-    return 3
+    return 12
 
 
 def const_mysql_try_wait():
-    return 1
+    return 300

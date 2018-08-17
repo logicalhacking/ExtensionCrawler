@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o nounset
+
+mysql "" --skip-column-names -A -e"SELECT CONCAT('SHOW GRANTS FOR ''',user,'''@''',host,''';') FROM mysql.user WHERE user<>''" | mysql "" --skip-column-names -A | sed 's/$/;/g'

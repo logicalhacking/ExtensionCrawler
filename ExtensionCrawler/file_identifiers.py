@@ -56,7 +56,7 @@ def get_features(s):
     width = 3
     s = s.lower()
     s = re.sub(r'[^\w]+', '', s)
-    return [s[i:i + width] for i in range(max(len(s) - width + 1, 1))]
+    return (s[i:i + width] for i in range(max(len(s) - width + 1, 1)))
 
 
 def get_simhash(encoding, data):

@@ -43,7 +43,7 @@ class MysqlBackend:
         self.cursor = None
 
     def __enter__(self):
-        self._create_conn()
+        # We open a connection once we actually need it
         return self
 
     def __exit__(self, *args):
@@ -126,9 +126,10 @@ class MysqlBackend:
                     raise last_exception
                 else:
                     factor = 0.2
-                    logmsg = ("Exception on mysql connection attempt "
+                    logmsg = ("Exception ({}) on mysql connection attempt "
                               "{} of {}, wating {}s +/- {}% before retrying..."
-                              ).format(t + 1,
+                              ).format(str(e),
+                                       t + 1,
                                        self.maxtries,
                                        self.try_wait, factor * 100)
                     log_warning(logmsg, 3)
@@ -163,7 +164,7 @@ class MysqlBackend:
         if table not in self.cache:
             self.cache[table] = []
         self.cache[table] += arglist
-        if len(self.cache[table]) >= 1000:
+        if len(self.cache[table]) >= 128:
             self._do_insert(table, self.cache[table])
             self.cache[table] = []
         if self.cache_etags and table == "extension":
