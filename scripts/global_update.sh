@@ -19,7 +19,11 @@ date --utc +'* Update Finished (%c)' | tee -a $LOG
 
 ERRORS=`grep ERROR $LOGPREFIX.log | sort -k 5,5 -u | wc -l`
 EXTENSIONS=`grep "Updating db" $LOGPREFIX.log | wc -l`
+WE=`grep WorkerException $LATESTLOG | sort -k 5,5 -u | wc -l`
+echo "Worker Exceptions: $WE (out of $EXTENSIONS)"
+echo "=================="
+grep WorkerException $LATESTLOG | sort -k 5,5 -u | sort -k 3,3
+echo ""
 echo "ERROR LOG: $ERRORS (out of $EXTENSIONS)"
 echo "=========="
 grep ERROR $LOGPREFIX.log | sort -k 5,5 -u | sort -k 3,3 
-
