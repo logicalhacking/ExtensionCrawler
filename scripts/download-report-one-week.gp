@@ -14,11 +14,11 @@ set autoscale x
 set xrange [time(0) - 7*24*60*60:]
 
 set ytics
-set yrange [0:200000]
+set yrange [0:250000]
 set ylabel "Parallel Downloads"
 set ytics 25000
 set mytics 2
-set y2range [0:4000]
+set y2range [0:4500]
 set y2label "Sequential Downloads"
 set y2tics 500
 
