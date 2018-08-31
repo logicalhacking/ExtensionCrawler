@@ -1,7 +1,6 @@
 if (!exists("monitordir")) monitordir='.'
 filename="updates.csv"
 set terminal pngcairo size 3000,800 enhanced font 'Verdana,10'
-
 set output monitordir."/download-report-one-week.png"
 
 day="2018-04-01"
@@ -74,3 +73,35 @@ plot data using 1:4 with lines dashtype 2 lt rgb "#d07b95" axes x1y1 \
 set terminal pdfcairo size 30,8 enhanced font 'Verdana,15'
 set output monitordir."/download-report-one-week.pdf"
 replot
+
+# Plot number of extensions over time
+set title sprintf("Size of Extensions Archive")
+set terminal pngcairo size 3000,800 enhanced font 'Verdana,10'
+set output monitordir."/size-of-archive.png"
+
+set timefmt '%Y-%m-%d %H:%M:%S'
+set format x "%Y-%m-%d"
+
+set xrange ["2018-05-01":*]
+
+
+set yrange [150000:250000]
+set ylabel "Parallel Downloads"
+set y2range [2750:4500]
+
+
+set xtics 604800
+set mxtics 7
+
+
+plot data using 1:4 with lines dashtype 1 lt rgb "#d07b95" axes x1y1 \
+          title "Parallel Downloads"  ,\
+     data using 1:5 with lines dashtype 1 lt rgb "#76eec6" axes x1y2 \
+          title "Sequential Downloads",\
+     data using 1:($4+$5) with lines dashtype 1 lt rgb "#000000" axes x1y1 \
+          title "Total Downloads"  ,\
+ 
+set terminal pdfcairo size 30,8 enhanced font 'Verdana,15'
+set output monitordir."/size-of-archive.pdf"
+replot
+
