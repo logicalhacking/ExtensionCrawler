@@ -19,6 +19,7 @@
 
 import os
 import sys
+import glob
 import getopt
 import tarfile
 import datetime
@@ -100,16 +101,28 @@ def main(argv):
 
     if not useetag:
         etag = None
-    tar = os.path.join(basedir, "data",
-                       get_local_archive_dir(extid), extid + ".tar")
+    basetar = os.path.join(basedir, "data",
+                       get_local_archive_dir(extid), extid)
+    tar = basetar+".tar"
+   
     if last != "":
         if os.path.exists(tar):
+            files = None
             if verbose:
-                print("Extracting " + os.path.join(output, last))
+                print("Extracting " + os.path.join(output, last) + " from " + tar)
             with tarfile.open(tar, 'r') as archive:
-                archive.extractall(
-                    path=output,
-                    members=get_tarinfo(archive, last, winfs, etag))
+                files = archive.extractall(
+                            path=output,
+                            members=get_tarinfo(archive, last, winfs, etag))
+            archivetars = sorted(glob.glob(basetar+".[0-9][0-9][0-9].tar.xz"))
+            while (not files and  archivetars):
+                tar = archivetars.pop()
+                if verbose:
+                    print("Extracting " + os.path.join(output, last) + " from " + tar)
+                with tarfile.open(tar, 'r:xz') as archive:
+                    files = archive.extractall(
+                                path=output,
+                                members=get_tarinfo(archive, last, winfs, etag))
         elif verbose:
             print("Cannot find archive " + tar)
     elif verbose:
