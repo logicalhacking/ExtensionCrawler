@@ -172,12 +172,6 @@ def parse_args(argv):
 def main(argv):
     """Main function of the extension crawler."""
 
-    # Use a separate process which forks new worker processes. This should make sure
-    # that processes which got created after running for some time also require only
-    # little memory. Details:
-    # https://docs.python.org/3.6/library/multiprocessing.html#contexts-and-start-methods
-    multiprocessing.set_start_method("forkserver")
-
     today = datetime.datetime.now(datetime.timezone.utc).isoformat()
     basedir, parallel, verbose, discover, max_discover, ext_timeout, start_pystuck = parse_args(argv)
 
