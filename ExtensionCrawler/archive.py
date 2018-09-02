@@ -572,9 +572,6 @@ def update_extension(tup):
 
 
 def init_process(verbose, start_pystuck, rm):
-    # When not using fork, we need to setup logging again in the worker threads
-    setup_logger(verbose)
-
     if start_pystuck:
         import pystuck
         pystuck.run_server(port=((os.getpid() % 10000) + 10001))
