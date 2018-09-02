@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.6
 #
-# Copyright (C) 2017 The University of Sheffield, UK
+# Copyright (C) 2017-2018 The University of Sheffield, UK
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,10 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Tool for extracting crx file from a tar archive."""
 
 import os
 import sys
+import glob
 import getopt
 import tarfile
 import datetime
@@ -100,16 +102,28 @@ def main(argv):
 
     if not useetag:
         etag = None
-    tar = os.path.join(basedir, "data",
-                       get_local_archive_dir(extid), extid + ".tar")
+    basetar = os.path.join(basedir, "data",
+                       get_local_archive_dir(extid), extid)
+    tar = basetar+".tar"
+   
     if last != "":
         if os.path.exists(tar):
+            files = None
             if verbose:
-                print("Extracting " + os.path.join(output, last))
+                print("Extracting " + os.path.join(output, last) + " from " + tar)
             with tarfile.open(tar, 'r') as archive:
-                archive.extractall(
-                    path=output,
-                    members=get_tarinfo(archive, last, winfs, etag))
+                files = archive.extractall(
+                            path=output,
+                            members=get_tarinfo(archive, last, winfs, etag))
+            archivetars = sorted(glob.glob(basetar+".[0-9][0-9][0-9].tar.xz"))
+            while (not files and  archivetars):
+                tar = archivetars.pop()
+                if verbose:
+                    print("Extracting " + os.path.join(output, last) + " from " + tar)
+                with tarfile.open(tar, 'r:xz') as archive:
+                    files = archive.extractall(
+                                path=output,
+                                members=get_tarinfo(archive, last, winfs, etag))
         elif verbose:
             print("Cannot find archive " + tar)
     elif verbose:
