@@ -49,8 +49,10 @@ fi
 
 echo "* current status"
 PDOWNLOADS=`grep 'Updating extension $' $LATESTLOG | wc -l`
+PDOWNLOADS=$(($PDOWNLOADS/2))
 echo "  * parallel downloads finished:   $PDOWNLOADS" 
 SDOWNLOADS=`grep 'Updating extension  (' $LATESTLOG | wc -l`
+SDOWNLOADS=$(($SDOWNLOADS/2))
 echo "  * sequential downloads finished: $SDOWNLOADS" 
 echo "  * Updating info from log ($LATESTLOG):"
 grep 'Updating .* extensions' $LATESTLOG  | sed -e 's/^.*---//'
