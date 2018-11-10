@@ -89,7 +89,7 @@ def process_id(from_date, until_date, delayed, path):
 def find(archive, pattern):
     for root, _, files in os.walk(os.path.join(archive, "data")):
         for file in files:
-            if fnmatch.fnmatch(file, pattern + ".tar"):
+            if fnmatch.fnmatch(file, pattern + ".tar") or fnmatch.fnmatch(file, pattern + ".[0-9][0-9][0-9].tar.xz"):
                 yield os.path.join(root, file)
 
 
