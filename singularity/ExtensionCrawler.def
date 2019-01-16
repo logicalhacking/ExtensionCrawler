@@ -73,7 +73,7 @@ echo "LANG=en_US.UTF-8" > /etc/default/locale
 ###################################################################
 # Install the core dependencies (Python 3.6 or later)
 # from the Debian Testing repository
-apt-get	install -y --no-install-recommends python3-magic python3-minimal python3-pip python3-setuptools python3-mysqldb g++ git
+apt-get	install -y --no-install-recommends libpython3.7-dev python3-magic python3-minimal python3-pip python3-setuptools python3-mysqldb g++ git
 apt-get clean
 rm -rf /var/lib/apt/lists/* 
 ###################################################################
