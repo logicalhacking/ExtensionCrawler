@@ -1,0 +1,8 @@
+start with current version & never update
+start with outdated version & never update
+update frequently
+downgrade
+
+
+angular is transitive dep
+own dep
