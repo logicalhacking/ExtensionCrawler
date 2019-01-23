@@ -20,6 +20,7 @@ import datetime
 from collections import OrderedDict
 from random import uniform
 import sys
+import configparser
 
 import MySQLdb
 import _mysql_exceptions
@@ -41,6 +42,23 @@ class MysqlBackend:
         self.crx_etag_cache = {}
         self.db = None
         self.cursor = None
+
+        # For more info, see https://jira.mariadb.org/browse/CONC-359
+        self._fix_missing_host(self.dbargs)
+
+    def _fix_missing_host(self, dbargs):
+        if "host" in dbargs:
+            return
+
+        if "read_default_file" not in dbargs:
+            return
+
+        config = configparser.ConfigParser()
+        config.read(dbargs["read_default_file"])
+        if "host" not in config["client"]:
+            return
+        dbargs["host"] = config["client"]["host"]
+
 
     def __enter__(self):
         # We open a connection once we actually need it
