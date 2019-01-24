@@ -632,3 +632,22 @@ def get_forum_ext_ids(confdir):
     r = re.compile('^[a-p]+$')
     ids = [x.strip() for x in ids]
     return list(filter(r.match, ids))
+
+
+def iter_tar_entries_from_file_ext(archivedir, extid, ext):
+    tar = os.path.join(archivedir, get_local_archive_dir(extid), extid + ext)
+    with tarfile.open(tar, 'r') as tf:
+        for tarentry in tf:
+            yield (tarentry, tf.extractfile(tarentry))
+
+def iter_tar_entries(archivedir, extid):
+    for i in range(1000):
+        ext = "." + str(i).zfill(3) + ".tar.xz"
+        try:
+            for (tarentry, tarfile) in iter_tar_entries_from_file_ext(archivedir, extid, ext):
+                yield (tarentry, tarfile)
+        except FileNotFoundError:
+            break
+    ext = ".tar"
+    for (tarentry, tarfile) in iter_tar_entries_from_file_ext(archivedir, extid, ext):
+        yield (tarentry, tarfile)
