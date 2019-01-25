@@ -1,0 +1,185 @@
+#!/usr/bin/env python3.7
+#
+# Copyright (C) 2019 The University of Sheffield, UK
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+import datetime
+import argparse
+import io
+import fnmatch
+import os
+import logging
+import re
+import sys
+import operator
+import tarfile
+import zlib
+from functools import partial, reduce
+from colorama import init, Fore
+from multiprocessing import Pool
+from zipfile import ZipFile
+
+import dateutil
+import dateutil.parser
+import jsbeautifier
+
+from zipfile import ZipFile
+
+from ExtensionCrawler.config import (const_log_format, const_basedir)
+from ExtensionCrawler.archive import iter_tar_entries
+from ExtensionCrawler.config import get_local_archive_dir
+from ExtensionCrawler.js_decomposer import init_file_info
+from ExtensionCrawler.js_mincer import mince_js
+
+
+def is_source_file(zipentry):
+    """Test if filename indicates file with C-style comment."""
+    return (zipentry.filename.endswith(".js") or zipentry.filename.endswith(".js.gz")
+            or zipentry.filename.endswith(".jgz") or zipentry.filename.endswith(".jsg")
+            or zipentry.filename.endswith(".css.gz") or zipentry.filename.endswith(".c")
+            or zipentry.filename.endswith(".cpp") or zipentry.filename.endswith(".java"))
+
+def handle_extid(conf, extid):
+    for tarentry, tarfile in iter_tar_entries(conf.archive_dir, extid):
+        if tarentry.name.endswith(".crx"):
+            with ZipFile(tarfile) as zf:
+                for zipentry in zf.infolist():
+                    if is_source_file(zipentry):
+                        with zf.open(zipentry) as f:
+                            for block in mince_js(io.TextIOWrapper(f, encoding="utf-8", errors="surrogateescape")):
+                                merged_strings = "".join(map(lambda x: x[1], block.string_literals))
+                                print(merged_strings)
+
+                                # for pattern_group in regex_patterns:
+                                #     for pattern in regex_patterns[pattern_group]:
+                                #         if re.search(pattern, merged_strings):
+                                #             if pattern_group not in matches:
+                                #                 matches[pattern_group] = []
+                                #             matches[pattern_group] += [match]
+                                #             matches.add(pattern_group)
+                                # for pattern_group in string_patterns:
+                                #     for pattern in string_patterns[pattern_group]:
+                                #         if pattern in merged_strings:
+                                #             matches.add(pattern_group)
+
+
+
+
+def main(conf):
+    logger = logging.getLogger()
+    ch = logging.StreamHandler(sys.stderr)
+    ch.setFormatter(logging.Formatter(const_log_format()))
+    logger.addHandler(ch)
+    if conf.verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.WARNING)
+
+    with open(conf.EXTID_FILE) as f:
+        for extid in f.readlines():
+            handle_extid(conf, extid)
+
+
+
+if __name__ == "__main__":
+    main_parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        description='Grep for extensions.')
+    main_parser.add_argument(
+        'REGEXP_FILE',
+        help='file with regular expressions')
+    main_parser.add_argument(
+        'EXTID_FILE',
+        help='file with extension ids')
+    main_parser.add_argument(
+        '-v',
+        '--verbose',
+        action='store_true',
+        default=False,
+        help='increase verbosity')
+
+
+    main_parser.add_argument(
+        '-D',
+        '--latest-date',
+        metavar='DATE',
+        type=str,
+        help='select latest crx from tar, released before DATE.\n' +
+        'Together with --from-date, specifies all crx released in specified\n'
+        + 'date range.')
+
+    main_parser.add_argument(
+        '-d',
+        '--from-date',
+        metavar='DATE',
+        type=str,
+        help='select oldest crx from tar released after DATE.\n' +
+        'Together with --latest-date, specifies all crx released in specified\n'
+        + 'date range.')
+
+    main_parser.add_argument(
+        '-a',
+        '--archive-dir',
+        metavar='archive',
+        type=str,
+        default=const_basedir(),
+        help='archive directory')
+
+    comment_group = main_parser.add_argument_group('comment blocks')
+    comment_group.add_argument(
+        '-g',
+        '--group-single-line-comments',
+        help='Group consecutive singe-line comments into blocks')
+    comment_group.add_argument(
+        '-c',
+        '--reg-exp-comments',
+        metavar='REGEXP',
+        type=str,
+        nargs='+',
+        help='search comments for regular expression')
+
+    source_group = main_parser.add_argument_group('source blocks')
+    source_group.add_argument(
+        '-b',
+        '--beautify',
+        action='store_true',
+        default=False,
+        help='beautify source code')
+    source_group.add_argument(
+        '-s',
+        '--reg-exp-source',
+        metavar='REGEXP',
+        type=str,
+        nargs='+',
+        help='search source for regular expression')
+
+    strings_group = main_parser.add_argument_group('string literals')
+    strings_group.add_argument(
+        '-j',
+        '--join-string-literals',
+        action='store_true',
+        help='join string literals (heuristic)')
+    strings_group.add_argument(
+        '-l',
+        '--reg-exp-string-literals',
+        metavar='REGEXP',
+        type=str,
+        nargs='+',
+        help='search string literals for regular expression')
+    main_conf = main_parser.parse_args()
+
+    sys.exit(main(main_conf))
