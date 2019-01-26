@@ -2,9 +2,11 @@
 
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/archive}
 TMPDIR=${TMPDIR:-/tmp}
-LOGPREFIX=$ARCHIVE/log/`date --utc +"%Y-%m"`
+
+LOGDIR=$ARCHIVE/log/`date --utc +"%Y-%m"`
+mkdir -p $LOGDIR
+LOGPREFIX=$LOGDIR/`date --utc --iso-8601=ns | sed -e 's/:/_/g'`
 LOG=$LOGPREFIX-cdnjs.log 
-mkdir -p $LOGPREFIX
 
 SING_IMG=/shared/brucker_research1/Shared/BrowserExtensions/archive/filedb/ExtensionCrawler-cdnjs.img
 date --utc +'* Create backup of disk image (%c)' | tee -a $LOG
