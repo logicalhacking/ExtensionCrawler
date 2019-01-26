@@ -26,7 +26,7 @@ esac
 done
 
 LATESTLOG=`ls $ARCHIVE/log/*/*0.log | tail -n 1`
-LATESTGLOBALLOG=`ls $ARCHIVE/log/*/*-global.log $ARCHIVE/log/*-global.log| tail -n 1`
+LATESTGLOBALLOG=`ls $ARCHIVE/log/*/*-global.log | tail -n 1`
 BASEDIR=$(dirname "$0")
 
 PIDS=""
