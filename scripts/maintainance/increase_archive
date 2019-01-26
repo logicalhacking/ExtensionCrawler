@@ -1,11 +1,13 @@
 #!/bin/bash
 
-ARCHIVE=${1:-/srv/Shared/BrowserExtensions/archive}
+ACTION=${1:-MAIN}
+ARCHIVE=${2:-/srv/Shared/BrowserExtensions/archive}
+
 LOGDIR=$ARCHIVE/log/`date --utc +"%Y-%m"`
 mkdir -p $LOGDIR
 LOGPREFIX=$LOGDIR/`date --utc --iso-8601=ns | sed -e 's/:/_/g'`
-LOG=${2:-$LOGPREFIX-global.log} 
-ACTION=${3:-MAIN}
+LOG=${3:-$LOGPREFIX-maintain-archive-$ACTION.log} 
+
 SELF=$0
 SRC=$4
 
@@ -40,7 +42,7 @@ next_generation(){
 main(){
     find $ARCHIVE/data/ \
          -name "[a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p].tar" \
-         -exec $SELF $ARCHIVE $LOG MOVE {} \;
+         -exec $SELF MOVE $ARCHIVE $LOG {} \;
 }
 
 case "$ACTION" in
