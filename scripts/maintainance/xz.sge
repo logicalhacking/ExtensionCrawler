@@ -1,0 +1,10 @@
+#!/bin/bash
+#$ -V
+#$ -l rmem=2G
+#$ -j yes
+set -o nounset
+set -x
+
+xz $1
+
+
