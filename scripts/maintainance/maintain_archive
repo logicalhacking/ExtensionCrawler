@@ -42,7 +42,8 @@ next_generation(){
 zge_compress(){
     mkdir -p $LOG.dir
     find $ARCHIVE/data/ \
-         -name "[a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p].[0-9][0-9][0-9].tar" \
+	 -type d \
+         -name "[a-p][a-p][a-p]" \
          -exec qsub -o  $LOG.dir `dirname $SELF`/xz.sge {} \;
 }
 
