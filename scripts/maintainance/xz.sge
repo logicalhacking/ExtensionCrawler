@@ -6,6 +6,5 @@ set -o nounset
 set -x
 
 find $1 \
-	 -type d \
          -name "[a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p].[0-9][0-9][0-9].tar" \
          -exec xz {} \;
