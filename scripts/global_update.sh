@@ -8,7 +8,7 @@ CRAWLERHOME=${2:-~/ExtensionCrawler}
 IMAGE=${3:-/shared/brucker_research1/Shared/BrowserExtensions/bin/ExtensionCrawler.img}
 LOGDIR=$ARCHIVE/log/`date --utc +"%Y-%m"`
 mkdir -p $LOGDIR
-LOGPREFIX=$LOGDIR/`date --utc --iso-8601=ns | sed -e 's/:/_/g'`
+LOGPREFIX=$LOGDIR/`date --utc --iso-8601=ns | sed -e 's/:/_/g' -e 's/,/./'`
 LOG=$LOGPREFIX-global.log 
 
 date --utc +'* Start Updating Extensions Archive (%c)' | tee $LOG
