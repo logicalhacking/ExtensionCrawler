@@ -17,34 +17,18 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import datetime
 import argparse
 import io
-import fnmatch
-import os
 import logging
 import re
 import json
 import sys
-import operator
-import tarfile
-import zlib
-from functools import partial, reduce
-from colorama import init, Fore
-from multiprocessing import Pool
-from zipfile import ZipFile
-
-import dateutil
-import dateutil.parser
-import jsbeautifier
 import importlib.util
 
 from zipfile import ZipFile
 
 from ExtensionCrawler.config import (const_log_format, const_basedir)
 from ExtensionCrawler.archive import iter_tar_entries
-from ExtensionCrawler.config import get_local_archive_dir
-from ExtensionCrawler.js_decomposer import init_file_info
 from ExtensionCrawler.js_mincer import mince_js
 
 
