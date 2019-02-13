@@ -24,6 +24,7 @@ import fnmatch
 import os
 import logging
 import re
+import json
 import sys
 import operator
 import tarfile
@@ -36,6 +37,7 @@ from zipfile import ZipFile
 import dateutil
 import dateutil.parser
 import jsbeautifier
+import importlib.util
 
 from zipfile import ZipFile
 
@@ -53,30 +55,102 @@ def is_source_file(zipentry):
             or zipentry.filename.endswith(".css.gz") or zipentry.filename.endswith(".c")
             or zipentry.filename.endswith(".cpp") or zipentry.filename.endswith(".java"))
 
+def import_regexs(path):
+    spec = importlib.util.spec_from_file_location("MinerStrings", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+def get_etag(header_tarentry):
+    headers_content = header_tarentry.read().decode().replace(
+            '"', '\\"').replace("'", '"')
+    headers_json = json.loads(headers_content)
+    if "ETag" in headers_json:
+        return headers_json["ETag"]
+
+def get_name_and_version(overview_tarentry):
+    contents = overview_tarentry.read().decode()
+
+    # Extract extension name
+    match = re.search("""<meta itemprop="name" content="(.*?)"\s*/>""",
+                      contents)
+    name = match.group(1) if match else None
+
+    # Extract extension version
+    match = re.search(
+        """<meta itemprop="version" content="(.*?)"\s*/>""", contents)
+    version = match.group(1) if match else None
+
+    return name, version
+
 def handle_extid(conf, extid):
+    miner_strings = import_regexs(conf.REGEXP_FILE).MinerStrings()
+
+    results = {}
+
+    still_in_store = None
+    crx_etags = [None]
     for tarentry, tarfile in iter_tar_entries(conf.archive_dir, extid):
-        if tarentry.name.endswith(".crx"):
+        if tarentry.isdir():
+            continue
+        date = tarentry.name.split("/")[1]
+        if conf.from_date and not (conf.from_date <= date):
+            continue
+        if conf.latest_date and not (date <= conf.latest_date):
+            continue
+
+        if date not in results:
+            results[date] = {}
+            results[date]["crx_etag"] = None
+            results[date]["name"] = None
+            results[date]["version"] = None
+            results[date]["matches"] = []
+
+        tar_file_name = tarentry.name.split("/")[-1]
+
+        if tar_file_name.endswith(".crx.headers"):
+            crx_etag = get_etag(tarfile)
+            results[date]["crx_etag"] = crx_etag
+            if crx_etag:
+                crx_etags += [crx_etag]
+
+        if tar_file_name == "overview.html":
+            results[date]["name"], results[date]["version"] = get_name_and_version(tarfile)
+
+        if tar_file_name == "overview.html.status":
+            still_in_store = tarfile.read().decode().startswith("2")
+
+        if tar_file_name.endswith(".crx"):
             with ZipFile(tarfile) as zf:
                 for zipentry in zf.infolist():
                     if is_source_file(zipentry):
                         with zf.open(zipentry) as f:
                             for block in mince_js(io.TextIOWrapper(f, encoding="utf-8", errors="surrogateescape")):
-                                merged_strings = "".join(map(lambda x: x[1], block.string_literals))
-                                print(merged_strings)
 
-                                # for pattern_group in regex_patterns:
-                                #     for pattern in regex_patterns[pattern_group]:
-                                #         if re.search(pattern, merged_strings):
-                                #             if pattern_group not in matches:
-                                #                 matches[pattern_group] = []
-                                #             matches[pattern_group] += [match]
-                                #             matches.add(pattern_group)
-                                # for pattern_group in string_patterns:
-                                #     for pattern in string_patterns[pattern_group]:
-                                #         if pattern in merged_strings:
-                                #             matches.add(pattern_group)
+                                file_lines = []
+                                file_lines += block.content.splitlines()
+                                file_lines += "".join(map(lambda x: x[1], block.string_literals)).splitlines()
 
+                                for search_tag in miner_strings.strings.keys():
+                                    for search_string in miner_strings.strings[search_tag]:
+                                        for line in file_lines:
+                                            if search_string in line:
+                                                results[date]["matches"] += [[zipentry.filename, search_tag, search_string]]
+                                                break
 
+                                for search_tag in miner_strings.patterns.keys():
+                                    for search_pattern in miner_strings.patterns[search_tag]:
+                                        for line in file_lines:
+                                            m = re.search(search_pattern, line)
+                                            if m:
+                                                results[date]["matches"] += [[zipentry.filename, search_tag, m.group()]]
+                                                break
+                                #for extid, still_in_store, most_recent_crx_etag, date, crx_etag, name, version, path, tag, match
+
+    for date in sorted(results.keys()):
+        result = results[date]
+        for match in result["matches"]:
+            print("|".join([str(x) for x in ([extid, still_in_store, crx_etags[-1], date, result["crx_etag"], result["name"], result["version"]] + match)]))
 
 
 def main(conf):
@@ -90,7 +164,8 @@ def main(conf):
         logger.setLevel(logging.WARNING)
 
     with open(conf.EXTID_FILE) as f:
-        for extid in f.readlines():
+        print("|".join(["extid", "still_in_store", "most_recent_crx_etag", "date", "crx_etag", "name", "version", "path", "tag", "match"]))
+        for extid in [l.strip() for l in f.readlines()]:
             handle_extid(conf, extid)
 
 
@@ -101,7 +176,7 @@ if __name__ == "__main__":
         description='Grep for extensions.')
     main_parser.add_argument(
         'REGEXP_FILE',
-        help='file with regular expressions')
+        help='python file with regular expressions')
     main_parser.add_argument(
         'EXTID_FILE',
         help='file with extension ids')
@@ -139,47 +214,47 @@ if __name__ == "__main__":
         default=const_basedir(),
         help='archive directory')
 
-    comment_group = main_parser.add_argument_group('comment blocks')
-    comment_group.add_argument(
-        '-g',
-        '--group-single-line-comments',
-        help='Group consecutive singe-line comments into blocks')
-    comment_group.add_argument(
-        '-c',
-        '--reg-exp-comments',
-        metavar='REGEXP',
-        type=str,
-        nargs='+',
-        help='search comments for regular expression')
+    # comment_group = main_parser.add_argument_group('comment blocks')
+    # comment_group.add_argument(
+    #     '-g',
+    #     '--group-single-line-comments',
+    #     help='Group consecutive singe-line comments into blocks')
+    # comment_group.add_argument(
+    #     '-c',
+    #     '--reg-exp-comments',
+    #     metavar='REGEXP',
+    #     type=str,
+    #     nargs='+',
+    #     help='search comments for regular expression')
 
-    source_group = main_parser.add_argument_group('source blocks')
-    source_group.add_argument(
-        '-b',
-        '--beautify',
-        action='store_true',
-        default=False,
-        help='beautify source code')
-    source_group.add_argument(
-        '-s',
-        '--reg-exp-source',
-        metavar='REGEXP',
-        type=str,
-        nargs='+',
-        help='search source for regular expression')
+    # source_group = main_parser.add_argument_group('source blocks')
+    # source_group.add_argument(
+    #     '-b',
+    #     '--beautify',
+    #     action='store_true',
+    #     default=False,
+    #     help='beautify source code')
+    # source_group.add_argument(
+    #     '-s',
+    #     '--reg-exp-source',
+    #     metavar='REGEXP',
+    #     type=str,
+    #     nargs='+',
+    #     help='search source for regular expression')
 
-    strings_group = main_parser.add_argument_group('string literals')
-    strings_group.add_argument(
-        '-j',
-        '--join-string-literals',
-        action='store_true',
-        help='join string literals (heuristic)')
-    strings_group.add_argument(
-        '-l',
-        '--reg-exp-string-literals',
-        metavar='REGEXP',
-        type=str,
-        nargs='+',
-        help='search string literals for regular expression')
+    # strings_group = main_parser.add_argument_group('string literals')
+    # strings_group.add_argument(
+    #     '-j',
+    #     '--join-string-literals',
+    #     action='store_true',
+    #     help='join string literals (heuristic)')
+    # strings_group.add_argument(
+    #     '-l',
+    #     '--reg-exp-string-literals',
+    #     metavar='REGEXP',
+    #     type=str,
+    #     nargs='+',
+    #     help='search string literals for regular expression')
     main_conf = main_parser.parse_args()
 
     sys.exit(main(main_conf))
