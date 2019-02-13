@@ -64,7 +64,10 @@ else
 fi
 
 BINDIR=$(dirname "$ARCHIVE")/bin
-LOGPREFIX=$ARCHIVE/log/`date --utc --iso-8601=ns`
+
+LOGDIR=$ARCHIVE/log/`date --utc +"%Y-%m"`
+mkdir -p $LOGDIR
+LOGPREFIX=$LOGDIR/`date --utc --iso-8601=ns | sed -e 's/:/_/g'`
 LOG="$LOGPREFIX-$IMAGE.log"
 
 if [ -f ${IMAGE} ]; then 

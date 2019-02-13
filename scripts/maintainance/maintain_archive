@@ -1,0 +1,63 @@
+#!/bin/bash
+
+ACTION=${1:-MAIN}
+ARCHIVE=${2:-/srv/Shared/BrowserExtensions/archive}
+
+LOGDIR=$ARCHIVE/log/`date --utc +"%Y-%m"`
+mkdir -p $LOGDIR
+LOGPREFIX=$LOGDIR/`date --utc --iso-8601=ns | sed -e 's/:/_/g' -e 's/,/./'`
+LOG=${3:-$LOGPREFIX-maintain-archive-$ACTION.log} 
+
+SELF=$0
+SRC=$4
+
+next_generation(){
+    local src=$1
+    local filebase=`basename $src .tar`
+    local dir=`dirname $src`
+
+    # Check next free file name:
+    if ls $dir/$filebase.[0-9][0-9][0-9].tar.xz &> /dev/null; then
+        latest=`ls $dir/$filebase.[0-9][0-9][0-9].tar.xz | \
+                sort -r | head -1 | \
+                sed -e "s/.*\([0-9][0-9][0-9]\).tar.xz/\1/"`
+        next=`printf %03d $((latest+1))`
+    else
+        next=000
+    fi
+
+    dest=$dir/$filebase.$next.tar
+    echo "Processing: $src -> $dest" | tee -a $LOG
+    mv -n $src $dest
+    if [ ! -f $src ]; then
+        tar -cf $src -T /dev/null
+        if [ ! -f $src ]; then
+            echo "ERROR: cannot create empty tar archive ($src)" | tee -a $LOG
+        fi
+    else
+         echo "ERROR: old archive exists ($src)" | tee -a $LOG
+    fi
+}
+
+zge_compress(){
+    mkdir -p $LOG.dir
+    find $ARCHIVE/data/ \
+	 -type d \
+         -name "[a-p][a-p][a-p]" \
+         -exec qsub -o  $LOG.dir `dirname $SELF`/xz.sge {} \;
+}
+
+main(){
+    find $ARCHIVE/data/ \
+         -name "[a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p][a-p].tar" \
+         -exec $SELF MOVE $ARCHIVE $LOG {} \;
+}
+
+case "$ACTION" in
+    MAIN)
+        main;;
+    MOVE)
+        next_generation $SRC;;
+    COMPRESS)
+       zge_compress;;
+esac

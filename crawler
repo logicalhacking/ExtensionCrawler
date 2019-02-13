@@ -37,6 +37,7 @@ from ExtensionCrawler.util import log_info, log_exception, setup_logger
 def write_log(dirname, fname, text):
     """Write text into the file with name fname in directory dirname."""
     os.makedirs(dirname, exist_ok=True)
+    fname = fname.replace(":", "_")
     with open(os.path.join(dirname, fname), 'w') as logfile:
         logfile.write(text)
 
@@ -191,7 +192,7 @@ def main(argv):
     conf_dir = os.path.join(basedir, "conf")
     os.makedirs(conf_dir, exist_ok=True)
     open(os.path.join(conf_dir, "forums.conf"), 'a').close()
-    log_dir = os.path.join(basedir, "log")
+    log_dir = os.path.join(basedir, "log",datetime.datetime.today().strftime("%Y-%m"))
     os.makedirs(log_dir, exist_ok=True)
 
     start_time = time.time()

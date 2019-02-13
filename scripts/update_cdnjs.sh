@@ -2,7 +2,10 @@
 
 ARCHIVE=${1:-/srv/Shared/BrowserExtensions/archive}
 TMPDIR=${TMPDIR:-/tmp}
-LOGPREFIX=$ARCHIVE/log/`date --utc --iso-8601=ns`
+
+LOGDIR=$ARCHIVE/log/`date --utc +"%Y-%m"`
+mkdir -p $LOGDIR
+LOGPREFIX=$LOGDIR/`date --utc --iso-8601=ns | sed -e 's/:/_/g' -e 's/,/./'`
 LOG=$LOGPREFIX-cdnjs.log 
 
 SING_IMG=/shared/brucker_research1/Shared/BrowserExtensions/archive/filedb/ExtensionCrawler-cdnjs.img
