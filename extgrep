@@ -28,7 +28,7 @@ import importlib.util
 from zipfile import ZipFile
 
 from ExtensionCrawler.config import (const_log_format, const_basedir)
-from ExtensionCrawler.archive import iter_tar_entries
+from ExtensionCrawler.archive import iter_tar_entries, iter_tar_entries_by_date
 from ExtensionCrawler.js_mincer import mince_js
 
 
@@ -45,24 +45,22 @@ def import_regexs(path):
     spec.loader.exec_module(module)
     return module
 
-def get_etag(header_tarentry):
-    headers_content = header_tarentry.read().decode().replace(
+def get_etag(headers_content):
+    headers_content = headers_content.replace(
             '"', '\\"').replace("'", '"')
     headers_json = json.loads(headers_content)
     if "ETag" in headers_json:
         return headers_json["ETag"]
 
-def get_name_and_version(overview_tarentry):
-    contents = overview_tarentry.read().decode()
-
+def get_name_and_version(overview_contents):
     # Extract extension name
     match = re.search("""<meta itemprop="name" content="(.*?)"\s*/>""",
-                      contents)
+                      overview_contents)
     name = match.group(1) if match else None
 
     # Extract extension version
     match = re.search(
-        """<meta itemprop="version" content="(.*?)"\s*/>""", contents)
+        """<meta itemprop="version" content="(.*?)"\s*/>""", overview_contents)
     version = match.group(1) if match else None
 
     return name, version
@@ -70,71 +68,63 @@ def get_name_and_version(overview_tarentry):
 def handle_extid(conf, extid):
     miner_strings = import_regexs(conf.REGEXP_FILE).MinerStrings()
 
-    results = {}
+    results = []
 
     still_in_store = None
     crx_etags = [None]
-    for tarentry, tarfile in iter_tar_entries(conf.archive_dir, extid):
-        if tarentry.isdir():
-            continue
-        date = tarentry.name.split("/")[1]
+    for date, tups in iter_tar_entries_by_date(conf.archive_dir, extid):
         if conf.from_date and not (conf.from_date <= date):
             continue
         if conf.latest_date and not (date <= conf.latest_date):
             continue
 
-        if date not in results:
-            results[date] = {}
-            results[date]["crx_etag"] = None
-            results[date]["name"] = None
-            results[date]["version"] = None
-            results[date]["matches"] = []
+        crx_etag = None
+        name = None
+        version = None
+        matches = []
+        for tarentry, tarfile in tups:
+            tarentry_filename = tarentry.name.split("/")[-1]
 
-        tar_file_name = tarentry.name.split("/")[-1]
+            if tarentry_filename.endswith(".crx.headers"):
+                crx_etag = get_etag(tarfile.read().decode())
+                if crx_etag:
+                    crx_etags += [crx_etag]
 
-        if tar_file_name.endswith(".crx.headers"):
-            crx_etag = get_etag(tarfile)
-            results[date]["crx_etag"] = crx_etag
-            if crx_etag:
-                crx_etags += [crx_etag]
+            if tarentry_filename == "overview.html":
+                name, version = get_name_and_version(tarfile.read().decode())
 
-        if tar_file_name == "overview.html":
-            results[date]["name"], results[date]["version"] = get_name_and_version(tarfile)
+            if tarentry_filename == "overview.html.status":
+                still_in_store = tarfile.read().decode().startswith("2")
 
-        if tar_file_name == "overview.html.status":
-            still_in_store = tarfile.read().decode().startswith("2")
+            if tarentry_filename.endswith(".crx"):
+                with ZipFile(tarfile) as zf:
+                    for zipentry in zf.infolist():
+                        if is_source_file(zipentry):
+                            with zf.open(zipentry) as f:
+                                for block in mince_js(io.TextIOWrapper(f, encoding="utf-8", errors="surrogateescape")):
+                                    file_lines = []
+                                    file_lines += block.content.splitlines()
+                                    file_lines += "".join(map(lambda x: x[1], block.string_literals)).splitlines()
 
-        if tar_file_name.endswith(".crx"):
-            with ZipFile(tarfile) as zf:
-                for zipentry in zf.infolist():
-                    if is_source_file(zipentry):
-                        with zf.open(zipentry) as f:
-                            for block in mince_js(io.TextIOWrapper(f, encoding="utf-8", errors="surrogateescape")):
+                                    for search_tag in miner_strings.strings.keys():
+                                        for search_string in miner_strings.strings[search_tag]:
+                                            for line in file_lines:
+                                                if search_string in line:
+                                                    matches += [[zipentry.filename, search_tag, search_string]]
+                                                    break
 
-                                file_lines = []
-                                file_lines += block.content.splitlines()
-                                file_lines += "".join(map(lambda x: x[1], block.string_literals)).splitlines()
+                                    for search_tag in miner_strings.patterns.keys():
+                                        for search_pattern in miner_strings.patterns[search_tag]:
+                                            for line in file_lines:
+                                                m = re.search(search_pattern, line)
+                                                if m:
+                                                    matches += [[zipentry.filename, search_tag, m.group()]]
+                                                    break
+        for match in matches:
+            results += [[date, crx_etag, name, version] + match]
 
-                                for search_tag in miner_strings.strings.keys():
-                                    for search_string in miner_strings.strings[search_tag]:
-                                        for line in file_lines:
-                                            if search_string in line:
-                                                results[date]["matches"] += [[zipentry.filename, search_tag, search_string]]
-                                                break
-
-                                for search_tag in miner_strings.patterns.keys():
-                                    for search_pattern in miner_strings.patterns[search_tag]:
-                                        for line in file_lines:
-                                            m = re.search(search_pattern, line)
-                                            if m:
-                                                results[date]["matches"] += [[zipentry.filename, search_tag, m.group()]]
-                                                break
-                                #for extid, still_in_store, most_recent_crx_etag, date, crx_etag, name, version, path, tag, match
-
-    for date in sorted(results.keys()):
-        result = results[date]
-        for match in result["matches"]:
-            print("|".join([str(x) for x in ([extid, still_in_store, crx_etags[-1], date, result["crx_etag"], result["name"], result["version"]] + match)]))
+    for result in results:
+        print("|".join([str(x) for x in ([extid, still_in_store, crx_etags[-1]] + result)]))
 
 
 def main(conf):
