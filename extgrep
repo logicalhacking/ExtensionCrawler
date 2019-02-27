@@ -24,20 +24,36 @@ import re
 import json
 import sys
 import importlib.util
+import csv
+import math
 
 from zipfile import ZipFile
 
 from ExtensionCrawler.config import (const_log_format, const_basedir)
-from ExtensionCrawler.archive import iter_tar_entries, iter_tar_entries_by_date
+from ExtensionCrawler.archive import iter_tar_entries_by_date
 from ExtensionCrawler.js_mincer import mince_js
 
 
-def is_source_file(zipentry):
-    """Test if filename indicates file with C-style comment."""
-    return (zipentry.filename.endswith(".js") or zipentry.filename.endswith(".js.gz")
-            or zipentry.filename.endswith(".jgz") or zipentry.filename.endswith(".jsg")
-            or zipentry.filename.endswith(".css.gz") or zipentry.filename.endswith(".c")
-            or zipentry.filename.endswith(".cpp") or zipentry.filename.endswith(".java"))
+def get_shannon_entropy(string):
+    """
+    This code has been borrowed from
+    "http://blog.dkbza.org/2007/05/scanning-data-for-entropy-anomalies.html" and
+    "git@github.com:dxa4481/truffleHog.git"
+    """
+    chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    if not string:
+        return 0
+    entropy = 0
+    for x in chars:
+        p_x = float(string.count(x))/len(string)
+        if p_x > 0:
+            entropy += - p_x*math.log(p_x, 2)
+    return entropy
+
+
+def is_likely_hash(string):
+    return get_shannon_entropy(string) > 2.0 and len([c for c in string if c.isdigit()]) > 4
+
 
 def import_regexs(path):
     spec = importlib.util.spec_from_file_location("MinerStrings", path)
@@ -45,12 +61,14 @@ def import_regexs(path):
     spec.loader.exec_module(module)
     return module
 
+
 def get_etag(headers_content):
     headers_content = headers_content.replace(
             '"', '\\"').replace("'", '"')
     headers_json = json.loads(headers_content)
     if "ETag" in headers_json:
         return headers_json["ETag"]
+
 
 def get_name_and_version(overview_contents):
     # Extract extension name
@@ -65,7 +83,8 @@ def get_name_and_version(overview_contents):
 
     return name, version
 
-def handle_extid(conf, extid):
+
+def handle_extid(conf, extid, csvwriter):
     miner_strings = import_regexs(conf.REGEXP_FILE).MinerStrings()
 
     results = []
@@ -99,7 +118,7 @@ def handle_extid(conf, extid):
             if tarentry_filename.endswith(".crx"):
                 with ZipFile(tarfile) as zf:
                     for zipentry in zf.infolist():
-                        if is_source_file(zipentry):
+                        if zipentry.filename.endswith(".js"):
                             with zf.open(zipentry) as f:
                                 for block in mince_js(io.TextIOWrapper(f, encoding="utf-8", errors="surrogateescape")):
                                     file_lines = []
@@ -118,13 +137,15 @@ def handle_extid(conf, extid):
                                             for line in file_lines:
                                                 m = re.search(search_pattern, line)
                                                 if m:
-                                                    matches += [[zipentry.filename, search_tag, m.group()]]
-                                                    break
+                                                    matched_string = m.group()
+                                                    if search_tag is not "MINING_KEYS_REGEX" or is_likely_hash(matched_string):
+                                                        matches += [[zipentry.filename, search_tag, matched_string]]
+                                                        break
         for match in matches:
             results += [[date, crx_etag, name, version] + match]
 
     for result in results:
-        print("|".join([str(x) for x in ([extid, still_in_store, crx_etags[-1]] + result)]))
+        csvwriter.writerow([str(x) for x in ([extid, still_in_store, crx_etags[-1]] + result)])
 
 
 def main(conf):
@@ -138,13 +159,13 @@ def main(conf):
         logger.setLevel(logging.WARNING)
 
     with open(conf.EXTID_FILE) as f:
-        print("|".join(["extid", "still_in_store", "most_recent_crx_etag", "date", "crx_etag", "name", "version", "path", "tag", "match"]))
+        csvwriter = csv.writer(sys.stdout, csv.unix_dialect)
+        csvwriter.writerow(["extid", "still_in_store", "most_recent_crx_etag", "date", "crx_etag", "name", "version", "path", "tag", "match"])
         for extid in [l.strip() for l in f.readlines()]:
-            handle_extid(conf, extid)
+            handle_extid(conf, extid, csvwriter)
 
 
-
-if __name__ == "__main__":
+def build_parser():
     main_parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description='Grep for extensions.')
@@ -168,8 +189,8 @@ if __name__ == "__main__":
         metavar='DATE',
         type=str,
         help='select latest crx from tar, released before DATE.\n' +
-        'Together with --from-date, specifies all crx released in specified\n'
-        + 'date range.')
+             'Together with --from-date, specifies all crx released in specified\n' +
+             'date range.')
 
     main_parser.add_argument(
         '-d',
@@ -177,8 +198,8 @@ if __name__ == "__main__":
         metavar='DATE',
         type=str,
         help='select oldest crx from tar released after DATE.\n' +
-        'Together with --latest-date, specifies all crx released in specified\n'
-        + 'date range.')
+             'Together with --latest-date, specifies all crx released in specified\n' +
+             'date range.')
 
     main_parser.add_argument(
         '-a',
@@ -188,47 +209,12 @@ if __name__ == "__main__":
         default=const_basedir(),
         help='archive directory')
 
-    # comment_group = main_parser.add_argument_group('comment blocks')
-    # comment_group.add_argument(
-    #     '-g',
-    #     '--group-single-line-comments',
-    #     help='Group consecutive singe-line comments into blocks')
-    # comment_group.add_argument(
-    #     '-c',
-    #     '--reg-exp-comments',
-    #     metavar='REGEXP',
-    #     type=str,
-    #     nargs='+',
-    #     help='search comments for regular expression')
+    return main_parser
 
-    # source_group = main_parser.add_argument_group('source blocks')
-    # source_group.add_argument(
-    #     '-b',
-    #     '--beautify',
-    #     action='store_true',
-    #     default=False,
-    #     help='beautify source code')
-    # source_group.add_argument(
-    #     '-s',
-    #     '--reg-exp-source',
-    #     metavar='REGEXP',
-    #     type=str,
-    #     nargs='+',
-    #     help='search source for regular expression')
 
-    # strings_group = main_parser.add_argument_group('string literals')
-    # strings_group.add_argument(
-    #     '-j',
-    #     '--join-string-literals',
-    #     action='store_true',
-    #     help='join string literals (heuristic)')
-    # strings_group.add_argument(
-    #     '-l',
-    #     '--reg-exp-string-literals',
-    #     metavar='REGEXP',
-    #     type=str,
-    #     nargs='+',
-    #     help='search string literals for regular expression')
+if __name__ == "__main__":
+    main_parser = build_parser()
+
     main_conf = main_parser.parse_args()
 
     sys.exit(main(main_conf))
