@@ -36,6 +36,7 @@ import datetime
 import dateutil
 import dateutil.parser
 import requests
+from itertools import groupby
 
 from ExtensionCrawler.config import (
     const_review_payload, const_review_search_url, const_download_url,
@@ -638,7 +639,8 @@ def iter_tar_entries_from_file_ext(archivedir, extid, ext):
     tar = os.path.join(archivedir, get_local_archive_dir(extid), extid + ext)
     with tarfile.open(tar, 'r') as tf:
         for tarentry in tf:
-            yield (tarentry, tf.extractfile(tarentry))
+            if tarentry.isfile():
+                yield (tarentry, tf.extractfile(tarentry))
 
 def iter_tar_entries(archivedir, extid):
     for i in range(1000):
@@ -651,3 +653,6 @@ def iter_tar_entries(archivedir, extid):
     ext = ".tar"
     for (tarentry, tarfile) in iter_tar_entries_from_file_ext(archivedir, extid, ext):
         yield (tarentry, tarfile)
+
+def iter_tar_entries_by_date(archivedir, extid):
+    return groupby(iter_tar_entries(archivedir, extid), lambda tup: tup[0].name.split("/")[1])
