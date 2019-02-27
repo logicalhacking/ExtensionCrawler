@@ -115,7 +115,7 @@ def handle_extid(conf, extid, csvwriter):
             if tarentry_filename == "overview.html.status":
                 still_in_store = tarfile.read().decode().startswith("2")
 
-            if tarentry_filename.endswith(".crx"):
+            if tarentry_filename.endswith(".crx") and tarentry.size > 0:
                 with ZipFile(tarfile) as zf:
                     for zipentry in zf.infolist():
                         if zipentry.filename.endswith(".js"):
