@@ -84,6 +84,17 @@ def get_name_and_version(overview_contents):
     return name, version
 
 
+def first_match_in_locations(search_tag, pattern, locations):
+    for location_tag, lines in locations:
+        for line in lines:
+            m = re.search(pattern, line)
+            if m:
+                matched_string = m.group()
+                if search_tag is not "MINING_KEYS_REGEX" or is_likely_hash(matched_string):
+                    return [[location_tag, search_tag, matched_string]]
+    return []
+
+
 def handle_extid(conf, extid, csvwriter):
     miner_strings = import_regexs(conf.REGEXP_FILE).MinerStrings()
 
@@ -100,7 +111,7 @@ def handle_extid(conf, extid, csvwriter):
         crx_etag = None
         name = None
         version = None
-        matches = []
+        date_matches = []
         for tarentry, tarfile in tups:
             tarentry_filename = tarentry.name.split("/")[-1]
 
@@ -118,30 +129,31 @@ def handle_extid(conf, extid, csvwriter):
             if tarentry_filename.endswith(".crx") and tarentry.size > 0:
                 with ZipFile(tarfile) as zf:
                     for zipentry in zf.infolist():
+                        file_matches = []
                         if zipentry.filename.endswith(".js"):
                             with zf.open(zipentry) as f:
                                 for block in mince_js(io.TextIOWrapper(f, encoding="utf-8", errors="surrogateescape")):
-                                    file_lines = []
-                                    file_lines += block.content.splitlines()
-                                    file_lines += "".join(map(lambda x: x[1], block.string_literals)).splitlines()
+                                    verbatim_lines = block.content.splitlines()
+                                    joined_string_lines = "".join(map(lambda x: x[1], block.string_literals)).splitlines()
 
                                     for search_tag in miner_strings.strings.keys():
                                         for search_string in miner_strings.strings[search_tag]:
-                                            for line in file_lines:
-                                                if search_string in line:
-                                                    matches += [[zipentry.filename, search_tag, search_string]]
-                                                    break
+                                            for match in first_match_in_locations(search_tag, re.escape(search_string),
+                                                                                  [("verbatim", verbatim_lines),
+                                                                                   ("joined_string", joined_string_lines)]):
+                                                file_matches.append(match)
 
                                     for search_tag in miner_strings.patterns.keys():
                                         for search_pattern in miner_strings.patterns[search_tag]:
-                                            for line in file_lines:
-                                                m = re.search(search_pattern, line)
-                                                if m:
-                                                    matched_string = m.group()
-                                                    if search_tag is not "MINING_KEYS_REGEX" or is_likely_hash(matched_string):
-                                                        matches += [[zipentry.filename, search_tag, matched_string]]
-                                                        break
-        for match in matches:
+                                            for match in first_match_in_locations(search_tag, search_pattern,
+                                                                                  [("verbatim", verbatim_lines),
+                                                                                   ("joined_string", joined_string_lines)]):
+                                                file_matches.append(match)
+
+                        for match in file_matches:
+                            date_matches.append([zipentry.filename] + match)
+
+        for match in date_matches:
             results += [[date, crx_etag, name, version] + match]
 
     for result in results:
@@ -160,7 +172,7 @@ def main(conf):
 
     with open(conf.EXTID_FILE) as f:
         csvwriter = csv.writer(sys.stdout, csv.unix_dialect)
-        csvwriter.writerow(["extid", "still_in_store", "most_recent_crx_etag", "date", "crx_etag", "name", "version", "path", "tag", "match"])
+        csvwriter.writerow(["extid", "still_in_store", "most_recent_crx_etag", "date", "crx_etag", "name", "version", "path", "position", "tag", "match"])
         for extid in [l.strip() for l in f.readlines()]:
             handle_extid(conf, extid, csvwriter)
 
