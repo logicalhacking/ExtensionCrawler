@@ -132,23 +132,25 @@ def handle_extid(conf, extid, csvwriter):
                         file_matches = []
                         if zipentry.filename.endswith(".js"):
                             with zf.open(zipentry) as f:
+                                verbatim_lines = []
+                                joined_string_lines = []
                                 for block in mince_js(io.TextIOWrapper(f, encoding="utf-8", errors="surrogateescape")):
-                                    verbatim_lines = block.content.splitlines()
-                                    joined_string_lines = "".join(map(lambda x: x[1], block.string_literals)).splitlines()
+                                    verbatim_lines += block.content.splitlines()
+                                    joined_string_lines += "".join(map(lambda x: x[1], block.string_literals)).splitlines()
 
-                                    for search_tag in miner_strings.strings.keys():
-                                        for search_string in miner_strings.strings[search_tag]:
-                                            for match in first_match_in_locations(search_tag, re.escape(search_string),
-                                                                                  [("verbatim", verbatim_lines),
-                                                                                   ("joined_string", joined_string_lines)]):
-                                                file_matches.append(match)
+                                for search_tag in miner_strings.strings.keys():
+                                    for search_string in miner_strings.strings[search_tag]:
+                                        for match in first_match_in_locations(search_tag, re.escape(search_string),
+                                                                              [("verbatim", verbatim_lines),
+                                                                               ("joined_string", joined_string_lines)]):
+                                            file_matches.append(match)
 
-                                    for search_tag in miner_strings.patterns.keys():
-                                        for search_pattern in miner_strings.patterns[search_tag]:
-                                            for match in first_match_in_locations(search_tag, search_pattern,
-                                                                                  [("verbatim", verbatim_lines),
-                                                                                   ("joined_string", joined_string_lines)]):
-                                                file_matches.append(match)
+                                for search_tag in miner_strings.patterns.keys():
+                                    for search_pattern in miner_strings.patterns[search_tag]:
+                                        for match in first_match_in_locations(search_tag, search_pattern,
+                                                                              [("verbatim", verbatim_lines),
+                                                                               ("joined_string", joined_string_lines)]):
+                                            file_matches.append(match)
 
                         for match in file_matches:
                             date_matches.append([zipentry.filename] + match)
