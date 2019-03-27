@@ -130,7 +130,7 @@ def handle_extid(conf, extid, csvwriter):
                 with ZipFile(tarfile) as zf:
                     for zipentry in zf.infolist():
                         file_matches = []
-                        if zipentry.filename.endswith(".js"):
+                        if zipentry.filename.endswith(".js") or zipentry.filename.endswith(".html"):
                             with zf.open(zipentry) as f:
                                 verbatim_lines = []
                                 joined_string_lines = []
