@@ -467,6 +467,7 @@ def update_support(tar, date, ext_id):
 
 def update_extension(tup):
     archivedir, con, ext_id, forums = tup
+    upate_db = False
     set_logger_tag(ext_id)
     log_info("Updating extension {}".format(" (including forums)" if forums else ""), 1)
     is_new = False
@@ -543,19 +544,22 @@ def update_extension(tup):
                        traceback.format_exc())
         except Exception:
             pass
-
-    try:
-        update_db_incremental(tmptardir, ext_id, date, con)
-        sql_success = True
-    except Exception as e:
-        log_exception("* Exception during update of db", 3)
-        sql_exception = e
-
+    if update_db:
         try:
-            write_text(tardir, date, ext_id + ".sql.exception",
-                       traceback.format_exc())
-        except Exception:
-            pass
+            update_db_incremental(tmptardir, ext_id, date, con)
+            sql_success = True
+        except Exception as e:
+            log_exception("* Exception during update of db", 3)
+            sql_exception = e
+
+            try:
+                write_text(tardir, date, ext_id + ".sql.exception",
+                           traceback.format_exc())
+            except Exception:
+                pass
+    else:
+        log_info("* DB Update disabled")
+        
     try:
         shutil.rmtree(path=tmpdir)
     except Exception as e:
