@@ -467,7 +467,7 @@ def update_support(tar, date, ext_id):
 
 def update_extension(tup):
     archivedir, con, ext_id, forums = tup
-    upate_db = False
+    update_db = False
     set_logger_tag(ext_id)
     log_info("Updating extension {}".format(" (including forums)" if forums else ""), 1)
     is_new = False
