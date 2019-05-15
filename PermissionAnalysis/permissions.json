@@ -121,7 +121,7 @@
         "chrome.socket.recvFrom",
         "chrome.socket.sendTo",
         "chrome.socket.listen",
-        " chrome.socket.accept",
+        "chrome.socket.accept",
         "chrome.socket.setKeepAlive",
         "chrome.socket.setNoDelay",
         "chrome.socket.getInfo",
@@ -204,6 +204,12 @@
         " chrome.serial.setControlSignals",
         "chrome.serial.setBreak",
         "chrome.serial.clearBreak"
+    ],
+    "pkcs11": [
+        "pkcs11.getModuleSlots",
+        "pkcs11.installModule",
+        "pkcs11.isModuleInstalled",
+        "pkcs11.uninstallModule"
     ],
     "browsingData": [
         "chrome.browsingData.settings",
@@ -496,8 +502,8 @@
         "chrome.identity.getRedirectURL"
     ],
     "clipboardWrite": [
-        "document.execCommand(copy)",
-        "document.execCommand(cut)"
+        "document.execCommand(\"copy\")",
+        "document.execCommand(\"cut\")"
     ],
     "system.display": [
         "chrome.system.display.getInfo",
