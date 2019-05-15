@@ -26,6 +26,7 @@ import sys
 import importlib.util
 import csv
 import math
+import ast
 
 from zipfile import ZipFile
 
@@ -63,11 +64,9 @@ def import_regexs(path):
 
 
 def get_etag(headers_content):
-    headers_content = headers_content.replace(
-            '"', '\\"').replace("'", '"')
-    headers_json = json.loads(headers_content)
-    if "ETag" in headers_json:
-        return headers_json["ETag"]
+    d = ast.literal_eval(headers_content)
+    if "ETag" in d:
+        return d["ETag"]
 
 
 def get_name_and_version(overview_contents):
