@@ -13,7 +13,7 @@ set autoscale x
 set xrange [time(0) - 7*24*60*60:]
 
 set ytics
-set yrange [0:250000]
+set yrange [0:300000]
 set ylabel "Parallel Downloads"
 set ytics 25000
 set mytics 2
@@ -85,13 +85,13 @@ set format x "%Y-%m-%d"
 set xrange ["2018-05-01":*]
 
 
-set yrange [150000:250000]
+set yrange [150000:300000]
 set ylabel "Parallel Downloads"
 set y2range [2750:4500]
 
 
 set xtics 604800
-set mxtics 7
+set mxtics 7 
 
 
 plot data using 1:4 with lines dashtype 1 lt rgb "#d07b95" axes x1y1 \
