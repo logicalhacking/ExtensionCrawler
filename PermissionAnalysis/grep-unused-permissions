@@ -157,7 +157,10 @@ def main(conf):
         csvwriter.writerow(["extid", "still_in_store", "most_recent_crx_etag", "date", "crx_etag", "name", "version"]
                            + sorted(list(permission_map.keys())))
         for extid in [l.strip() for l in f.readlines()]:
-            handle_extid(conf, extid, permission_map, csvwriter)
+            try:
+                handle_extid(conf, extid, permission_map, csvwriter)
+            except Exception as e:
+                logging.exception(f"Fatal error when handling extension '{extid}'")
 
 
 def build_parser():
