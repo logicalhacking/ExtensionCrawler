@@ -54,7 +54,7 @@ def get_metadata(overview_contents):
     # Extracts extension categories
     match = re.search(
         """Attribute name="category">(.+?)</Attribute>""", overview_contents)
-    categories = match.group(1).split(",") if match else None
+    categories = match.group(1).split(",") if match else []
 
     # Extracts the number of downloads
     match = re.search(
