@@ -44,7 +44,7 @@ clean_jobdir(){
 
 split_input(){
     echo "Splitting input."
-    split -d -a 8 -e -n l/$jobs "$input" "$workdir/input/"
+    split --numeric-suffixes=1 -a 8 -e -n l/$jobs "$input" "$workdir/input/"
 }
 
 mk_hpc_script(){
@@ -68,12 +68,14 @@ mk_hpc_script(){
 #$ -j yes
 #$ -o "$prefix"/"$name"/output
 
-export JOBINPUT="$prefix"/"$name"/input/\`printf %08d \$SGE_TASK_ID\`
 
 set -o nounset
+set -o errexit
 set -x
 
-/usr/bin/time -v $wrapper "$prefix"/"$name"/"bin"/$cmd
+export JOBINPUT="$prefix"/"$name"/input/\`printf %08d \$SGE_TASK_ID\`
+
+/usr/bin/time -v $wrapper $prefix/$name/bin/$cmd
 echo "Execution successful."
 EOF
 }
@@ -112,7 +114,7 @@ workdir=`mktemp -d`
 echo $workdir
 
 ## default values
-prefix="~/hpc/"
+prefix="\$HOME/hpc"
 jobs=1
 name="$host-$USER-$timestamp"
 input=""
