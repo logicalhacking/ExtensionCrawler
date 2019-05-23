@@ -25,6 +25,7 @@ import json
 import sys
 import csv
 from jsmin import jsmin
+import ast
 
 from zipfile import ZipFile
 
@@ -34,14 +35,12 @@ from ExtensionCrawler.js_mincer import mince_js
 
 
 def get_etag(headers_content):
-    headers_content = headers_content.replace(
-        '"', '\\"').replace("'", '"')
-    headers_json = json.loads(headers_content)
-    if "ETag" in headers_json:
-        return headers_json["ETag"]
+    d = ast.literal_eval(headers_content)
+    if "ETag" in d:
+        return d["ETag"]
 
 
-def get_name_and_version(overview_contents):
+def get_metadata(overview_contents):
     # Extract extension name
     match = re.search("""<meta itemprop="name" content="(.*?)"\s*/>""",
                       overview_contents)
@@ -51,8 +50,19 @@ def get_name_and_version(overview_contents):
     match = re.search(
         """<meta itemprop="version" content="(.*?)"\s*/>""", overview_contents)
     version = match.group(1) if match else None
+    
+    # Extracts extension categories
+    match = re.search(
+        """Attribute name="category">(.+?)</Attribute>""", overview_contents)
+    categories = match.group(1).split(",") if match else []
 
-    return name, version
+    # Extracts the number of downloads
+    match = re.search(
+        """<meta itemprop="interactionCount" content="UserDownloads:((:?\d|,)+)""",
+        overview_contents)
+    downloads = int(match.group(1).replace(",", '')) if match else None
+
+    return name, version, categories, downloads
 
 
 def handle_extid(conf, extid, permission_map, csvwriter):
@@ -84,7 +94,7 @@ def handle_extid(conf, extid, permission_map, csvwriter):
                     crx_etags += [crx_etag]
 
             if tarentry_filename == "overview.html":
-                name, version = get_name_and_version(tarfile.read().decode())
+                name, version, categories, downloads = get_metadata(tarfile.read().decode())
 
             if tarentry_filename == "overview.html.status":
                 still_in_store = tarfile.read().decode().startswith("2")
@@ -122,7 +132,7 @@ def handle_extid(conf, extid, permission_map, csvwriter):
                                         used_permissions.add(str(permission))
 
         if has_crx_file:
-            line = [date, crx_etag, name, version]
+            line = [date, crx_etag, name, version, "+".join(categories), downloads]
             for permission in sorted(list(permission_map.keys())):
                 if permission in used_permissions:
                     if date_matches[permission]:
@@ -155,10 +165,13 @@ def main(conf):
 
     with open(conf.EXTID_FILE) as f:
         csvwriter = csv.writer(sys.stdout, csv.unix_dialect)
-        csvwriter.writerow(["extid", "still_in_store", "most_recent_crx_etag", "date", "crx_etag", "name", "version"]
+        csvwriter.writerow(["extid", "still_in_store", "most_recent_crx_etag", "date", "crx_etag", "name", "version", "categories", "downloads"]
                            + sorted(list(permission_map.keys())))
         for extid in [l.strip() for l in f.readlines()]:
-            handle_extid(conf, extid, permission_map, csvwriter)
+            try:
+                handle_extid(conf, extid, permission_map, csvwriter)
+            except Exception as e:
+                logging.exception(f"Fatal error when handling extension '{extid}'")
 
 
 def build_parser():

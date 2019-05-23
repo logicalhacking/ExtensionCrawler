@@ -31,6 +31,7 @@ import glob
 import datetime
 import hashlib
 from jsmin import jsmin
+import ast
 
 
 def get_etag(ext_id, datepath, con):
@@ -48,7 +49,7 @@ def get_etag(ext_id, datepath, con):
         with open(headerpath) as f:
             content = f.read()
             try:
-                headers = eval(content)
+                headers = ast.literal_eval(content)
                 if "ETag" in headers:
                     return headers["ETag"]
             except Exception:

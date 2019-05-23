@@ -17,9 +17,10 @@ usage() {
   echo "  -s \"<args>\" (add qsub arguments, default: ${SGE_EXTRA_ARGS})"
   echo "  -p \"<args>\" (add python script arguments, default: ${PY_EXTRA_ARGS})"
   echo "  -e <path> (set path to extension id list, default: crawl from archive)"
+  echo "  -l <N> (limit number of sharc tasks, default: number of extensions)"
 }
 
-while getopts ":a:t:s:p:m:e:" o; do
+while getopts ":a:t:s:p:m:e:l:" o; do
   case "${o}" in
     a)
       REMOTE_ARCHIVE=${OPTARG}
@@ -38,6 +39,9 @@ while getopts ":a:t:s:p:m:e:" o; do
       ;;
     e)
       EXTENSION_IDS="${OPTARG}"
+      ;;
+    l)
+      MAX_TASKS="${OPTARG}"
       ;;
     *)
       usage
@@ -59,13 +63,19 @@ echo "Pushing sge script ..."
 scp "$BASEDIR/sge/create-db.sge" sharc.shef.ac.uk:"$TARGETDIR/create-db.sge"
 
 echo "Building image..."
-if [ -f "$BASEDIR/singularity/create-db.img" ]; then
-  rm -f "$BASEDIR/singularity/create-db.img"
+if [ -f "$BASEDIR/scripts/singularity/create-db.img" ]; then
+  rm -f "$BASEDIR/scripts/singularity/create-db.img"
 fi
-sudo singularity build "$BASEDIR/singularity/create-db.img" "$BASEDIR/singularity/ExtensionCrawler-dev.def"
+(
+  cd "$BASEDIR/scripts/singularity"
+  if [[ "$(docker images -q singularitybuilder-arch 2> /dev/null)" == "" ]]; then
+    docker build --tag=singularitybuilder -f singularitybuilder-arch.Dockerfile .
+  fi
+  docker run -it -v "$(pwd):$(pwd)" -w "$(pwd)" --privileged singularitybuilder-arch:latest singularity build create-db.img ExtensionCrawler.def
+)
 
 echo "Pushing image..."
-scp "$BASEDIR/singularity/create-db.img" sharc.shef.ac.uk:"$TARGETDIR/create-db.img"
+scp "$BASEDIR/scripts/singularity/create-db.img" sharc.shef.ac.uk:"$TARGETDIR/create-db.img"
 
 
 if [[ -z $EXTENSION_IDS ]]; then
@@ -86,8 +96,12 @@ fi
 echo "Pushing extension IDs..."
 scp ${TEMP_FOLDER}/extension.ids sharc.shef.ac.uk:$TARGETDIR/
 
-NO_BATCH_JOBS=$(((NO_IDS+1)/75000+1))
-JOBS_PER_BATCH=$((NO_IDS/NO_BATCH_JOBS+1))
+if [[ ! -v MAX_TASKS ]]; then
+  MAX_TASKS=NO_IDS
+fi
+
+NO_BATCH_JOBS=$(((MAX_TASKS+1)/75000+1))
+JOBS_PER_BATCH=$((MAX_TASKS/NO_BATCH_JOBS+1))
 
 for run_no in $(seq 1 $NO_BATCH_JOBS); do
   FIRST_ID=$(((run_no-1) * $JOBS_PER_BATCH + 1))
@@ -100,5 +114,5 @@ for run_no in $(seq 1 $NO_BATCH_JOBS); do
     -wd "$TARGETDIR" \
     -o "$TARGETDIR/logs" \
     ${SGE_EXTRA_ARGS} \
-    "$TARGETDIR/create-db.sge" -a "$REMOTE_ARCHIVE" -e "${TARGETDIR}/extension.ids" -N $NO_IDS ${PY_EXTRA_ARGS})
+    "$TARGETDIR/create-db.sge" -a "$REMOTE_ARCHIVE" -e "${TARGETDIR}/extension.ids" -N $MAX_TASKS ${PY_EXTRA_ARGS})
 done

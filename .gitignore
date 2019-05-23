@@ -68,3 +68,6 @@ archive
 .ropeproject
 ExtensionCrawler.img
 ExtensionCrawler-cdnjs.img
+
+.idea
+venv
