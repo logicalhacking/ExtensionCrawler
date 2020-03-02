@@ -23,7 +23,7 @@ import sys
 import configparser
 
 import MySQLdb
-import _mysql_exceptions
+import MySQLdb._exceptions
 
 import ExtensionCrawler.config as config
 from ExtensionCrawler.util import log_info, log_error, log_warning
@@ -131,7 +131,7 @@ class MysqlBackend:
             try:
                 self._create_conn()
                 return f()
-            except _mysql_exceptions.OperationalError as e:
+            except MySQLdb._exceptions.OperationalError as e:
                 last_exception = e
 
                 try:
