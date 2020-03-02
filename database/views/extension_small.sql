@@ -27,7 +27,7 @@
 /*!50001 SET collation_connection      = utf8_general_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`writer`@`%` SQL SECURITY DEFINER */
-/*!50001 VIEW `extension_small` AS select `extension`.`extid` AS `extid`,`extension`.`date` AS `date`,`extension`.`name` AS `name`,`extension`.`version` AS `version`,`extension`.`description` AS `description`,`extension`.`downloads` AS `downloads`,`extension`.`rating` AS `rating`,`extension`.`ratingcount` AS `ratingcount`,`extension`.`fulldescription` AS `fulldescription`,`extension`.`developer` AS `developer`,`extension`.`itemcategory` AS `itemcategory`,`extension`.`crx_etag` AS `crx_etag`,`extension`.`lastupdated` AS `lastupdated` from `extension` where `extension`.`extid` like 'aa%' */;
+/*!50001 VIEW `extension_small` AS select `extension`.`extid` AS `extid`,`extension`.`date` AS `date`,`extension`.`name` AS `name`,`extension`.`version` AS `version`,`extension`.`description` AS `description`,`extension`.`downloads` AS `downloads`,`extension`.`rating` AS `rating`,`extension`.`ratingcount` AS `ratingcount`,`extension`.`fulldescription` AS `fulldescription`,`extensions`.`extension`.`offeredby` AS `offeredby`, `extension`.`developer` AS `developer`,`extension`.`itemcategory` AS `itemcategory`,`extension`.`crx_etag` AS `crx_etag`,`extension`.`lastupdated` AS `lastupdated` from `extension` where `extension`.`extid` like 'aa%' */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;

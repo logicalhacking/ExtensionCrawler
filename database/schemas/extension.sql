@@ -30,6 +30,7 @@ CREATE TABLE `extension` (
   `rating` double DEFAULT NULL,
   `ratingcount` int(11) DEFAULT NULL,
   `fulldescription` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `offeredby` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `developer` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `itemcategory` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `crx_etag` varchar(44) COLLATE utf8mb4_unicode_ci DEFAULT NULL,

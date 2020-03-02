@@ -146,8 +146,13 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
             full_description = str(
                 description_parent.parent) if description_parent else None
 
-            developer_parent = doc.find(
+            offeredby_parent = doc.find(
                 class_=lambda cls: cls and "e-f-Me" in cls)
+            offeredby = "".join([str(x) for x in offeredby_parent.contents
+                                 ]) if offeredby_parent else None
+
+            developer_parent = doc.find(
+                class_=lambda cls: cls and "C-b-p-rc-D-J" in cls)
             developer = "".join([str(x) for x in developer_parent.contents
                                  ]) if developer_parent else None
 
@@ -163,6 +168,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
                 contents)
             itemcategory = match.group(1) if match else None
 
+
             con.insert(
                 "extension",
                 extid=ext_id,
@@ -174,6 +180,7 @@ def parse_and_insert_overview(ext_id, date, datepath, con):
                 rating=rating,
                 ratingcount=rating_count,
                 fulldescription=full_description,
+                offeredby=offeredby,
                 developer=developer,
                 itemcategory=itemcategory,
                 crx_etag=etag,
