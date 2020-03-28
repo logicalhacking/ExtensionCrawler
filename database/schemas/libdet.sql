@@ -40,7 +40,7 @@ CREATE TABLE `libdet` (
   `evidence_text` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `mimetype_detail` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `mimetype_magic` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `last_modified` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `last_modified` datetime NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`md5`,`typ`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci `PAGE_COMPRESSED`='ON';
 /*!40101 SET character_set_client = @saved_cs_client */;

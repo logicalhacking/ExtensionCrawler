@@ -22,15 +22,15 @@ DROP TABLE IF EXISTS `support`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `support` (
   `extid` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `date` timestamp(6) NOT NULL,
+  `date` datetime(6) NOT NULL,
   `author` varchar(98) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `commentdate` timestamp NOT NULL,
+  `commentdate` datetime NOT NULL,
   `displayname` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `title` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `language` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `shortauthor` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `commentmd5` varbinary(16) DEFAULT NULL,
-  `last_modified` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `last_modified` datetime NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`extid`,`date`,`author`,`commentdate`) KEY_BLOCK_SIZE=8
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci `PAGE_COMPRESSED`='ON';
 /*!40101 SET character_set_client = @saved_cs_client */;

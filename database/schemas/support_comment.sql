@@ -23,7 +23,7 @@ DROP TABLE IF EXISTS `support_comment`;
 CREATE TABLE `support_comment` (
   `commentmd5` varbinary(16) NOT NULL,
   `comment` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `last_modified` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `last_modified` datetime NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`commentmd5`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci `PAGE_COMPRESSED`='ON';
 /*!40101 SET character_set_client = @saved_cs_client */;

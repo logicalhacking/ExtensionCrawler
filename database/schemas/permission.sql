@@ -24,7 +24,7 @@ CREATE TABLE `permission` (
   `crx_etag` varchar(44) COLLATE utf8mb4_unicode_ci NOT NULL,
   `permission_md5` varbinary(16) NOT NULL,
   `permission` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `last_modified` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `last_modified` datetime NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`crx_etag`,`permission_md5`) KEY_BLOCK_SIZE=8
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci `PAGE_COMPRESSED`='ON';
 /*!40101 SET character_set_client = @saved_cs_client */;

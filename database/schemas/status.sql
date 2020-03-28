@@ -22,11 +22,11 @@ DROP TABLE IF EXISTS `status`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `status` (
   `extid` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `date` timestamp(6) NOT NULL,
+  `date` datetime(6) NOT NULL,
   `crx_status` int(11) DEFAULT NULL,
   `overview_status` int(11) DEFAULT NULL,
   `overview_exception` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `last_modified` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `last_modified` datetime NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`extid`,`date`) KEY_BLOCK_SIZE=8
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci `PAGE_COMPRESSED`='ON';
 /*!40101 SET character_set_client = @saved_cs_client */;

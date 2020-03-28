@@ -22,7 +22,7 @@ DROP TABLE IF EXISTS `extension`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `extension` (
   `extid` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `date` timestamp(6) NOT NULL,
+  `date` datetime(6) NOT NULL,
   `name` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `version` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `description` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE `extension` (
   `itemcategory` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `crx_etag` varchar(44) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `lastupdated` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `last_modified` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `last_modified` datetime NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`extid`,`date`) KEY_BLOCK_SIZE=8,
   KEY `extension_crx_etag` (`crx_etag`),
   KEY `extension_date` (`date`),

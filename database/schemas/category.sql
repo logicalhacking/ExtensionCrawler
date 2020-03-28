@@ -22,10 +22,10 @@ DROP TABLE IF EXISTS `category`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `category` (
   `extid` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `date` timestamp(6) NOT NULL,
+  `date` datetime(6) NOT NULL,
   `category_md5` varbinary(16) NOT NULL,
   `category` text /*!100301 COMPRESSED*/ COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
-  `last_modified` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `last_modified` datetime NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`extid`,`date`,`category_md5`) KEY_BLOCK_SIZE=8
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci `PAGE_COMPRESSED`='ON';
 /*!40101 SET character_set_client = @saved_cs_client */;
