@@ -27,7 +27,7 @@
 /*!50001 SET collation_connection      = utf8_general_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`writer`@`%` SQL SECURITY DEFINER */
-/*!50001 VIEW `extension_most_recent` AS select `e3`.`extid` AS `extid`,`e3`.`date` AS `date`,`e3`.`name` AS `name`,`e3`.`version` AS `version`,`e3`.`description` AS `description`,`e3`.`downloads` AS `downloads`,`e3`.`rating` AS `rating`,`e3`.`ratingcount` AS `ratingcount`,`e3`.`fulldescription` AS `fulldescription`,`e3`.`developer` AS `developer`,`e3`.`itemcategory` AS `itemcategory`,`e3`.`crx_etag` AS `crx_etag`,`e3`.`lastupdated` AS `lastupdated` from (((select `e1`.`extid` AS `extid`,max(`e1`.`date`) AS `date` from `extensions`.`extension` `e1` group by `e1`.`extid`)) `e2` join `extensions`.`extension` `e3` on(`e2`.`extid` = `e3`.`extid` and `e2`.`date` = `e3`.`date`)) */;
+/*!50001 VIEW `extension_most_recent` AS select `e3`.`extid` AS `extid`,`e3`.`date` AS `date`,`e3`.`name` AS `name`,`e3`.`version` AS `version`,`e3`.`description` AS `description`,`e3`.`downloads` AS `downloads`,`e3`.`rating` AS `rating`,`e3`.`ratingcount` AS `ratingcount`,`e3`.`fulldescription` AS `fulldescription`,`e3`.`offeredby` AS `offeredby`,`e3`.`developer` AS `developer`,`e3`.`itemcategory` AS `itemcategory`,`e3`.`crx_etag` AS `crx_etag`,`e3`.`lastupdated` AS `lastupdated` from (((select `e1`.`extid` AS `extid`,max(`e1`.`date`) AS `date` from `extensions`.`extension` `e1` group by `e1`.`extid`)) `e2` join `extensions`.`extension` `e3` on(`e2`.`extid` = `e3`.`extid` and `e2`.`date` = `e3`.`date`)) */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
