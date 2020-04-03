@@ -13,7 +13,7 @@ set autoscale x
 set xrange [time(0) - 7*24*60*60:]
 
 set ytics
-set yrange [0:300000]
+set yrange [0:400000]
 set ylabel "Parallel Downloads"
 set ytics 25000
 set mytics 2
@@ -85,7 +85,7 @@ set format x "%Y-%m-%d"
 set xrange ["2018-05-01":*]
 
 
-set yrange [150000:300000]
+set yrange [150000:400000]
 set ylabel "Parallel Downloads"
 set y2range [2750:4500]
 
